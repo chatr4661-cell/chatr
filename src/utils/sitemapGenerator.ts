@@ -215,14 +215,32 @@ export const ROBOTS_DISALLOW_PATTERNS = [
 ];
 
 export const generateRobotsTxt = (): string => {
+  // Safe prefix formatting: prevent '/chat' from blocking '/chatr', and '/auth' from blocking '/authors'
+  const formatDisallow = (p: string): string[] => {
+    if (p === '/chat') {
+      return ['Disallow: /chat/', 'Disallow: /chat$'];
+    }
+    if (p === '/auth') {
+      return ['Disallow: /auth/', 'Disallow: /auth$'];
+    }
+    return [`Disallow: ${p}`];
+  };
+
+  const disallowRules = ROBOTS_DISALLOW.flatMap(formatDisallow);
+
   const lines: string[] = [
     '# CHATR robots.txt — generated from src/config/seo.ts. Do not edit by hand.',
     '',
     'User-agent: *',
     'Allow: /',
+    '# Explicitly allow public marketing and programmatic SEO hubs',
+    'Allow: /chatr/',
+    'Allow: /chatr$',
+    'Allow: /chatr',
+    'Allow: /authors',
     '',
     '# Private, authenticated, transactional and utility routes',
-    ...ROBOTS_DISALLOW.map((path) => `Disallow: ${path}`),
+    ...disallowRules,
     '',
     '# Action / duplicate-parameter URLs',
     ...ROBOTS_DISALLOW_PATTERNS.map((pattern) => `Disallow: ${pattern}`),
@@ -234,7 +252,9 @@ export const generateRobotsTxt = (): string => {
     lines.push(`User-agent: ${policy.userAgent}`);
     lines.push(policy.allow ? 'Allow: /' : 'Disallow: /');
     if (policy.allow) {
-      for (const path of ROBOTS_DISALLOW) lines.push(`Disallow: ${path}`);
+      lines.push('Allow: /chatr/');
+      lines.push('Allow: /chatr$', 'Allow: /chatr', 'Allow: /authors');
+      for (const rule of disallowRules) lines.push(rule);
     }
     lines.push('');
   }

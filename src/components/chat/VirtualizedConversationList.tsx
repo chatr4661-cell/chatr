@@ -256,6 +256,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           is_community: conv.is_community,
           community_description: conv.community_description,
           updated_at: conv.lastmessagetime || new Date().toISOString(),
+          unread_count: conv.unread_count || 0,
           last_message: conv.lastmessage ? {
             content: conv.lastmessage,
             created_at: conv.lastmessagetime,
