@@ -17,9 +17,9 @@ export const PRODUCTION_ORIGIN = 'https://chatr.chat';
 export const SITE_NAME = 'Chatr+';
 export const ORGANIZATION_NAME = 'Talentxcel Services Pvt Ltd';
 
-export const DEFAULT_TITLE = 'AI Messaging App with a Universal Inbox — Chatr';
+export const DEFAULT_TITLE = 'Chatr App — Free AI Messaging, Video Calls & Super App | chatr.chat';
 export const DEFAULT_DESCRIPTION =
-  'Chatr is an AI-powered messaging app and universal inbox: read Gmail, Outlook, WhatsApp Business, Slack and Teams in one place, with AI summaries, drafted replies and agents. Sign in with your phone number.';
+  'Chatr is India\'s fast, secure AI messaging & video calling app. Enjoy live call translation, universal inbox for WhatsApp & Gmail, and AI assistant on Android, iOS & Web.';
 
 /** Real asset committed in /public. */
 export const DEFAULT_OG_IMAGE = '/chatr-logo.png';

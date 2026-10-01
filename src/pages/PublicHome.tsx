@@ -124,10 +124,19 @@ const PublicHome = () => {
       {
         '@type': 'WebSite',
         '@id': `${PRODUCTION_ORIGIN}/#website`,
-        name: SITE_NAME,
+        name: 'Chatr',
+        alternateName: ['Chatr+', 'Chatr App', 'chatr.chat'],
         url: PRODUCTION_ORIGIN,
         inLanguage: 'en-IN',
         publisher: { '@id': `${PRODUCTION_ORIGIN}/#organization` },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${PRODUCTION_ORIGIN}/search?q={search_term_string}`,
+          },
+          'query-input': 'required name=search_term_string',
+        },
       },
       {
         '@type': 'WebApplication',
