@@ -49,7 +49,7 @@ export const exchangeFirebaseSession = async (params: {
 
   const sendRequest = async (payload: Record<string, unknown>): Promise<Response> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 6000);
     try {
       return await fetch(endpoint, {
         method: 'POST',
@@ -119,6 +119,14 @@ export const exchangeFirebaseSession = async (params: {
   }
 
   await setSessionFromTokens(data.session.access_token, data.session.refresh_token);
+
+  // Directly mirror session to localStorage for zero-delay persistence across all surface listeners
+  try {
+    const storageKey = 'sb-nuuuqazaoaozgblmvkzn-auth-token';
+    localStorage.setItem(storageKey, JSON.stringify(data.session));
+  } catch (e) {
+    console.warn('[SessionManager] Direct storage write skipped:', e);
+  }
 };
 
 /**

@@ -76,19 +76,13 @@ const Auth = () => {
             
             const isAdmin = roles?.some(r => r.role === "admin");
             
-            if (profile.onboarding_completed) {
+            if (profile.onboarding_completed || profile.username || profile.phone_number) {
               const redirectPath = sessionStorage.getItem('auth_redirect');
               sessionStorage.removeItem('auth_redirect');
               
-             console.log('[AUTH] User signed in:', profile.username || profile.email);
+              console.log('[AUTH] User signed in:', profile.username || profile.email);
               
-              if (redirectPath) {
-                navigate(redirectPath, { replace: true });
-              } else if (isAdmin) {
-                navigate('/admin', { replace: true });
-              } else {
-                navigate('/', { replace: true });
-              }
+              window.location.href = redirectPath || (isAdmin ? '/admin' : '/');
               return;
             }
           }
@@ -114,12 +108,12 @@ const Auth = () => {
             
             const { data: profile } = await supabase
               .from('profiles')
-              .select('onboarding_completed')
+              .select('onboarding_completed, username, phone_number')
               .eq('id', deviceSession.user_id)
-              .single();
+              .maybeSingle();
             
-            if (profile?.onboarding_completed) {
-              navigate('/', { replace: true });
+            if (profile?.onboarding_completed || profile?.username || profile?.phone_number) {
+              window.location.href = '/';
               return;
             }
           }
@@ -137,7 +131,7 @@ const Auth = () => {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
         setUserId(session.user.id);
         
         setTimeout(async () => {
@@ -151,7 +145,7 @@ const Auth = () => {
             const redirectPath = sessionStorage.getItem('auth_redirect');
             sessionStorage.removeItem('auth_redirect');
             console.log('[AUTH] Welcome back');
-            navigate(redirectPath || '/', { replace: true });
+            window.location.href = redirectPath || '/';
           } else {
             console.log('[AUTH] New user - complete profile');
           }

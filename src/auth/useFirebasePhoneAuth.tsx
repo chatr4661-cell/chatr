@@ -263,14 +263,18 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
           setLoading(false);
           return false;
         }
-        // Step 1: Verify OTP with Firebase web SDK with 8s timeout to prevent hanging
+        // Step 1: Verify OTP with Firebase web SDK with 4s timeout to prevent hanging
         try {
           const confirmPromise = confirmationResultRef.current.confirm(otp);
           const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Firebase verification timed out')), 8000)
+            setTimeout(() => reject(new Error('Firebase verification timed out')), 4000)
           );
           const result = await Promise.race([confirmPromise, timeoutPromise]);
-          idToken = await result.user.getIdToken(true);
+          const tokenPromise = result.user.getIdToken(false);
+          const tokenTimeout = new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error('Token timed out')), 3000)
+          );
+          idToken = await Promise.race([tokenPromise, tokenTimeout]);
         } catch (firebaseErr: any) {
           console.warn('[Firebase confirm notice]:', firebaseErr);
           const errCode = firebaseErr?.code || firebaseErr?.message || '';
@@ -297,13 +301,11 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
         return false;
       }
 
-      // Step 3: Register this device against the shared device_sessions table.
+      // Step 3: Register this device against the shared device_sessions table (non-blocking).
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await registerCurrentDevice({ userId: user.id });
-
-          // Step 4: Attribute a stored invite code (?ref=) to this user.
+          void registerCurrentDevice({ userId: user.id });
           void claimStoredReferral(user.id);
         }
       } catch (deviceErr) {
