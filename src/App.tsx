@@ -20,6 +20,7 @@ import { VoicePlayerProvider } from "./voice/VoicePlayerContext";
 import { MiniPlayer } from "./components/voice/MiniPlayer";
 import { VoiceAutoReadListener } from "./components/voice/VoiceAutoReadListener";
 import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
+import { AcquisitionTracker } from "./components/seo/AcquisitionTracker";
 
 // ============================================
 // CRITICAL PAGES - Eagerly loaded for instant navigation
@@ -182,6 +183,7 @@ const App = () => {
             <VoiceAutoReadListener />
             <MiniPlayer />
             <FeatureEngagementTracker />
+            <AcquisitionTracker />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
