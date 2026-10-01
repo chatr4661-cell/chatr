@@ -147,13 +147,13 @@ const Auth = () => {
             .eq('id', session.user.id)
             .maybeSingle();
           
-          if (profile?.onboarding_completed) {
+          if (profile?.onboarding_completed || profile?.username || profile?.phone_number) {
             const redirectPath = sessionStorage.getItem('auth_redirect');
             sessionStorage.removeItem('auth_redirect');
-           console.log('[AUTH] Welcome back');
+            console.log('[AUTH] Welcome back');
             navigate(redirectPath || '/', { replace: true });
           } else {
-           console.log('[AUTH] New user - complete profile');
+            console.log('[AUTH] New user - complete profile');
           }
         }, 0);
       }

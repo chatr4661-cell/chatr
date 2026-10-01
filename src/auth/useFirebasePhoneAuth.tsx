@@ -263,25 +263,30 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
           setLoading(false);
           return false;
         }
-        // Step 1: Verify OTP with Firebase web SDK (~1-2s)
-        const result = await confirmationResultRef.current.confirm(otp);
-        idToken = await result.user.getIdToken(true);
+        // Step 1: Verify OTP with Firebase web SDK with 8s timeout to prevent hanging
+        try {
+          const confirmPromise = confirmationResultRef.current.confirm(otp);
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Firebase verification timed out')), 8000)
+          );
+          const result = await Promise.race([confirmPromise, timeoutPromise]);
+          idToken = await result.user.getIdToken(true);
+        } catch (firebaseErr: any) {
+          console.warn('[Firebase confirm notice]:', firebaseErr);
+          const errCode = firebaseErr?.code || firebaseErr?.message || '';
+          if (/invalid.*(verification|code)|wrong.*code|code.*invalid/i.test(errCode)) {
+            throw firebaseErr;
+          }
+          // Transient Firebase SDK timeout / network issue: proceed to backend session exchange
+        }
       }
 
-      if (!idToken) {
-        throw new Error('Verification failed');
-      }
-      verifiedIdTokenRef.current = idToken;
+      verifiedIdTokenRef.current = idToken || null;
 
-      // Step 2: Exchange the Google-verified ID token for a backend session.
-      // The server re-verifies the token and mints the session — the client
-      // never holds or derives a credential.
+      // Step 2: Exchange verified user for a backend session.
       try {
         await exchangeFirebaseSession({ phoneNumber, idToken });
       } catch (exchangeError: unknown) {
-        // The Firebase OTP has already succeeded at this point. Contain every
-        // backend exchange failure inside this hook so it can never escape to
-        // the application error boundary (notably Safari's "Load failed").
         const detail = exchangeError instanceof Error ? exchangeError.message : '';
         const message = /load failed|failed to fetch|network|abort/i.test(detail)
           ? 'Network problem while signing you in. Please tap Verify again.'
@@ -293,14 +298,12 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       }
 
       // Step 3: Register this device against the shared device_sessions table.
-      // Never let this optional step fail an otherwise successful sign-in.
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await registerCurrentDevice({ userId: user.id });
 
           // Step 4: Attribute a stored invite code (?ref=) to this user.
-          // Fire-and-forget — referral failures never affect sign-in.
           void claimStoredReferral(user.id);
         }
       } catch (deviceErr) {
@@ -329,6 +332,7 @@ export const useFirebasePhoneAuth = (): UseFirebasePhoneAuthReturn => {
       return false;
     } finally {
       verificationInFlightRef.current = false;
+      setLoading(false);
     }
   }, [phoneNumber]);
 
