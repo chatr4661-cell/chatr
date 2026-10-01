@@ -13,6 +13,8 @@ import { BiometricLogin } from '@/components/BiometricLogin';
 import { AuthLoadingSkeleton } from '@/components/ui/PremiumEmptyStates';
 import { AppleCard } from '@/components/ui/AppleCard';
 import { motion } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
+import { ChatrLandingPage } from './landing/ChatrLandingPage';
 
 const Auth = () => {
   const { toast } = useToast();
@@ -162,6 +164,34 @@ const Auth = () => {
 
   if (loading) {
     return <AuthLoadingSkeleton />;
+  }
+
+  // On web/desktop, render the editorial B2C landing page with Auth Modal open
+  if (!Capacitor.isNativePlatform()) {
+    return (
+      <>
+        <ChatrLandingPage initialAuthOpen={true} />
+        {userId && (
+          <OnboardingDialog
+            isOpen={onboarding.isOpen}
+            userId={userId}
+            onComplete={async () => {
+              await onboarding.completeOnboarding();
+              const redirectPath = sessionStorage.getItem('auth_redirect');
+              sessionStorage.removeItem('auth_redirect');
+              navigate(redirectPath || '/', { replace: true });
+            }}
+            onSkip={async () => {
+              toast({
+                title: "Complete Your Profile",
+                description: "Please fill in your profile to continue",
+                variant: "destructive",
+              });
+            }}
+          />
+        )}
+      </>
+    );
   }
 
   return (
