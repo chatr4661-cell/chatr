@@ -10,11 +10,23 @@
  */
 
 import { ingestGscTelemetry, type IngestionResult } from './gsc-ingestion';
-import { analyzeSearchTelemetry, type TelemetryReport, type StrikingDistanceOpportunity } from './gsc-analyzer';
+import {
+  analyzeSearchTelemetry,
+  classifyQueryIntent,
+  evaluateSampleConfidence,
+  type TelemetryReport,
+  type StrikingDistanceOpportunity,
+  type QueryIntentCategory,
+  type AutomationEligibility,
+  type SampleConfidenceLevel
+} from './gsc-analyzer';
 
 export interface OptimizationDirective {
   type: 'STRIKING_DISTANCE_BOOST' | 'SNIPPET_CTR_REWRITE' | 'CANNIBALIZATION_CONSOLIDATION' | 'NEW_DEMAND_DISCOVERY';
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  priority: 'HIGH' | 'MEDIUM' | 'LOW' | 'OBSERVATION';
+  intent: QueryIntentCategory;
+  automation: AutomationEligibility;
+  confidence: SampleConfidenceLevel;
   targetQuery: string;
   targetPage: string;
   currentMetrics: {
@@ -43,11 +55,16 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
 
   const directives: OptimizationDirective[] = [];
 
-  // Directive 1: Striking Distance Boosts (Positions 4.0 - 20.0 with high impressions)
+  // Directive 1: Striking Distance Boosts (Positions 3.5 - 20.0)
   for (const opp of report.strikingDistanceOpportunities) {
+    const isEligible = opp.intent.automation === 'eligible' && opp.sampleConfidence.eligibleForOptimization;
+
     directives.push({
       type: 'STRIKING_DISTANCE_BOOST',
-      priority: opp.impressions >= 1000 ? 'HIGH' : 'MEDIUM',
+      priority: !isEligible ? 'OBSERVATION' : opp.impressions >= 100 ? 'HIGH' : 'MEDIUM',
+      intent: opp.intent.intent,
+      automation: opp.intent.automation,
+      confidence: opp.sampleConfidence.level,
       targetQuery: opp.query,
       targetPage: opp.page,
       currentMetrics: {
@@ -56,16 +73,23 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
         position: opp.position,
         ctr: opp.impressions > 0 ? opp.currentClicks / opp.impressions : 0
       },
-      recommendedAction: `Enrich page body with specific answers to query "${opp.query}". Add targeted FAQ structured data in JSON-LD.`,
-      rationale: opp.experimentalEstimatedGain.label
+      recommendedAction: !isEligible
+        ? `[OBSERVE ONLY] Query "${opp.query}" has ${opp.intent.intent.toUpperCase()} intent (${opp.intent.rationale}). Do NOT auto-modify page body. Monitor search stability.`
+        : `Enrich page body with specific answers to query "${opp.query}". Add targeted FAQ structured data in JSON-LD.`,
+      rationale: `${opp.experimentalEstimatedGain.label} [Confidence: ${opp.sampleConfidence.level}, Intent: ${opp.intent.intent}]`
     });
   }
 
   // Directive 2: Snippet CTR Rewrites (Top 10 positions with CTR < 2.5%)
   for (const low of report.lowCtrSnippets) {
+    const isEligible = low.intent.automation === 'eligible' && low.sampleConfidence.eligibleForOptimization;
+
     directives.push({
       type: 'SNIPPET_CTR_REWRITE',
-      priority: 'HIGH',
+      priority: !isEligible ? 'OBSERVATION' : 'HIGH',
+      intent: low.intent.intent,
+      automation: low.intent.automation,
+      confidence: low.sampleConfidence.level,
       targetQuery: low.query,
       targetPage: low.page,
       currentMetrics: {
@@ -74,16 +98,24 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
         position: low.position,
         ctr: low.ctr
       },
-      recommendedAction: low.recommendedAction,
-      rationale: `Ranking at position ${low.position.toFixed(1)} with ${low.impressions.toLocaleString()} impressions but achieving only ${low.ctr}% CTR due to unaligned title, meta snippet, or intent mismatch.`
+      recommendedAction: !isEligible
+        ? `[OBSERVE ONLY] Query "${low.query}" on ${low.page} has ${low.intent.intent.toUpperCase()} intent (${low.intent.rationale}). Do NOT rewrite snippet automatically.`
+        : `Rewrite Title tag and Meta description on ${low.page} to address explicit search intent "${low.query}".`,
+      rationale: `Ranking at position ${low.position.toFixed(1)} with ${low.impressions.toLocaleString()} impressions but achieving only ${low.ctr}% CTR [Confidence: ${low.sampleConfidence.level}, Intent: ${low.intent.intent}].`
     });
   }
 
   // Directive 3: Cannibalization Consolidations
   for (const can of report.cannibalizationRisks) {
+    const queryIntent = classifyQueryIntent(can.query);
+    const sampleConf = evaluateSampleConfidence(can.totalImpressions);
+
     directives.push({
       type: 'CANNIBALIZATION_CONSOLIDATION',
       priority: can.totalImpressions >= 1000 ? 'HIGH' : 'MEDIUM',
+      intent: queryIntent.intent,
+      automation: 'eligible',
+      confidence: sampleConf.level,
       targetQuery: can.query,
       targetPage: can.competingPages[0],
       currentMetrics: {
@@ -93,7 +125,7 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
         ctr: 0
       },
       recommendedAction: `Consolidate internal linking and canonical directives. Direct ranking signals to primary URL "${can.competingPages[0]}" over competing URLs: ${can.competingPages.slice(1).join(', ')}`,
-      rationale: `Multiple pages are splitting ${can.totalImpressions.toLocaleString()} search impressions for query "${can.query}".`
+      rationale: `Multiple pages are splitting ${can.totalImpressions.toLocaleString()} search impressions for query "${can.query}". [Confidence: ${sampleConf.level}]`
     });
   }
 
