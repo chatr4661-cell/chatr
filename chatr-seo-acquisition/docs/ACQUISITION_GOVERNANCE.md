@@ -150,7 +150,7 @@ To prevent the Opportunity Engine from optimizing against altered or stale data,
   "metadata": {
     "retrievedAt": "2026-10-02T...",
     "source": "gsc_live_api",
-    "siteUrl": "https://chatr.chat/",
+    "siteUrl": "sc-domain:chatr.chat",
     "rowCount": 5000,
     "schemaVersion": 1,
     "sha256": "43d07d7207e1b9d1c6cec1ab61c9d8a0..."
@@ -171,7 +171,7 @@ To connect the live telemetry pipeline:
    - Generate and download an RS256 JSON key.
 2. **Search Console Permission**:
    - Open [Google Search Console](https://search.google.com/search-console).
-   - Navigate to property `https://chatr.chat/` (or `sc-domain:chatr.chat`).
+   - Navigate to Domain property `sc-domain:chatr.chat` (or URL-prefix `https://chatr.chat/`).
    - Settings ──► Users and permissions ──► Add User ──► Enter Service Account email ──► Permission: `Restricted` (or `Full`).
 3. **Credential Configuration**:
    - Option A: Set `GSC_CLIENT_EMAIL` and `GSC_PRIVATE_KEY` environment variables.
@@ -185,7 +185,7 @@ To connect the live telemetry pipeline:
    ```
    🔌 Authenticating with Google Search Console API...
    🔑 OAuth2 token successfully acquired.
-   📡 Querying Search Analytics API [property: https://chatr.chat/, target: 25000 rows]...
+   📡 Querying Search Analytics API [property: sc-domain:chatr.chat, target: 25000 rows]...
    ✅ LIVE TELEMETRY VERIFIED: Retrieved X real query records from Google Search Console.
    💾 Persisted production telemetry snapshot (SHA-256: ...) to: data/gsc-exports/telemetry-[date].json
    ```

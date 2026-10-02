@@ -75,7 +75,7 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
   console.log('📡 CHATR SEO — GOOGLE SEARCH CONSOLE LIVE OPERATIONAL VERIFIER');
   console.log('════════════════════════════════════════════════════════════════════════\n');
 
-  const siteUrl = process.env.GSC_SITE_URL || 'https://chatr.chat/';
+  const siteUrl = process.env.GSC_SITE_URL || 'sc-domain:chatr.chat';
   const rowLimit = parseConfiguredRowLimit();
   const credentials = loadServiceAccountCredentials(rootDir);
 

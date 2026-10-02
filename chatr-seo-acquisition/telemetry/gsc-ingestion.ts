@@ -298,7 +298,7 @@ export async function queryGscSearchAnalytics(
  */
 export async function ingestGscTelemetry(
   rootDir: string = process.cwd(),
-  customSiteUrl: string = process.env.GSC_SITE_URL || 'https://chatr.chat/'
+  customSiteUrl: string = process.env.GSC_SITE_URL || 'sc-domain:chatr.chat'
 ): Promise<IngestionResult> {
   const exportsDir = resolve(rootDir, 'chatr-seo-acquisition/data/gsc-exports');
   mkdirSync(exportsDir, { recursive: true });
