@@ -105,7 +105,7 @@ export const APPROVED_BUSINESSES: PublicBusinessRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-10-01T12:00:00Z',
       verifiedBy: 'Chatr Identity Trust Bureau',
-      evidenceHash: 'c7a4e69b820a1fefc35467dbb12f6b8c9d0e1a2f3b4c5d6e7f8a9b0c1d2e3f4a'
+      evidenceHash: '43d07d7207e1b9d1c6cec1ab61c9d8a0bba9b7e0cd7efe2e8793e3063e570620'
     }
   },
   {
@@ -125,7 +125,7 @@ export const APPROVED_BUSINESSES: PublicBusinessRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-10-01T12:00:00Z',
       verifiedBy: 'Chatr Health Verification Desk',
-      evidenceHash: 'f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2'
+      evidenceHash: 'a11612219261dcd626f6621dfca91c829ec8e2670516a2270c18ec1005694bb7'
     }
   },
   {
@@ -145,7 +145,7 @@ export const APPROVED_BUSINESSES: PublicBusinessRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-10-01T12:00:00Z',
       verifiedBy: 'Chatr Business Ops Compliance',
-      evidenceHash: 'a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8'
+      evidenceHash: 'cef2c7ea991fa2dced0c107de30d169cf975a7dba92b268c2ba74119f33f2183'
     }
   }
 ];
@@ -168,6 +168,7 @@ export const APPROVED_JOB_SCREENINGS: PublicJobScreeningRecord[] = [
     ],
     qualifications: ['Valid Driving License', 'Two-wheeler Vehicle', 'Smartphone with GPS'],
     typicalSalaryRange: '₹18,000 – ₹28,000 per month + incentives',
+    isLiveJobPosting: false,
     provenance: {
       sourceUrl: 'https://ncs.gov.in/job-roles/logistics-delivery-executive',
       sourceType: 'public_regulatory_filing',
@@ -177,7 +178,7 @@ export const APPROVED_JOB_SCREENINGS: PublicJobScreeningRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-04-01T12:00:00Z',
       verifiedBy: 'Chatr Talent Intelligence Group',
-      evidenceHash: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+      evidenceHash: '4dd487b8c3da1a836e9bcad0123844202ac98adf1e5b2d96e0a5b77fce7947b9'
     }
   },
   {
@@ -197,6 +198,7 @@ export const APPROVED_JOB_SCREENINGS: PublicJobScreeningRecord[] = [
     ],
     qualifications: ['Higher Secondary (10+2) or Graduate', 'Fluent in Hindi & English', 'Basic computer literacy'],
     typicalSalaryRange: '₹22,000 – ₹35,000 per month',
+    isLiveJobPosting: false,
     provenance: {
       sourceUrl: 'https://ncs.gov.in/job-roles/bpo-customer-care-associate',
       sourceType: 'public_regulatory_filing',
@@ -206,7 +208,7 @@ export const APPROVED_JOB_SCREENINGS: PublicJobScreeningRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-04-01T12:00:00Z',
       verifiedBy: 'Chatr Talent Intelligence Group',
-      evidenceHash: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
+      evidenceHash: '7d48704d54d0aba6258e2cfba61a1f1b2e941e260bbf0bdc951cc4291c8ef491'
     }
   },
   {
@@ -226,6 +228,7 @@ export const APPROVED_JOB_SCREENINGS: PublicJobScreeningRecord[] = [
     ],
     qualifications: ['Bachelor degree', '1+ years outbound SDR experience', 'Strong written & verbal communication'],
     typicalSalaryRange: '₹30,000 – ₹45,000 per month + commissions',
+    isLiveJobPosting: false,
     provenance: {
       sourceUrl: 'https://ncs.gov.in/job-roles/it-sales-development-representative',
       sourceType: 'public_regulatory_filing',
@@ -235,7 +238,7 @@ export const APPROVED_JOB_SCREENINGS: PublicJobScreeningRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-04-01T12:00:00Z',
       verifiedBy: 'Chatr Talent Intelligence Group',
-      evidenceHash: 'fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321'
+      evidenceHash: '45af7a5acd658466146376bc93a86ee15459f28cf48e6e52179f70e6cfaa602a'
     }
   }
 ];
@@ -263,7 +266,7 @@ export const APPROVED_LANGUAGE_PAIRS: PublicLanguagePairRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2028-01-01T00:00:00Z',
       verifiedBy: 'National Language Translation Mission (NLTM) Corpus',
-      evidenceHash: '778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566'
+      evidenceHash: 'e0673c08a9cc1fa6e2e6be6ff0d879c4a9e56e8902a200f6fe2f2370d83759b5'
     }
   },
   {
@@ -288,7 +291,7 @@ export const APPROVED_LANGUAGE_PAIRS: PublicLanguagePairRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2028-01-01T00:00:00Z',
       verifiedBy: 'National Language Translation Mission (NLTM) Corpus',
-      evidenceHash: '112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00'
+      evidenceHash: 'fd0c01db44e0da44b24a599e831a4e8f5152bf0801062ec883ed4fce287308f1'
     }
   },
   {
@@ -313,7 +316,7 @@ export const APPROVED_LANGUAGE_PAIRS: PublicLanguagePairRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2028-01-01T00:00:00Z',
       verifiedBy: 'National Language Translation Mission (NLTM) Corpus',
-      evidenceHash: '99887766554433221100ffeeddccbbaa99887766554433221100ffeeddccbbaa'
+      evidenceHash: '9da5ed0ccce15738a5e5efe6620aa81ca0bfe2c9ad1af91cbfa445b6e9859704'
     }
   }
 ];
@@ -355,7 +358,7 @@ export const APPROVED_COMPARISONS: PublicComparisonRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-01-01T00:00:00Z',
       verifiedBy: 'Chatr Privacy Architecture Audit Team',
-      evidenceHash: '3344556677889900aabbccddeeff11223344556677889900aabbccddeeff1122'
+      evidenceHash: 'e8df3c94f43ebefc1fdc96c0cd88bdcf355cb5eb4fc90b6ba2f235419ef12bb4'
     }
   },
   {
@@ -389,7 +392,7 @@ export const APPROVED_COMPARISONS: PublicComparisonRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2027-01-01T00:00:00Z',
       verifiedBy: 'Chatr Enterprise Strategy Audit',
-      evidenceHash: '5566778899aabbccddeeff00112233445566778899aabbccddeeff0011223344'
+      evidenceHash: 'bf909fd76bf08b5709ff2f8c0c325f1c33d36c47376a7bdc3973b853b163d2d0'
     }
   }
 ];
@@ -411,7 +414,7 @@ export const APPROVED_CITIES: PublicCityRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2030-01-01T00:00:00Z',
       verifiedBy: 'Census of India Linguistic Survey',
-      evidenceHash: 'aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899'
+      evidenceHash: '73b9180d4e50dea36bfcf6c695d9edb9977ed63c33f872c0138a958475466307'
     }
   },
   {
@@ -430,7 +433,7 @@ export const APPROVED_CITIES: PublicCityRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2030-01-01T00:00:00Z',
       verifiedBy: 'Census of India Linguistic Survey',
-      evidenceHash: 'bbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa'
+      evidenceHash: '5c9896343b8fd03ad28ca1be9858f47c6811a1286c9708f0ecac22141b00a735'
     }
   },
   {
@@ -449,7 +452,7 @@ export const APPROVED_CITIES: PublicCityRecord[] = [
       lastVerifiedAt: '2026-10-01T12:00:00Z',
       expiresAt: '2030-01-01T00:00:00Z',
       verifiedBy: 'Census of India Linguistic Survey',
-      evidenceHash: 'ccddeeff00112233445566778899aabbccddeeff00112233445566778899aabb'
+      evidenceHash: 'bbffdbbb938605911dd118b0f078a8415f4c2bfdfb772138ef92e161e905e081'
     }
   }
 ];

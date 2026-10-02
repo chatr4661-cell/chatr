@@ -12,39 +12,52 @@ export interface SchemaCheckResult {
 }
 
 export function checkStructuredData(schemaData: Record<string, unknown> | Array<Record<string, unknown>>): SchemaCheckResult {
-  const schemas = Array.isArray(schemaData) ? schemaData : [schemaData];
+  const rootSchemas = Array.isArray(schemaData) ? schemaData : [schemaData];
   const schemaTypesFound: string[] = [];
   const errors: string[] = [];
 
-  for (let i = 0; i < schemas.length; i++) {
-    const s = schemas[i];
+  for (let i = 0; i < rootSchemas.length; i++) {
+    const s = rootSchemas[i];
 
     if (!s['@context'] || typeof s['@context'] !== 'string' || !s['@context'].includes('schema.org')) {
       errors.push(`Schema #${i + 1} missing valid @context ('https://schema.org')`);
     }
 
-    if (!s['@type'] || typeof s['@type'] !== 'string') {
-      errors.push(`Schema #${i + 1} missing @type`);
-      continue;
-    }
-
-    schemaTypesFound.push(s['@type']);
-
-    // Check specific schema types
-    if (s['@type'] === 'JobPosting') {
-      if (!s['title']) errors.push('JobPosting missing required property: title');
-      if (!s['description']) errors.push('JobPosting missing required property: description');
-      if (!s['hiringOrganization']) errors.push('JobPosting missing required property: hiringOrganization');
-    }
-
-    if (s['@type'] === 'FAQPage') {
-      if (!Array.isArray(s['mainEntity']) || s['mainEntity'].length === 0) {
-        errors.push('FAQPage missing non-empty mainEntity array');
+    const itemsToCheck: Array<Record<string, unknown>> = [];
+    if (Array.isArray(s['@graph'])) {
+      for (const node of s['@graph']) {
+        if (typeof node === 'object' && node !== null) {
+          itemsToCheck.push(node as Record<string, unknown>);
+        }
       }
+    } else {
+      itemsToCheck.push(s);
     }
 
-    if (s['@type'] === 'LocalBusiness' || s['@type'] === 'Organization') {
-      if (!s['name']) errors.push(`${s['@type']} missing required property: name`);
+    for (const item of itemsToCheck) {
+      if (!item['@type'] || typeof item['@type'] !== 'string') {
+        errors.push(`Schema item missing @type`);
+        continue;
+      }
+
+      schemaTypesFound.push(item['@type']);
+
+      // Check specific schema types
+      if (item['@type'] === 'JobPosting') {
+        if (!item['title']) errors.push('JobPosting missing required property: title');
+        if (!item['description']) errors.push('JobPosting missing required property: description');
+        if (!item['hiringOrganization']) errors.push('JobPosting missing required property: hiringOrganization');
+      }
+
+      if (item['@type'] === 'FAQPage') {
+        if (!Array.isArray(item['mainEntity']) || item['mainEntity'].length === 0) {
+          errors.push('FAQPage missing non-empty mainEntity array');
+        }
+      }
+
+      if (item['@type'] === 'LocalBusiness' || item['@type'] === 'Organization') {
+        if (!item['name']) errors.push(`${item['@type']} missing required property: name`);
+      }
     }
   }
 

@@ -57,37 +57,85 @@ export function generateJobPages(): Array<{ candidate: PageCandidate; html: stri
 
     const bodyText = `${h1}. ${intro}. Job Role: ${j.role}. Industry Sector: ${j.industry}. Work Location: ${j.city}, India. Estimated Compensation: ${j.typicalSalaryRange}. Application Channel: Direct Chatr Verified Channel. Employers on Chatr use our built-in SI conversational assistant to conduct structured initial screening before scheduling final manager interviews. When applying for this position, candidates respond to the following qualifying questions: ${j.screeningQuestions.join(' ')}. Key Job Responsibilities: Candidates selected for the ${j.role} position in ${j.city} are responsible for daily operational deliverables including: ${j.responsibilities.join(' ')}. Required Candidate Qualifications: To qualify for immediate interview consideration in ${j.city}, applicants should meet the following benchmarks: ${j.qualifications.join(' ')}. How the Chatr Direct Screening Process Works: Chatr eliminates traditional resume black holes by enabling instant conversational hiring. Step 1: Tap Apply on Chatr below and sign in with your mobile phone number. Step 2: Chatr SI prompts you with screening questions and records your responses. Step 3: The hiring manager receives an organized candidate dossier with your responses. Step 4: If qualified, the employer conducts an audio/video interview directly through Chatr voice calling with crystal clear quality.`;
 
-    const schemaJson = {
-      '@context': 'https://schema.org',
-      '@type': 'JobPosting',
-      title: `${j.role} - ${j.city}`,
-      description: metaDescription,
-      datePosted: '2026-10-01',
-      validThrough: '2026-12-31',
-      employmentType: 'FULL_TIME',
-      hiringOrganization: {
-        '@type': 'Organization',
-        name: 'Chatr Hiring Partner Network',
-        sameAs: 'https://chatr.chat'
-      },
-      jobLocation: {
-        '@type': 'Place',
-        address: {
-          '@type': 'PostalAddress',
-          addressLocality: j.city,
-          addressCountry: 'IN'
+    const schemaJson = j.isLiveJobPosting
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'JobPosting',
+          title: `${j.role} - ${j.city}`,
+          description: metaDescription,
+          datePosted: '2026-10-01',
+          validThrough: '2026-12-31',
+          employmentType: 'FULL_TIME',
+          hiringOrganization: {
+            '@type': 'Organization',
+            name: 'Chatr Hiring Partner Network',
+            sameAs: 'https://chatr.chat'
+          },
+          jobLocation: {
+            '@type': 'Place',
+            address: {
+              '@type': 'PostalAddress',
+              addressLocality: j.city,
+              addressCountry: 'IN'
+            }
+          },
+          baseSalary: {
+            '@type': 'MonetaryAmount',
+            currency: 'INR',
+            value: {
+              '@type': 'QuantitativeValue',
+              value: j.typicalSalaryRange,
+              unitText: 'MONTH'
+            }
+          }
         }
-      },
-      baseSalary: {
-        '@type': 'MonetaryAmount',
-        currency: 'INR',
-        value: {
-          '@type': 'QuantitativeValue',
-          value: j.typicalSalaryRange,
-          unitText: 'MONTH'
-        }
-      }
-    };
+      : {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'TechArticle',
+              headline: `${j.role} in ${j.city} — Role Guide & Screening Overview`,
+              description: metaDescription,
+              url: canonicalUrl,
+              inLanguage: 'en-IN',
+              author: {
+                '@type': 'Organization',
+                name: 'Chatr Talent Intelligence Group',
+                url: 'https://chatr.chat'
+              },
+              publisher: {
+                '@type': 'Organization',
+                name: 'Chatr',
+                url: 'https://chatr.chat'
+              },
+              about: {
+                '@type': 'Occupation',
+                name: j.role,
+                occupationalCategory: j.industry,
+                estimatedSalary: {
+                  '@type': 'MonetaryAmount',
+                  currency: 'INR',
+                  value: {
+                    '@type': 'QuantitativeValue',
+                    value: j.typicalSalaryRange,
+                    unitText: 'MONTH'
+                  }
+                }
+              }
+            },
+            {
+              '@type': 'FAQPage',
+              mainEntity: j.screeningQuestions.map((q, idx) => ({
+                '@type': 'Question',
+                name: `What is screening question #${idx + 1} for ${j.role} applicants in ${j.city}?`,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: `Chatr automated SI asks: "${q}". Candidates respond directly via chat or voice in Chatr.`
+                }
+              }))
+            }
+          ]
+        };
 
     const candidate: PageCandidate = {
       slug,

@@ -66,6 +66,9 @@ function scanDirectory(dirPath: string, rootDir: string): Map<string, { sha256: 
   return map;
 }
 
+export const EXPECTED_BASELINE_COMMIT = '17e461cb';
+export const EXPECTED_BASELINE_MANIFEST_SHA256 = 'dc422c26ae7a4ad0f546673b198fdb8541a442e3651dbc56df82d9cd406d0b11';
+
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {
   const timestamp = new Date().toISOString();
   const baselinePath = resolve(rootDir, 'chatr-seo-acquisition/contracts/core-freeze-baseline.json');
@@ -79,11 +82,47 @@ export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeRep
       modifiedFiles: [],
       deletedFiles: [],
       unexpectedFiles: [],
-      statusMessage: `❌ CORE FREEZE GATE ERROR: Baseline manifest missing at ${baselinePath}. Run generate-freeze-baseline.ts first.`
+      statusMessage: `❌ CORE FREEZE GATE ERROR: Baseline manifest missing at ${baselinePath}. Cannot verify core freeze.`
     };
   }
 
-  const baseline: CoreFreezeBaseline = JSON.parse(readFileSync(baselinePath, 'utf8'));
+  // Cryptographic Trust Anchor Check: Validate the baseline manifest itself
+  const manifestBytes = readFileSync(baselinePath);
+  const actualManifestSha256 = createHash('sha256').update(manifestBytes).digest('hex');
+
+  if (actualManifestSha256 !== EXPECTED_BASELINE_MANIFEST_SHA256) {
+    return {
+      passed: false,
+      timestamp,
+      baselineCommit: 'TAMPERED',
+      totalBaselineFiles: 0,
+      modifiedFiles: [],
+      deletedFiles: [],
+      unexpectedFiles: [],
+      statusMessage: `❌ CORE FREEZE TRUST ANCHOR VIOLATION: Baseline manifest has been modified!\n` +
+        `   Expected SHA-256: ${EXPECTED_BASELINE_MANIFEST_SHA256}\n` +
+        `   Actual SHA-256:   ${actualManifestSha256}\n` +
+        `   The baseline manifest is cryptographically pinned and must never be altered during SEO workflows.`
+    };
+  }
+
+  const baseline: CoreFreezeBaseline = JSON.parse(manifestBytes.toString('utf8'));
+
+  if (baseline.baselineCommit !== EXPECTED_BASELINE_COMMIT) {
+    return {
+      passed: false,
+      timestamp,
+      baselineCommit: baseline.baselineCommit,
+      totalBaselineFiles: baseline.totalFilesTracked,
+      modifiedFiles: [],
+      deletedFiles: [],
+      unexpectedFiles: [],
+      statusMessage: `❌ CORE FREEZE TRUST ANCHOR VIOLATION: Baseline commit mismatch!\n` +
+        `   Expected Commit: ${EXPECTED_BASELINE_COMMIT}\n` +
+        `   Manifest Commit: ${baseline.baselineCommit}`
+    };
+  }
+
   const baselineFiles = baseline.files;
 
   // Scan current disk state across all frozen directories

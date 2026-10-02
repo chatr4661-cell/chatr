@@ -10,6 +10,7 @@
  */
 
 import type { ProvenanceMetadata } from '../data/approved-public-data';
+import { verifyRecordProvenance } from './provenance-verifier';
 
 export interface EvidenceRecord {
   entityType: 'business' | 'job' | 'guide' | 'translate' | 'compare' | 'city' | 'knowledge';
@@ -115,6 +116,22 @@ export function checkEvidence(record: EvidenceRecord, textContent: string): Evid
         passed: false,
         score: 40,
         reason: 'Evidence check failed: Missing authoritative auditor in verifiedBy.'
+      };
+    }
+
+    // Cryptographic RFC 8785 JCS + SHA-256 integrity verification
+    const provenanceAudit = verifyRecordProvenance(
+      record.dataPoints,
+      evidenceHash,
+      sourceUrl,
+      record.provenance.retrievedAt
+    );
+
+    if (!provenanceAudit.passed) {
+      return {
+        passed: false,
+        score: 20,
+        reason: `Evidence check failed: Cryptographic provenance integrity mismatch (${provenanceAudit.error}).`
       };
     }
   }

@@ -94,6 +94,14 @@ export function generateFreezeBaseline(rootDir: string = process.cwd(), commitHa
   };
 
   const outputPath = resolve(rootDir, 'chatr-seo-acquisition/contracts/core-freeze-baseline.json');
+  
+  if (existsSync(outputPath) && process.env.ALLOW_BASELINE_MUTATION !== '1') {
+    throw new Error(
+      '🔒 SECURITY ERROR: Baseline manifest core-freeze-baseline.json is cryptographically immutable.\n' +
+      '   To regenerate the baseline, set ALLOW_BASELINE_MUTATION=1 and pass --allow-baseline-overwrite-break-glass-only.'
+    );
+  }
+
   writeFileSync(outputPath, JSON.stringify(baseline, null, 2), 'utf8');
   console.log(`✅ Generated Core Freeze Baseline: ${totalCount} files cryptographically pinned to ${commitHash}.`);
   console.log(`   Saved manifest to: ${outputPath}`);
@@ -103,5 +111,9 @@ export function generateFreezeBaseline(rootDir: string = process.cwd(), commitHa
 
 // Direct CLI execution
 if (import.meta.url.endsWith(process.argv[1]) || process.argv[1]?.includes('generate-freeze-baseline')) {
+  if (!process.argv.includes('--allow-baseline-overwrite-break-glass-only')) {
+    console.error('🔒 Refused: Missing required --allow-baseline-overwrite-break-glass-only flag.');
+    process.exit(1);
+  }
   generateFreezeBaseline();
 }

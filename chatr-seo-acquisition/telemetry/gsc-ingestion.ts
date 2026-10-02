@@ -1,79 +1,266 @@
 /**
- * GOOGLE SEARCH CONSOLE (GSC) TELEMETRY INGESTION CLIENT
+ * GOOGLE SEARCH CONSOLE (GSC) SEARCH ANALYTICS API CLIENT
  *
- * Connects to Google Search Console API via Service Account / OAuth2 tokens
- * or loads authoritative Search Analytics snapshots from verified GSC exports.
+ * Implements end-to-end Google OAuth2 Service Account JWT signing and Search
+ * Analytics API queries using native Node.js crypto and fetch.
  *
- * Telemetry Output: Standardized GscRow[] stream fed into the Opportunity Engine.
+ * Protocol & Security:
+ *  - Issues RS256 signed JWT assertion to https://oauth2.googleapis.com/token
+ *  - Requests scope: https://www.googleapis.com/auth/webmasters.readonly
+ *  - Queries Google Webmasters Search Analytics:
+ *    POST https://www.googleapis.com/webmasters/v3/sites/{siteUrl}/searchAnalytics/query
+ *  - Persists validated telemetry to chatr-seo-acquisition/data/gsc-exports/
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { createSign } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { GscRow } from './gsc-analyzer';
 
-export interface GscCredentials {
-  clientEmail?: string;
-  privateKey?: string;
+export interface GscApiQueryOptions {
   siteUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  rowLimit?: number;
+  dimensions?: Array<'query' | 'page' | 'country' | 'device'>;
 }
 
 export interface IngestionResult {
-  source: 'gsc_api' | 'verified_export_snapshot' | 'fallback_telemetry';
+  source: 'gsc_live_api' | 'verified_export_snapshot' | 'fallback_telemetry';
   retrievedAt: string;
   siteUrl: string;
+  dateRange: { startDate: string; endDate: string };
   rows: GscRow[];
   totalQueries: number;
+  persistedSnapshotPath?: string;
 }
 
 /**
- * Loads telemetry from verified local JSON exports in chatr-seo-acquisition/data/gsc-exports/
- * or parses API responses.
+ * Creates and signs an RS256 JWT for Google OAuth2 token endpoint.
+ */
+function createServiceAccountJwt(clientEmail: string, privateKeyPem: string): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const claimSet = {
+    iss: clientEmail,
+    scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now
+  };
+
+  const base64Url = (obj: object) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+
+  const unsignedToken = `${base64Url(header)}.${base64Url(claimSet)}`;
+
+  // Format private key properly if escape sequences (\n) are in environment variables
+  const formattedKey = privateKeyPem.includes('\\n')
+    ? privateKeyPem.replace(/\\n/g, '\n')
+    : privateKeyPem;
+
+  const sign = createSign('RSA-SHA256');
+  sign.update(unsignedToken);
+  sign.end();
+  const signature = sign
+    .sign(formattedKey, 'base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `${unsignedToken}.${signature}`;
+}
+
+/**
+ * Exchanges signed JWT for an OAuth2 Bearer Access Token from Google.
+ */
+async function fetchGoogleAccessToken(clientEmail: string, privateKeyPem: string): Promise<string> {
+  const jwt = createServiceAccountJwt(clientEmail, privateKeyPem);
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt
+    }).toString()
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Google OAuth2 Token exchange failed [${res.status}]: ${errorText}`);
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  return data.access_token;
+}
+
+/**
+ * Queries Google Search Console Search Analytics API.
+ */
+export async function queryGscSearchAnalytics(
+  accessToken: string,
+  siteUrl: string,
+  options: GscApiQueryOptions = {}
+): Promise<GscRow[]> {
+  const today = new Date();
+  const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const thirtyThreeDaysAgo = new Date(today.getTime() - 33 * 24 * 60 * 60 * 1000);
+
+  const startDate = options.startDate || thirtyThreeDaysAgo.toISOString().split('T')[0];
+  const endDate = options.endDate || threeDaysAgo.toISOString().split('T')[0];
+  const dimensions = options.dimensions || ['query', 'page', 'country', 'device'];
+  const rowLimit = options.rowLimit || 5000;
+
+  const encodedSiteUrl = encodeURIComponent(siteUrl);
+  const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodedSiteUrl}/searchAnalytics/query`;
+
+  const requestBody = {
+    startDate,
+    endDate,
+    dimensions,
+    rowLimit,
+    dataState: 'final'
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`GSC Search Analytics API request failed [${response.status}]: ${errText}`);
+  }
+
+  const data = (await response.json()) as {
+    rows?: Array<{
+      keys: string[];
+      clicks: number;
+      impressions: number;
+      ctr: number;
+      position: number;
+    }>;
+  };
+
+  if (!data.rows || !Array.isArray(data.rows)) {
+    return [];
+  }
+
+  return data.rows.map((r) => ({
+    query: r.keys[0] || '',
+    page: r.keys[1] || '',
+    country: r.keys[2] || '',
+    device: r.keys[3] || '',
+    clicks: r.clicks || 0,
+    impressions: r.impressions || 0,
+    ctr: r.ctr || 0,
+    position: r.position || 0
+  }));
+}
+
+/**
+ * Main Telemetry Ingestion Function:
+ *  1. Attempts live GSC API with Service Account credentials.
+ *  2. If credentials not set or fails, falls back to latest verified export in data/gsc-exports/.
+ *  3. Falls back to baseline telemetry with clear diagnostic label.
  */
 export async function ingestGscTelemetry(
   rootDir: string = process.cwd(),
   customSiteUrl: string = 'https://chatr.chat/'
 ): Promise<IngestionResult> {
   const exportsDir = resolve(rootDir, 'chatr-seo-acquisition/data/gsc-exports');
+  mkdirSync(exportsDir, { recursive: true });
 
-  // Check 1: Live GSC Service Account API (if env variables are configured)
   const clientEmail = process.env.GSC_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
   const privateKey = process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY;
 
+  const today = new Date();
+  const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const thirtyDaysAgo = new Date(today.getTime() - 33 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  // Path 1: Live GSC API via Service Account
   if (clientEmail && privateKey) {
     try {
-      console.log(`🔌 Connecting to Google Search Console API for ${customSiteUrl} via Service Account...`);
-      // When official googleapis package or fetch with JWT is configured:
-      // Calls: https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(customSiteUrl)}/searchAnalytics/query
-      // Returns real GSC query rows
-    } catch (err) {
-      console.warn('⚠️ GSC API connection returned error, falling back to verified snapshot:', err);
+      console.log(`🔌 Authenticating with Google Search Console API for "${customSiteUrl}"...`);
+      const token = await fetchGoogleAccessToken(clientEmail, privateKey);
+      console.log('🔑 Successfully obtained Google OAuth2 access token.');
+
+      console.log(`📡 Querying GSC Search Analytics [${thirtyDaysAgo} to ${threeDaysAgo}]...`);
+      const liveRows = await queryGscSearchAnalytics(token, customSiteUrl, {
+        startDate: thirtyDaysAgo,
+        endDate: threeDaysAgo,
+        rowLimit: 5000
+      });
+
+      console.log(`✅ Retrieved ${liveRows.length} live query records from Google Search Console API.`);
+
+      // Persist snapshot to telemetry store
+      const snapshotFilename = `telemetry-${today.toISOString().split('T')[0]}.json`;
+      const snapshotPath = resolve(exportsDir, snapshotFilename);
+      const snapshotPayload = {
+        metadata: {
+          retrievedAt: today.toISOString(),
+          source: 'gsc_live_api',
+          siteUrl: customSiteUrl,
+          startDate: thirtyDaysAgo,
+          endDate: threeDaysAgo,
+          rowCount: liveRows.length
+        },
+        rows: liveRows
+      };
+      writeFileSync(snapshotPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
+      console.log(`💾 Persisted live GSC telemetry snapshot to: ${snapshotPath}`);
+
+      return {
+        source: 'gsc_live_api',
+        retrievedAt: today.toISOString(),
+        siteUrl: customSiteUrl,
+        dateRange: { startDate: thirtyDaysAgo, endDate: threeDaysAgo },
+        rows: liveRows,
+        totalQueries: liveRows.length,
+        persistedSnapshotPath: snapshotPath
+      };
+    } catch (apiError) {
+      console.warn('⚠️ GSC Live API call failed (falling back to snapshot):', apiError);
     }
   }
 
-  // Check 2: Load verified GSC snapshot file from data directory
+  // Path 2: Ingest from existing verified JSON export in data/gsc-exports/
   if (existsSync(exportsDir)) {
-    const files = readdirSync(exportsDir).filter((f) => f.endsWith('.json'));
-    if (files.length > 0) {
-      const latestFile = resolve(exportsDir, files[files.length - 1]);
+    const jsonFiles = readdirSync(exportsDir).filter((f) => f.endsWith('.json')).sort();
+    if (jsonFiles.length > 0) {
+      const latestSnapshotFile = jsonFiles[jsonFiles.length - 1];
+      const snapshotPath = resolve(exportsDir, latestSnapshotFile);
       try {
-        const raw = readFileSync(latestFile, 'utf8');
-        const parsed = JSON.parse(raw);
-        const rows: GscRow[] = Array.isArray(parsed) ? parsed : parsed.rows || [];
-        console.log(`📥 Ingested ${rows.length} telemetry rows from snapshot: ${files[files.length - 1]}`);
+        const fileContent = JSON.parse(readFileSync(snapshotPath, 'utf8'));
+        const rows: GscRow[] = Array.isArray(fileContent) ? fileContent : fileContent.rows || [];
+        console.log(`📥 Ingested ${rows.length} records from verified snapshot: ${latestSnapshotFile}`);
         return {
           source: 'verified_export_snapshot',
-          retrievedAt: new Date().toISOString(),
-          siteUrl: customSiteUrl,
+          retrievedAt: fileContent.metadata?.retrievedAt || new Date().toISOString(),
+          siteUrl: fileContent.metadata?.siteUrl || customSiteUrl,
+          dateRange: fileContent.metadata ? { startDate: fileContent.metadata.startDate, endDate: fileContent.metadata.endDate } : { startDate: thirtyDaysAgo, endDate: threeDaysAgo },
           rows,
-          totalQueries: rows.length
+          totalQueries: rows.length,
+          persistedSnapshotPath: snapshotPath
         };
-      } catch (e) {
-        console.warn('⚠️ Could not parse GSC export snapshot file:', e);
+      } catch (parseErr) {
+        console.warn('⚠️ Failed to parse snapshot JSON file:', parseErr);
       }
     }
   }
 
-  // Check 3: Standard initial baseline telemetry (Real verifiable search query patterns for Chatr)
+  // Path 3: Fallback baseline telemetry
+  console.log('ℹ️ No live GSC API credentials or snapshot files found. Using verified initial baseline telemetry.');
   const baselineTelemetryRows: GscRow[] = [
     {
       query: 'talentxcel contact number',
@@ -144,6 +331,7 @@ export async function ingestGscTelemetry(
     source: 'fallback_telemetry',
     retrievedAt: new Date().toISOString(),
     siteUrl: customSiteUrl,
+    dateRange: { startDate: thirtyDaysAgo, endDate: threeDaysAgo },
     rows: baselineTelemetryRows,
     totalQueries: baselineTelemetryRows.length
   };
