@@ -25,8 +25,9 @@ export interface OptimizationDirective {
   type: 'STRIKING_DISTANCE_BOOST' | 'SNIPPET_CTR_REWRITE' | 'CANNIBALIZATION_CONSOLIDATION' | 'NEW_DEMAND_DISCOVERY';
   priority: 'HIGH' | 'MEDIUM' | 'LOW' | 'OBSERVATION';
   intent: QueryIntentCategory;
+  secondarySignals: QueryIntentCategory[];
   automation: AutomationEligibility;
-  confidence: SampleConfidenceLevel;
+  volumeTier: SampleConfidenceLevel;
   targetQuery: string;
   targetPage: string;
   currentMetrics: {
@@ -62,9 +63,10 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
     directives.push({
       type: 'STRIKING_DISTANCE_BOOST',
       priority: !isEligible ? 'OBSERVATION' : opp.impressions >= 100 ? 'HIGH' : 'MEDIUM',
-      intent: opp.intent.intent,
+      intent: opp.intent.primaryIntent,
+      secondarySignals: opp.intent.secondarySignals,
       automation: opp.intent.automation,
-      confidence: opp.sampleConfidence.level,
+      volumeTier: opp.sampleConfidence.level,
       targetQuery: opp.query,
       targetPage: opp.page,
       currentMetrics: {
@@ -74,9 +76,9 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
         ctr: opp.impressions > 0 ? opp.currentClicks / opp.impressions : 0
       },
       recommendedAction: !isEligible
-        ? `[OBSERVE ONLY] Query "${opp.query}" has ${opp.intent.intent.toUpperCase()} intent (${opp.intent.rationale}). Do NOT auto-modify page body. Monitor search stability.`
+        ? `[OBSERVE ONLY] Query "${opp.query}" has ${opp.intent.primaryIntent.toUpperCase()} intent (${opp.intent.rationale}). Do NOT auto-modify page body. Monitor search stability.`
         : `Enrich page body with specific answers to query "${opp.query}". Add targeted FAQ structured data in JSON-LD.`,
-      rationale: `${opp.experimentalEstimatedGain.label} [Confidence: ${opp.sampleConfidence.level}, Intent: ${opp.intent.intent}]`
+      rationale: `${opp.experimentalEstimatedGain.label} [Volume Tier: ${opp.sampleConfidence.level}, Primary Intent: ${opp.intent.primaryIntent}${opp.intent.secondarySignals.length > 0 ? ` (+${opp.intent.secondarySignals.join(',')})` : ''}]`
     });
   }
 
@@ -87,9 +89,10 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
     directives.push({
       type: 'SNIPPET_CTR_REWRITE',
       priority: !isEligible ? 'OBSERVATION' : 'HIGH',
-      intent: low.intent.intent,
+      intent: low.intent.primaryIntent,
+      secondarySignals: low.intent.secondarySignals,
       automation: low.intent.automation,
-      confidence: low.sampleConfidence.level,
+      volumeTier: low.sampleConfidence.level,
       targetQuery: low.query,
       targetPage: low.page,
       currentMetrics: {
@@ -99,9 +102,9 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
         ctr: low.ctr
       },
       recommendedAction: !isEligible
-        ? `[OBSERVE ONLY] Query "${low.query}" on ${low.page} has ${low.intent.intent.toUpperCase()} intent (${low.intent.rationale}). Do NOT rewrite snippet automatically.`
+        ? `[OBSERVE ONLY] Query "${low.query}" on ${low.page} has ${low.intent.primaryIntent.toUpperCase()}${low.intent.secondarySignals.length > 0 ? ` (+${low.intent.secondarySignals.join(',')})` : ''} intent (${low.intent.rationale}). Do NOT rewrite snippet automatically.`
         : `Rewrite Title tag and Meta description on ${low.page} to address explicit search intent "${low.query}".`,
-      rationale: `Ranking at position ${low.position.toFixed(1)} with ${low.impressions.toLocaleString()} impressions but achieving only ${low.ctr}% CTR [Confidence: ${low.sampleConfidence.level}, Intent: ${low.intent.intent}].`
+      rationale: `Ranking at position ${low.position.toFixed(1)} with ${low.impressions.toLocaleString()} impressions but achieving only ${low.ctr}% CTR [Volume Tier: ${low.sampleConfidence.level}, Primary Intent: ${low.intent.primaryIntent}].`
     });
   }
 
@@ -113,9 +116,10 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
     directives.push({
       type: 'CANNIBALIZATION_CONSOLIDATION',
       priority: can.totalImpressions >= 1000 ? 'HIGH' : 'MEDIUM',
-      intent: queryIntent.intent,
+      intent: queryIntent.primaryIntent,
+      secondarySignals: queryIntent.secondarySignals,
       automation: 'eligible',
-      confidence: sampleConf.level,
+      volumeTier: sampleConf.level,
       targetQuery: can.query,
       targetPage: can.competingPages[0],
       currentMetrics: {
@@ -125,7 +129,7 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
         ctr: 0
       },
       recommendedAction: `Consolidate internal linking and canonical directives. Direct ranking signals to primary URL "${can.competingPages[0]}" over competing URLs: ${can.competingPages.slice(1).join(', ')}`,
-      rationale: `Multiple pages are splitting ${can.totalImpressions.toLocaleString()} search impressions for query "${can.query}". [Confidence: ${sampleConf.level}]`
+      rationale: `Multiple pages are splitting ${can.totalImpressions.toLocaleString()} search impressions for query "${can.query}". [Volume Tier: ${sampleConf.level}]`
     });
   }
 

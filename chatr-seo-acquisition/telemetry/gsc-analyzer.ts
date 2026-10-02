@@ -53,7 +53,8 @@ export type QueryIntentCategory =
 export type AutomationEligibility = 'observe' | 'eligible';
 
 export interface QueryIntentClassification {
-  intent: QueryIntentCategory;
+  primaryIntent: QueryIntentCategory;
+  secondarySignals: QueryIntentCategory[];
   automation: AutomationEligibility;
   rationale: string;
 }
@@ -61,64 +62,91 @@ export interface QueryIntentClassification {
 export function classifyQueryIntent(query: string): QueryIntentClassification {
   const q = query.toLowerCase().trim();
 
-  // Pure brand single-word tokens or typological misspellings: Intent is unresolved/ambiguous
-  const pureBrandOrTypoPattern = /^(chatr|www\.chatr|"chatr"|chatr\.|chatr\+|chatr\[|chatr\]|chatr\}|chater|cahtr|xhatr|chatrr|chatre|vhatr|cchatr|chjatr|cjatr|cghatr|cahatr|chatcr|chatrn|chaetr|chatnr|chat\s?r|\$chtr)$/i;
-  if (pureBrandOrTypoPattern.test(q)) {
+  // Pattern detection across all signal dimensions
+  const isPureBrandOrTypo = /^(chatr|www\.chatr|"chatr"|chatr\.|chatr\+|chatr\[|chatr\]|chatr\}|chater|cahtr|xhatr|chatrr|chatre|vhatr|cchatr|chjatr|cjatr|cghatr|cahatr|chatcr|chatrn|chaetr|chatnr|chat\s?r|\$chtr)$/i.test(q);
+  const isProductAction = /\b(app|download|apk|install|video\s?chat|voice\s?call|web|free\s?download|desktop|ios|android)\b/i.test(q);
+  const isInformational = /\b(how\s?to|what\s?is|meaning|guide|tutorial|setup|translate|language|caller\s?defense)\b/i.test(q);
+  const isCommercial = /\b(business|crm|doctor|clinic|delivery|logistics|jobs|career|pricing|compare|vs|alternative)\b/i.test(q);
+  const isNavigationalBrand = /\b(chatr\s?plus|chatr\s?official|chatr\s?chat|talentxcel|noida\s?startups)\b/i.test(q);
+
+  // If query is an isolated single-word brand or typo without qualifiers:
+  if (isPureBrandOrTypo && !isProductAction && !isInformational && !isCommercial) {
     return {
-      intent: 'ambiguous',
+      primaryIntent: 'ambiguous',
+      secondarySignals: [],
       automation: 'observe',
       rationale: 'Ambiguous brand/query token with unresolved intent (could be brand discovery, competitor telco, or generic search). Do NOT auto-optimize; observe and collect further evidence.'
     };
   }
 
-  // Explicit product or action intent
-  if (/\b(app|download|apk|install|video\s?chat|voice\s?call|web|free\s?download|desktop|ios|android)\b/i.test(q)) {
+  // Collect all active secondary signals
+  const detectedSignals: QueryIntentCategory[] = [];
+  if (isProductAction) detectedSignals.push('product_action');
+  if (isInformational) detectedSignals.push('informational');
+  if (isCommercial) detectedSignals.push('commercial');
+  if (isNavigationalBrand) detectedSignals.push('navigational_brand');
+
+  // Hierarchy for primary intent:
+  // 1. Explicit Product Action takes precedence for landing CTA and snippet alignment
+  if (isProductAction) {
     return {
-      intent: 'product_action',
+      primaryIntent: 'product_action',
+      secondarySignals: detectedSignals.filter((s) => s !== 'product_action'),
       automation: 'eligible',
       rationale: 'Explicit product/action intent seeking mobile/desktop application, downloading, or calling capabilities. Eligible for snippet and CTA alignment.'
     };
   }
 
-  // Informational intent
-  if (/\b(how\s?to|what\s?is|meaning|guide|tutorial|setup|translate|language|caller\s?defense)\b/i.test(q)) {
+  // 2. Informational
+  if (isInformational) {
     return {
-      intent: 'informational',
+      primaryIntent: 'informational',
+      secondarySignals: detectedSignals.filter((s) => s !== 'informational'),
       automation: 'eligible',
       rationale: 'Informational intent seeking answers, translation, or instructions. Eligible for content and structured FAQ enrichment.'
     };
   }
 
-  // Commercial intent
-  if (/\b(business|crm|doctor|clinic|delivery|logistics|jobs|career|pricing|compare|vs|alternative)\b/i.test(q)) {
+  // 3. Commercial
+  if (isCommercial) {
     return {
-      intent: 'commercial',
+      primaryIntent: 'commercial',
+      secondarySignals: detectedSignals.filter((s) => s !== 'commercial'),
       automation: 'eligible',
       rationale: 'Commercial intent evaluating business solutions, services, or alternatives.'
     };
   }
 
-  // Navigational verified brand
-  if (/\b(chatr\s?plus|chatr\s?official|chatr\s?chat|talentxcel|noida\s?startups)\b/i.test(q)) {
+  // 4. Navigational Brand
+  if (isNavigationalBrand) {
     return {
-      intent: 'navigational_brand',
+      primaryIntent: 'navigational_brand',
+      secondarySignals: detectedSignals.filter((s) => s !== 'navigational_brand'),
       automation: 'eligible',
       rationale: 'Navigational search directly targeting the Chatr / Chatr+ product entity. Optimize brand and entity clarity.'
     };
   }
 
   return {
-    intent: 'unresolved',
+    primaryIntent: 'unresolved',
+    secondarySignals: [],
     automation: 'observe',
     rationale: 'Unresolved query intent with insufficient intent markers. Collect further empirical telemetry before intervention.'
   };
 }
 
+/**
+ * OPERATIONAL SAMPLE-SIZE GATING TIERS
+ *
+ * NOTE: These tiers represent operational sample-size volume thresholds for decision gating.
+ * They are NOT formal statistical significance or hypothesis testing (p-value / confidence interval)
+ * of CTR or position changes.
+ */
 export type SampleConfidenceLevel =
-  | 'insufficient_sample'
-  | 'weak_signal'
-  | 'candidate_evidence'
-  | 'strong_evidence';
+  | 'insufficient_sample' // < 20 impressions: tiny sample; observational only
+  | 'early_signal'        // 20 - 99 impressions: early directional volume; observe stability
+  | 'candidate_sample'    // 100 - 499 impressions: moderate volume; candidate for controlled intervention
+  | 'large_sample';       // 500+ impressions: substantial volume tier for priority evaluation
 
 export interface SampleThresholdConfig {
   insufficientThreshold: number; // default: 20
@@ -147,30 +175,30 @@ export function evaluateSampleConfidence(
     return {
       level: 'insufficient_sample',
       impressions,
-      label: `Tiny sample size (${impressions} impr < ${config.insufficientThreshold}). Promising directional observation, but statistically insufficient for optimization.`,
+      label: `Operational volume tier: insufficient_sample (${impressions} impr < ${config.insufficientThreshold}). Observational only, not eligible for automated intervention.`,
       eligibleForOptimization: false
     };
   }
   if (impressions < config.weakThreshold) {
     return {
-      level: 'weak_signal',
+      level: 'early_signal',
       impressions,
-      label: `Early directional signal (${impressions} impr). Monitor for stability before committing changes.`,
+      label: `Operational volume tier: early_signal (${impressions} impr). Monitor for stability before committing changes.`,
       eligibleForOptimization: false
     };
   }
   if (impressions < config.strongThreshold) {
     return {
-      level: 'candidate_evidence',
+      level: 'candidate_sample',
       impressions,
-      label: `Moderate sample size (${impressions} impr). Candidate for controlled optimization.`,
+      label: `Operational volume tier: candidate_sample (${impressions} impr). Eligible for controlled intervention.`,
       eligibleForOptimization: true
     };
   }
   return {
-    level: 'strong_evidence',
+    level: 'large_sample',
     impressions,
-    label: `Robust sample size (${impressions} impr >= ${config.strongThreshold}). High-confidence empirical evidence.`,
+    label: `Operational volume tier: large_sample (${impressions} impr >= ${config.strongThreshold}). High-volume tier for priority evaluation.`,
     eligibleForOptimization: true
   };
 }
@@ -322,7 +350,7 @@ export function analyzeSearchTelemetry(
         sampleConfidence,
         recommendedAction: intent.automation === 'eligible' && sampleConfidence.eligibleForOptimization
           ? 'Rewrite Title tag and Meta description to match high-intent search query and improve CTR.'
-          : `[Observe Only] Intent is ${intent.intent.toUpperCase()} (${intent.rationale}). ${sampleConfidence.label}`
+          : `[Observe Only] Intent is ${intent.primaryIntent.toUpperCase()}${intent.secondarySignals.length > 0 ? ` (Secondary: ${intent.secondarySignals.join(', ')})` : ''} (${intent.rationale}). ${sampleConfidence.label}`
       });
     }
   }
