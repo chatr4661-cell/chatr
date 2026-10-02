@@ -22,8 +22,8 @@ export const firebaseConfig = {
 
 /** Backend (session exchange + profiles + roles) shared by all clients. */
 export const backendConfig = {
-  url: env.VITE_SUPABASE_URL ?? 'https://nuuuqazaoaozgblmvkzn.supabase.co',
-  publishableKey: env.VITE_SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw',
+  url: env.VITE_SUPABASE_URL as string | undefined,
+  publishableKey: env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined,
 };
 
 /** Edge function that exchanges a verified Firebase user for a backend JWT. */

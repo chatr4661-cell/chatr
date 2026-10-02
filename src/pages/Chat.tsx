@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -429,36 +429,19 @@ const ChatEnhancedContent = () => {
     return () => clearTimeout(syncTimer);
   }, [user?.id]);
 
-  // Fast auth check - non-blocking with safety timeout
+  // Fast auth check - non-blocking
   React.useEffect(() => {
-    let active = true;
     const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!active) return;
-        
-        if (!session) {
-          navigate('/auth');
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        console.warn('[Chat] Auth check error:', err);
-        if (active) setLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate('/auth');
+      } else {
+        setLoading(false);
       }
     };
     
     checkAuth();
-
-    // Fallback safety: never leave loading true for more than 1.5s
-    const safetyTimer = setTimeout(() => {
-      if (active) setLoading(false);
-    }, 1500);
-
-    return () => {
-      active = false;
-      clearTimeout(safetyTimer);
-    };
   }, [navigate]);
 
   const handleStartConversation = async (contact: any) => {
@@ -872,8 +855,8 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Show loading only during initial check and only if user is not yet present
-  if ((loading || !isAuthReady) && !user?.id) {
+  // Show loading only during initial check
+  if (loading || !isAuthReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center space-y-2">
@@ -884,9 +867,9 @@ const ChatEnhancedContent = () => {
     );
   }
 
-  // If no user after loading, redirect cleanly to auth
+  // If no user after loading, redirect will handle it
   if (!user?.id) {
-    return <Navigate to="/auth" replace />;
+    return null;
   }
 
   // Show offline mode if enabled

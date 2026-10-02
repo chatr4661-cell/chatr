@@ -234,48 +234,59 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     return name.trim().slice(0, 2).toUpperCase();
   };
 
-  // Guarantee conversation list never stays stuck in skeleton loading
-  useEffect(() => {
-    const safetyTimer = setTimeout(() => {
-      setLoading(false);
-    }, 1200);
-    return () => clearTimeout(safetyTimer);
-  }, []);
-
   const loadConversations = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
+    if (!userId) return;
 
     try {
       const cached = await getCachedConversations();
-      if (cached && cached.length > 0) {
+      if (cached) {
         setConversations(cached);
         setLoading(false);
       }
 
-      const { data: participations, error: partError } = await supabase
+      const { data: optimizedData, error: rpcError } = await supabase
+        .rpc('get_user_conversations_optimized', { p_user_id: userId });
+
+      if (!rpcError && optimizedData) {
+        const conversationData = optimizedData.map((conv: any) => ({
+          id: conv.id,
+          is_group: conv.is_group,
+          group_name: conv.group_name,
+          group_icon_url: conv.group_icon_url,
+          is_community: conv.is_community,
+          community_description: conv.community_description,
+          updated_at: conv.lastmessagetime || new Date().toISOString(),
+          last_message: conv.lastmessage ? {
+            content: conv.lastmessage,
+            created_at: conv.lastmessagetime,
+            sender_id: '',
+            read_at: undefined
+          } : undefined,
+          other_user: conv.otheruser || undefined
+        }));
+
+        setConversations(conversationData);
+        await setCachedConversations(conversationData);
+        setLoading(false);
+        return;
+      }
+
+      const { data: participations } = await supabase
         .from('conversation_participants')
         .select(`
           conversation_id,
-          conversations (id, is_group, group_name, group_icon_url, updated_at)
+          conversations!inner (id, is_group, group_name, group_icon_url, updated_at)
         `)
         .eq('user_id', userId)
         .limit(50);
 
-      if (partError || !participations?.length) {
-        setConversations(prev => (prev.length > 0 ? prev : []));
-        setLoading(false);
-        return;
-      }
-
-      const convIds = participations.map(p => (p.conversations as any)?.id).filter(Boolean);
-      if (convIds.length === 0) {
+      if (!participations?.length) {
         setConversations([]);
         setLoading(false);
         return;
       }
+
+      const convIds = participations.map(p => (p.conversations as any).id);
 
       const [messagesResult, participantsResult] = await Promise.all([
         supabase
@@ -286,7 +297,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
           .limit(convIds.length),
         supabase
           .from('conversation_participants')
-          .select('conversation_id, user_id, profiles(id, username, full_name, avatar_url, phone_number, is_online, last_seen)')
+          .select('conversation_id, user_id, profiles!inner(id, username, full_name, avatar_url, phone_number, is_online, last_seen)')
           .in('conversation_id', convIds)
       ]);
 
@@ -311,15 +322,13 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       const conversationData = participations
         .map((p: any) => {
           const conv = p.conversations;
-          if (!conv) return null;
           return {
             ...conv,
             last_message: lastMessageMap.get(conv.id) || null,
             other_user: otherUserMap.get(conv.id) || null
           };
         })
-        .filter(Boolean)
-        .sort((a: any, b: any) => {
+        .sort((a, b) => {
           const aTime = a.last_message?.created_at || a.updated_at;
           const bTime = b.last_message?.created_at || b.updated_at;
           return new Date(bTime).getTime() - new Date(aTime).getTime();
@@ -327,9 +336,9 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
       setConversations(conversationData);
       await setCachedConversations(conversationData);
+      setLoading(false);
     } catch (error) {
-      console.warn('Error loading conversations:', error);
-    } finally {
+      console.error('Error loading conversations:', error);
       setLoading(false);
     }
   }, [userId, getCachedConversations, setCachedConversations]);
@@ -670,7 +679,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, loadConversations, loadContacts, debouncedReload]);
 
   const pinnedConversations = useMemo(() => {
     const pinnedKey = `chatr-pinned-${userId}`;

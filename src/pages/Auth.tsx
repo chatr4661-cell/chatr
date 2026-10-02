@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FirebasePhoneAuth } from '@/components/FirebasePhoneAuth';
@@ -13,37 +13,24 @@ import { BiometricLogin } from '@/components/BiometricLogin';
 import { AuthLoadingSkeleton } from '@/components/ui/PremiumEmptyStates';
 import { AppleCard } from '@/components/ui/AppleCard';
 import { motion } from 'framer-motion';
-import { Capacitor } from '@capacitor/core';
-import { ChatrLandingPage } from './landing/ChatrLandingPage';
 
 const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
   const [loading, setLoading] = React.useState(true);
   const [userId, setUserId] = React.useState<string | undefined>();
   const onboarding = useOnboarding(userId);
 
-  // Preserve redirect targets (from router state, query params, or previous sessions)
+  // Preserve a same-origin ?next= target (used by the agent-integration consent flow)
   React.useEffect(() => {
-    const from = (location.state as any)?.from;
-    const fromPath = typeof from === 'string' ? from : from?.pathname ? `${from.pathname}${from.search || ''}` : null;
-    if (fromPath && fromPath.startsWith('/') && !fromPath.startsWith('//') && fromPath !== '/auth') {
-      sessionStorage.setItem('auth_redirect', fromPath);
-    }
     const next = new URLSearchParams(window.location.search).get('next');
     if (next && next.startsWith('/') && !next.startsWith('//')) {
       sessionStorage.setItem('auth_redirect', next);
     }
-  }, [location]);
+  }, []);
 
 
   React.useEffect(() => {
-    let isMounted = true;
-    const safetyTimer = setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 1500);
-
     const checkSession = async () => {
       try {
         logAuthEvent('Auth page: Checking session');
@@ -52,10 +39,7 @@ const Auth = () => {
         
         if (sessionError) {
           logAuthError('Session check', sessionError);
-          if (isMounted) {
-            clearTimeout(safetyTimer);
-            setLoading(false);
-          }
+          setLoading(false);
           return;
         }
 
@@ -66,18 +50,44 @@ const Auth = () => {
             provider: session.user.app_metadata?.provider,
           });
           
-          if (isMounted) {
-            clearTimeout(safetyTimer);
-            setUserId(session.user.id);
+          setUserId(session.user.id);
+          
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('[AUTH] Profile fetch error:', profileError);
           }
 
-          const stateFrom = (location.state as any)?.from?.pathname ||
-            (typeof (location.state as any)?.from === 'string' ? (location.state as any)?.from : null);
-          const storedRedirect = sessionStorage.getItem('auth_redirect');
-          const defaultTarget = window.innerWidth >= 1024 ? '/desktop/chat' : '/chat';
-          const redirectPath = stateFrom || storedRedirect || defaultTarget;
-          if (storedRedirect) sessionStorage.removeItem('auth_redirect');
-          navigate(redirectPath, { replace: true });
+          if (profile) {
+            const { data: roles } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", session.user.id);
+            
+            const isAdmin = roles?.some(r => r.role === "admin");
+            
+            if (profile.onboarding_completed) {
+              const redirectPath = sessionStorage.getItem('auth_redirect');
+              sessionStorage.removeItem('auth_redirect');
+              
+             console.log('[AUTH] User signed in:', profile.username || profile.email);
+              
+              if (redirectPath) {
+                navigate(redirectPath, { replace: true });
+              } else if (isAdmin) {
+                navigate('/admin', { replace: true });
+              } else {
+                navigate('/', { replace: true });
+              }
+              return;
+            }
+          }
+          
+          setLoading(false);
           return;
         }
 
@@ -98,12 +108,12 @@ const Auth = () => {
             
             const { data: profile } = await supabase
               .from('profiles')
-              .select('onboarding_completed, username, phone_number')
+              .select('onboarding_completed')
               .eq('id', deviceSession.user_id)
-              .maybeSingle();
+              .single();
             
-            if (profile?.onboarding_completed || profile?.username || profile?.phone_number) {
-              window.location.href = '/';
+            if (profile?.onboarding_completed) {
+              navigate('/', { replace: true });
               return;
             }
           }
@@ -121,7 +131,7 @@ const Auth = () => {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
+      if (event === 'SIGNED_IN' && session) {
         setUserId(session.user.id);
         
         setTimeout(async () => {
@@ -131,13 +141,13 @@ const Auth = () => {
             .eq('id', session.user.id)
             .maybeSingle();
           
-          if (profile?.onboarding_completed || profile?.username || profile?.phone_number) {
+          if (profile?.onboarding_completed) {
             const redirectPath = sessionStorage.getItem('auth_redirect');
             sessionStorage.removeItem('auth_redirect');
-            console.log('[AUTH] Welcome back');
-            window.location.href = redirectPath || '/';
+           console.log('[AUTH] Welcome back');
+            navigate(redirectPath || '/', { replace: true });
           } else {
-            console.log('[AUTH] New user - complete profile');
+           console.log('[AUTH] New user - complete profile');
           }
         }, 0);
       }
@@ -147,43 +157,11 @@ const Auth = () => {
       }
     });
 
-    return () => {
-      isMounted = false;
-      clearTimeout(safetyTimer);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [toast, navigate]);
 
   if (loading) {
     return <AuthLoadingSkeleton />;
-  }
-
-  // On web/desktop, render the editorial B2C landing page with Auth Modal open
-  if (!Capacitor.isNativePlatform()) {
-    return (
-      <>
-        <ChatrLandingPage initialAuthOpen={true} />
-        {userId && (
-          <OnboardingDialog
-            isOpen={onboarding.isOpen}
-            userId={userId}
-            onComplete={async () => {
-              await onboarding.completeOnboarding();
-              const redirectPath = sessionStorage.getItem('auth_redirect');
-              sessionStorage.removeItem('auth_redirect');
-              navigate(redirectPath || '/', { replace: true });
-            }}
-            onSkip={async () => {
-              toast({
-                title: "Complete Your Profile",
-                description: "Please fill in your profile to continue",
-                variant: "destructive",
-              });
-            }}
-          />
-        )}
-      </>
-    );
   }
 
   return (

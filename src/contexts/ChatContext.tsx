@@ -59,41 +59,33 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.warn('[ChatContext] Session retrieval error:', sessionError);
+          console.error('Session retrieval error:', sessionError);
+          return;
         }
 
         if (existingSession && mounted) {
           setSession(existingSession);
           setUser(existingSession.user);
+          setIsAuthReady(true);
           console.log('✅ Session restored:', existingSession.user.id);
           
           // Sync to native Android on session restore
           syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
-        }
-      } catch (error) {
-        console.error('[ChatContext] Auth initialization error:', error);
-      } finally {
-        if (mounted) {
+        } else if (mounted) {
           setIsAuthReady(true);
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
       }
     };
 
     initializeAuth();
-
-    // Fallback safety: never leave isAuthReady false for more than 1.5s
-    const safetyTimer = setTimeout(() => {
-      if (mounted) {
-        setIsAuthReady(true);
-      }
-    }, 1500);
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
 
       console.log('🔐 Auth event:', event);
-      setIsAuthReady(true);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(newSession);
@@ -118,12 +110,11 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);
 
-  const value: ChatContextType = React.useMemo(() => ({
+  const value: ChatContextType = {
     activeConversationId,
     setActiveConversationId,
     session,
@@ -132,16 +123,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     isAuthReady,
     isUserOnline,
     onlineUsers,
-  }), [
-    activeConversationId,
-    setActiveConversationId,
-    session,
-    user,
-    isOnline,
-    isAuthReady,
-    isUserOnline,
-    onlineUsers,
-  ]);
+  };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

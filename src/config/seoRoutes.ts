@@ -17,7 +17,9 @@ import type { SeoDomainId } from './seoDomains';
 import {
   CITY_USE_CASE_ROUTES,
   DIRECTORY_ROUTES,
+  LANGUAGE_CITY_ROUTES,
   LANGUAGE_PAIR_ROUTES,
+
 } from './seoPrograms';
 
 /** Sitemap partition a URL belongs to. Each partition is capped at 50,000 URLs. */
@@ -58,27 +60,6 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   '/contact': page('ai-workspace', 'contact chatr support'),
   '/download': page('ai-workspace', 'download chatr app', {
     schemaType: 'SoftwareApplication',
-  }),
-  '/direct-chat': page('direct-chat', 'direct chat without saving number', {
-    section: 'guides',
-    schemaType: 'SoftwareApplication',
-    relatedIntents: [
-      'message phone number directly',
-      'chat without saving contact',
-      'send message without saving phone number',
-    ],
-    lastModified: '2026-10-01',
-  }),
-  '/lookup': page('caller-lookup', 'check unknown phone number spam caller id', {
-    section: 'guides',
-    schemaType: 'SoftwareApplication',
-    relatedIntents: [
-      'phone number lookup',
-      'who called me from this number',
-      'check spam caller',
-      'community caller id',
-    ],
-    lastModified: '2026-10-01',
   }),
 
   '/ai-assistant': page('ai-assistant', 'ai assistant for messaging'),
@@ -212,6 +193,12 @@ for (const route of DIRECTORY_ROUTES) {
 
 for (const route of CITY_USE_CASE_ROUTES) {
   ROUTE_META[route.path] = page('city-pages', route.title.replace(' — Chatr', '').toLowerCase(), {
+    section: 'use-cases',
+  });
+}
+
+for (const route of LANGUAGE_CITY_ROUTES) {
+  ROUTE_META[route.path] = page('language-cities', route.title.replace(' — Chatr', '').toLowerCase(), {
     section: 'use-cases',
   });
 }

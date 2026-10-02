@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronRight, Shield, MessageCircle } from 'lucide-react';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import { SEOHead } from '@/components/SEOHead';
 import { Button } from '@/components/ui/button';
 import { PRODUCTION_ORIGIN } from '@/config/seo';
-import { ConversionActionBar } from '@/components/seo/ConversionActionBar';
 
 export interface SeoLandingSection {
   heading: string;
@@ -140,38 +139,17 @@ export const SeoLandingLayout = ({
           </section>
         )}
 
-        <section className="mt-10 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5 p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold">Start Using Chatr Today</h2>
-              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-                Free messaging, HD voice & video calls, and live translation on your existing number.
-              </p>
-              <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Shield className="h-3.5 w-3.5 text-emerald-600" />
-                  100% Free
-                </span>
-                <span>•</span>
-                <span>No Credit Card</span>
-                <span>•</span>
-                <span>Works on Any Network</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-              <Button asChild className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-5">
-                <Link to="/auth">
-                  <MessageCircle className="mr-1.5 h-4 w-4" />
-                  Start Free Chat
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-10 rounded-xl text-xs font-medium">
-                <Link to="/download">Download App</Link>
-              </Button>
-            </div>
-          </div>
+        <section className="mt-10 rounded-2xl border border-border/60 bg-muted/40 p-5">
+          <h2 className="text-base font-semibold">Get started</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Open Chatr+ and set this up on your own number — no separate tool to install.
+          </p>
+          <Button asChild className="mt-4">
+            <Link to={ctaTo}>
+              {ctaLabel}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </section>
 
         <section className="mt-10">
@@ -198,8 +176,6 @@ export const SeoLandingLayout = ({
           Chatr — A product of Talentxcel Services Pvt Ltd
         </p>
       </main>
-
-      <ConversionActionBar pageTitle={title} />
     </>
   );
 };

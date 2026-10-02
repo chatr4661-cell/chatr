@@ -320,8 +320,6 @@ export const SeoLocationsDirectory = lazy(() => import('@/pages/seo/LocationsDir
 export const SeoTranslateDirectory = lazy(() => import('@/pages/seo/TranslateDirectory'));
 export const PublicHome = lazy(() => import('@/pages/PublicHome'));
 export const SeoControlTower = lazy(() => import('@/pages/SeoControlTower'));
-export const DirectChatPage = lazy(() => import('@/pages/DirectChatPage'));
-export const PhoneLookupPage = lazy(() => import('@/pages/PhoneLookupPage'));
 export const Help = lazy(() => import('@/pages/Help'));
 export const Contact = lazy(() => import('@/pages/Contact'));
 export const Download = lazy(() => import('@/pages/Download'));

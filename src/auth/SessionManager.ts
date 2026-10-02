@@ -37,7 +37,7 @@ export const setSessionFromTokens = async (accessToken: string, refreshToken: st
  */
 export const exchangeFirebaseSession = async (params: {
   phoneNumber: string;
-  idToken?: string;
+  idToken: string;
 }): Promise<void> => {
   const { url, publishableKey } = backendConfig;
   if (!url || !publishableKey) {
@@ -45,11 +45,34 @@ export const exchangeFirebaseSession = async (params: {
   }
 
   const endpoint = `${url}/functions/v1/${SESSION_EXCHANGE_FUNCTION}`;
-  const normalizedPhone = params.phoneNumber.replace(/\s/g, '');
+  const body = JSON.stringify({
+    phone_number: params.phoneNumber.replace(/\s/g, ''),
+    firebase_id_token: params.idToken,
+  });
 
-  const sendRequest = async (payload: Record<string, unknown>): Promise<Response> => {
+  // Mobile Safari aborts in-flight requests when the user leaves the tab to
+  // read the SMS ("TypeError: Load failed"). Wait until the page is visible
+  // again, then retry with backoff before surfacing an error.
+  const whenVisible = async () => {
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') return;
+    await new Promise<void>((resolve) => {
+      const onVisible = () => {
+        if (document.visibilityState === 'visible') {
+          document.removeEventListener('visibilitychange', onVisible);
+          resolve();
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      setTimeout(() => {
+        document.removeEventListener('visibilitychange', onVisible);
+        resolve();
+      }, 8000);
+    });
+  };
+
+  const attempt = async (): Promise<Response> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
     try {
       return await fetch(endpoint, {
         method: 'POST',
@@ -59,7 +82,7 @@ export const exchangeFirebaseSession = async (params: {
           Authorization: `Bearer ${publishableKey}`,
           apikey: publishableKey,
         },
-        body: JSON.stringify(payload),
+        body,
         signal: controller.signal,
       });
     } finally {
@@ -68,32 +91,23 @@ export const exchangeFirebaseSession = async (params: {
   };
 
   let response: Response | null = null;
+  let networkError: unknown = null;
 
-  // Attempt 1: If idToken is present, attempt token-based exchange
-  if (params.idToken && params.idToken.length > 20) {
+  for (let i = 0; i < 3; i++) {
+    await whenVisible();
     try {
-      const tokenRes = await sendRequest({
-        phone_number: normalizedPhone,
-        firebase_id_token: params.idToken,
-      });
-      if (tokenRes.ok) {
-        response = tokenRes;
-      } else {
-        console.warn('[Auth Exchange] Token exchange status:', tokenRes.status, '- attempting direct phone fallback');
-      }
-    } catch (tokenErr) {
-      console.warn('[Auth Exchange] Token request failed:', tokenErr);
+      response = await attempt();
+      networkError = null;
+      break;
+    } catch (err) {
+      networkError = err;
+      await new Promise((r) => setTimeout(r, 600 * (i + 1)));
     }
   }
 
-  // Attempt 2: Fallback to phone number session exchange if token exchange failed or wasn't provided
   if (!response) {
-    try {
-      response = await sendRequest({ phone_number: normalizedPhone });
-    } catch (phoneErr) {
-      console.error('[Auth Exchange] Phone exchange failed:', phoneErr);
-      throw new Error('Network problem while signing you in. Please tap Verify again.');
-    }
+    console.error('[Auth Exchange] Network failure:', networkError);
+    throw new Error('Network problem while signing you in. Please tap Verify again.');
   }
 
   const responseText = await response.text().catch(() => '');
@@ -119,14 +133,6 @@ export const exchangeFirebaseSession = async (params: {
   }
 
   await setSessionFromTokens(data.session.access_token, data.session.refresh_token);
-
-  // Directly mirror session to localStorage for zero-delay persistence across all surface listeners
-  try {
-    const storageKey = 'sb-nuuuqazaoaozgblmvkzn-auth-token';
-    localStorage.setItem(storageKey, JSON.stringify(data.session));
-  } catch (e) {
-    console.warn('[SessionManager] Direct storage write skipped:', e);
-  }
 };
 
 /**

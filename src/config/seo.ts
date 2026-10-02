@@ -17,9 +17,9 @@ export const PRODUCTION_ORIGIN = 'https://chatr.chat';
 export const SITE_NAME = 'Chatr+';
 export const ORGANIZATION_NAME = 'Talentxcel Services Pvt Ltd';
 
-export const DEFAULT_TITLE = 'Chatr App — Free SI Messaging, Video Calls & Super App | chatr.chat';
+export const DEFAULT_TITLE = 'AI Messaging App with a Universal Inbox — Chatr';
 export const DEFAULT_DESCRIPTION =
-  'Chatr is India\'s fast, secure SI messaging & video calling app. Enjoy live call translation, universal inbox for WhatsApp & Gmail, and SI assistant on Android, iOS & Web.';
+  'Chatr is an AI-powered messaging app and universal inbox: read Gmail, Outlook, WhatsApp Business, Slack and Teams in one place, with AI summaries, drafted replies and agents. Sign in with your phone number.';
 
 /** Real asset committed in /public. */
 export const DEFAULT_OG_IMAGE = '/chatr-logo.png';
@@ -126,22 +126,6 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
       'Get Chatr+ on Android or open it in your browser. One account for messaging, calls, AI assistants, healthcare and local services.',
     changefreq: 'monthly',
     priority: 0.8,
-  },
-  {
-    path: '/direct-chat',
-    title: 'Direct Chat Without Saving Phone Number — Free Instant Tool | Chatr',
-    description:
-      'Send a direct message to any phone number without saving it to your contacts. Instant, free, private, with international E.164 code formatting.',
-    changefreq: 'weekly',
-    priority: 0.9,
-  },
-  {
-    path: '/lookup',
-    title: 'Phone Number Lookup & Caller ID — Free Spam Check | Chatr',
-    description:
-      'Check unknown caller identities, check community spam reports, and report phone numbers for fraud. Free, privacy-first caller lookup powered by Chatr.',
-    changefreq: 'weekly',
-    priority: 0.9,
   },
   {
     path: '/ai-assistant',

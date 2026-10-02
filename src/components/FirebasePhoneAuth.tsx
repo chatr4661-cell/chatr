@@ -121,7 +121,6 @@ export const FirebasePhoneAuth: React.FC = () => {
     resendOTP,
     reset,
     phoneNumber: verifiedPhone,
-    isExistingUser,
   } = useFirebasePhoneAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -141,22 +140,11 @@ export const FirebasePhoneAuth: React.FC = () => {
       return;
     }
 
-    const ok = await checkPhoneAndProceed(fullPhone);
-    if (ok && isExistingUser) {
-      const redirectPath = sessionStorage.getItem('auth_redirect') || '/';
-      sessionStorage.removeItem('auth_redirect');
-      window.location.href = redirectPath;
-    }
+    await checkPhoneAndProceed(fullPhone);
   };
 
   const handleOTPComplete = async (code: string) => {
-    if (!code || code.length < 6) return;
-    const success = await verifyOTP(code);
-    if (success) {
-      const redirectPath = sessionStorage.getItem('auth_redirect') || '/';
-      sessionStorage.removeItem('auth_redirect');
-      window.location.href = redirectPath;
-    }
+    await verifyOTP(code);
   };
 
   const handleResend = async () => {

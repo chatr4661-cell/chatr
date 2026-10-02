@@ -50,9 +50,6 @@ export function useUISpeedBudget(options: SpeedBudgetOptions = {}) {
       observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           // Event Timing API entries
-          // Skip noisy hover jitter (pointerover, pointerenter, mouseover) to focus on real INP user actions
-          if (/^(pointer(over|enter|out)|mouse(over|out))$/.test(entry.name)) continue;
-
           const duration = entry.duration;
           if (duration <= budgetMs) continue;
 

@@ -23,34 +23,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
 
   React.useEffect(() => {
-    let active = true;
     const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (active) setIsAuthenticated(!!session);
-      } catch (err) {
-        console.warn('[ProtectedRoute] checkAuth error:', err);
-        if (active) setIsAuthenticated(false);
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
     };
 
     checkAuth();
 
-    // Safety timeout: never hang in loading state for more than 1.5s
-    const safetyTimer = setTimeout(() => {
-      if (active) {
-        setIsAuthenticated((prev) => (prev === null ? false : prev));
-      }
-    }, 1500);
-
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (active) setIsAuthenticated(!!session);
+      setIsAuthenticated(!!session);
     });
 
     return () => {
-      active = false;
-      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);
@@ -69,14 +54,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Redirect to auth if not authenticated
   if (!isAuthenticated) {
-    try {
-      const target = location.pathname + location.search;
-      if (target && target !== '/auth' && target !== '/') {
-        sessionStorage.setItem('auth_redirect', target);
-      }
-    } catch {
-      // ignore
-    }
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

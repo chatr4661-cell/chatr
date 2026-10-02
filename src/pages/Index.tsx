@@ -230,27 +230,22 @@ const Index = () => {
 
     // THEN check for existing session (this also parses OAuth hash)
     const initAuth = async () => {
-      try {
-        // Check if URL has OAuth hash params - give Supabase time to parse them
-        const hasOAuthHash = window.location.hash.includes('access_token');
-        if (hasOAuthHash) {
-          console.log('[Index] OAuth hash detected, waiting for session...');
-          // Supabase will parse hash and fire SIGNED_IN event
-          return;
-        }
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        if (isCancelled) return;
-        
-        if (session) {
-          setUser(session.user);
-          setMounted(true);
-        } else {
-          navigate('/auth', { replace: true });
-        }
-      } catch (err) {
-        console.warn('[Index] initAuth error:', err);
-        if (!isCancelled) navigate('/auth', { replace: true });
+      // Check if URL has OAuth hash params - give Supabase time to parse them
+      const hasOAuthHash = window.location.hash.includes('access_token');
+      if (hasOAuthHash) {
+        console.log('[Index] OAuth hash detected, waiting for session...');
+        // Supabase will parse hash and fire SIGNED_IN event
+        return;
+      }
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (isCancelled) return;
+      
+      if (session) {
+        setUser(session.user);
+        setMounted(true);
+      } else {
+        navigate('/auth', { replace: true });
       }
     };
     
@@ -761,10 +756,10 @@ const Index = () => {
           }
         }}
       />
-      <div className="min-h-screen bg-background pb-0">{/* Removed pb-32 for full screen */}
+      <div className="min-h-screen bg-transparent pb-0">{/* Removed pb-32 for full screen */}
       <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
-      <div className="bg-background/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
+      <div className="bg-transparent backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"

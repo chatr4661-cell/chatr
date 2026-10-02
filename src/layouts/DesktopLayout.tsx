@@ -43,14 +43,7 @@ const DesktopLayout: React.FC = () => {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    let mounted = true;
-    const safetyTimer = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 1500);
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      clearTimeout(safetyTimer);
       setUser(session?.user ?? null);
       setLoading(false);
       
@@ -60,19 +53,11 @@ const DesktopLayout: React.FC = () => {
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      clearTimeout(safetyTimer);
       setUser(session?.user ?? null);
       setLoading(false);
       
       if (session?.user) {
         fetchProfile(session.user.id);
-      }
-    }).catch((err) => {
-      console.warn('[DesktopLayout] getSession error:', err);
-      if (mounted) {
-        clearTimeout(safetyTimer);
-        setLoading(false);
       }
     });
 
@@ -88,8 +73,6 @@ const DesktopLayout: React.FC = () => {
     window.addEventListener('profile-updated', handleProfileUpdated);
 
     return () => {
-      mounted = false;
-      clearTimeout(safetyTimer);
       subscription.unsubscribe();
       window.removeEventListener('profile-updated', handleProfileUpdated);
     };

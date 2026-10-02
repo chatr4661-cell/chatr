@@ -20,7 +20,6 @@ import { VoicePlayerProvider } from "./voice/VoicePlayerContext";
 import { MiniPlayer } from "./components/voice/MiniPlayer";
 import { VoiceAutoReadListener } from "./components/voice/VoiceAutoReadListener";
 import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
-import { AcquisitionTracker } from "./components/seo/AcquisitionTracker";
 
 // ============================================
 // CRITICAL PAGES - Eagerly loaded for instant navigation
@@ -96,38 +95,17 @@ const SubdomainRedirect = () => {
 
   React.useEffect(() => {
     let active = true;
-    import('@/integrations/supabase/client')
-      .then(({ supabase }) => {
-        supabase.auth
-          .getSession()
-          .then(({ data }) => {
-            if (active) setSession(data?.session ? 'in' : 'out');
-          })
-          .catch((err) => {
-            console.warn('[SubdomainRedirect] getSession error:', err);
-            if (active) setSession('out');
-          });
-
-        const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-          if (active) setSession(s ? 'in' : 'out');
-        });
-        return () => sub.subscription.unsubscribe();
-      })
-      .catch((err) => {
-        console.warn('[SubdomainRedirect] client load error:', err);
-        if (active) setSession('out');
+    import('@/integrations/supabase/client').then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (active) setSession(data.session ? 'in' : 'out');
       });
-
-    // Safety fallback: never hang in loading state for more than 1.5s
-    const safetyTimer = setTimeout(() => {
-      if (active) {
-        setSession((prev) => (prev === 'loading' ? 'out' : prev));
-      }
-    }, 1500);
-
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+        if (active) setSession(s ? 'in' : 'out');
+      });
+      return () => sub.subscription.unsubscribe();
+    });
     return () => {
       active = false;
-      clearTimeout(safetyTimer);
     };
   }, []);
 
@@ -192,7 +170,7 @@ const App = () => {
     <GlobalErrorBoundary>
     <HelmetProvider>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
         <LocationProvider>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <NativeAppProvider>
@@ -204,7 +182,6 @@ const App = () => {
             <VoiceAutoReadListener />
             <MiniPlayer />
             <FeatureEngagementTracker />
-            <AcquisitionTracker />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
@@ -231,13 +208,6 @@ const App = () => {
             <Route path="/chatr/translate/:pair" element={<LazyRoute component={LazyPages.SeoLanguagePair} />} />
             <Route path="/chatr/translate/:pair/:city" element={<LazyRoute component={LazyPages.SeoLanguageCity} />} />
             <Route path="/chatr/:useCase/:city" element={<LazyRoute component={LazyPages.SeoCityUseCase} />} />
-            {/* Interactive Utility Tools (Product-Led SEO) */}
-            <Route path="/direct-chat" element={<LazyRoute component={LazyPages.DirectChatPage} />} />
-            <Route path="/chat-without-saving-number" element={<Navigate to="/direct-chat" replace />} />
-            <Route path="/send-message-without-saving-number" element={<Navigate to="/direct-chat" replace />} />
-            <Route path="/direct-message-phone-number" element={<Navigate to="/direct-chat" replace />} />
-            <Route path="/lookup" element={<LazyRoute component={LazyPages.PhoneLookupPage} />} />
-            <Route path="/phone-lookup" element={<Navigate to="/lookup" replace />} />
             <Route path="/admin/seo" element={<LazyRoute component={LazyPages.SeoControlTower} />} />
             <Route path="/help" element={<LazyRoute component={LazyPages.Help} />} />
             <Route path="/contact" element={<LazyRoute component={LazyPages.Contact} />} />
@@ -251,7 +221,6 @@ const App = () => {
             {/* Desktop Layout Routes (web.chatr.chat) */}
             <Route path="/desktop" element={<DesktopLayout />}>
               <Route index element={<Navigate to="/desktop/chat" replace />} />
-              <Route path="home" element={<Navigate to="/desktop/chat" replace />} />
               <Route path="chat" element={<LazyRoute component={LazyPages.DesktopChat} />} />
               <Route path="contacts" element={<LazyRoute component={LazyPages.DesktopContacts} />} />
               <Route path="calls" element={<LazyRoute component={LazyPages.DesktopCalls} />} />
@@ -272,23 +241,23 @@ const App = () => {
             <Route path="/health-streaks" element={<LazyRoute component={LazyPages.HealthStreaksPage} />} />
             <Route path="/chronic-vitals" element={<LazyRoute component={LazyPages.ChronicVitalsPage} />} />
             
-            {/* Main App Routes - Protected */}
-            <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/voice-assistant" element={<ProtectedLazyRoute component={LazyPages.VoiceAssistant} />} />
-            <Route path="/chat/:conversationId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/starred-messages" element={<ProtectedLazyRoute component={LazyPages.StarredMessages} />} />
+            {/* Main App Routes - Critical paths kept eager */}
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/voice-assistant" element={<LazyRoute component={LazyPages.VoiceAssistant} />} />
+            <Route path="/chat/:conversationId" element={<Chat />} />
+            <Route path="/starred-messages" element={<LazyRoute component={LazyPages.StarredMessages} />} />
             <Route path="/chat/:conversationId/media" 
-              element={<ProtectedRoute><Suspense fallback={<PageLoader />}>{React.createElement(React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer }))))}</Suspense></ProtectedRoute>}
+              element={<Suspense fallback={<PageLoader />}>{React.createElement(React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer }))))}</Suspense>}
             />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/contacts" element={<ProtectedLazyRoute component={LazyPages.Contacts} />} />
-            <Route path="/global-contacts" element={<ProtectedLazyRoute component={LazyPages.GlobalContacts} />} />
-            <Route path="/call-history" element={<ProtectedLazyRoute component={LazyPages.CallHistory} />} />
-            <Route path="/calls" element={<ProtectedRoute><Calls /></ProtectedRoute>} />
-            <Route path="/smart-inbox" element={<ProtectedLazyRoute component={LazyPages.SmartInbox} />} />
-            <Route path="/stories" element={<ProtectedLazyRoute component={LazyPages.Stories} />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/contacts" element={<LazyRoute component={LazyPages.Contacts} />} />
+            <Route path="/global-contacts" element={<LazyRoute component={LazyPages.GlobalContacts} />} />
+            <Route path="/call-history" element={<LazyRoute component={LazyPages.CallHistory} />} />
+            <Route path="/calls" element={<Calls />} />
+            <Route path="/smart-inbox" element={<LazyRoute component={LazyPages.SmartInbox} />} />
+            <Route path="/stories" element={<LazyRoute component={LazyPages.Stories} />} />
             <Route path="/communities" element={<LazyRoute component={LazyPages.Communities} />} />
-            <Route path="/create-community" element={<ProtectedLazyRoute component={LazyPages.CreateCommunity} />} />
+            <Route path="/create-community" element={<LazyRoute component={LazyPages.CreateCommunity} />} />
             
             {/* Health & Wellness Routes */}
             <Route path="/wellness" element={<LazyRoute component={LazyPages.WellnessTracking} />} />
