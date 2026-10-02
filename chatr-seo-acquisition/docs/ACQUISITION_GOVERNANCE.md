@@ -99,8 +99,10 @@ Stage 5: Conversion Tracking (Monitor /auth?ref=seo_* signup completions)
 ```
 
 ### Invariants for Generating Any New Page:
-1. **Demand Invariant**: Primary keyword must have documented search volume (>= 100 searches/mo) or active GSC impression signal.
-2. **Factual Evidence Invariant**: Every claim, salary range, or entity must be sourced from authoritative public data with a deterministic cryptographic hash.
+1. **Demand Evidence Invariant**:
+   `Demand Evidence = GSC impressions OR verified external demand signal OR validated user-intent evidence`.
+   Pages must demonstrate active search interest via first-party GSC telemetry, third-party search volume, or validated conversational user intent (evaluated with confidence scoring, rather than an arbitrary third-party volume cutoff).
+2. **Factual Evidence Invariant**: Every claim, salary range, or entity must be sourced from approved public data with a deterministic cryptographic hash.
 3. **Structured Data Invariant**:
    - Role screening guides **must** emit `TechArticle` / `WebPage` + `FAQPage` (Google explicitly bans `JobPosting` on generic role guides).
    - Only verifiable, live job requisitions with active employers may emit `JobPosting`.
@@ -109,17 +111,54 @@ Stage 5: Conversion Tracking (Monitor /auth?ref=seo_* signup completions)
 
 ---
 
-## 4. Cryptographic Provenance Model
+## 4. Cryptographic Integrity Verification of Approved Records
 
-Evidence hashes in `chatr-seo-acquisition/data/approved-public-data/index.ts` are mathematically derived using deterministic JSON Canonicalization (JCS / RFC 8785 subset):
+Evidence hashes in `chatr-seo-acquisition/data/approved-public-data/index.ts` represent **cryptographic integrity verification of approved-source records**:
 
-1. **Key Sorting**: Keys sorted lexicographically by UTF-16 code units.
-2. **Whitespace**: Zero extraneous whitespace between tokens.
-3. **IEEE 754 Normalization**: `-0` normalized to `0`; finite number enforcement.
-4. **Undefined Omission**: Undefined object properties strictly omitted.
-5. **Hash Computation**: `SHA-256(UTF8_BYTES(JCS(dataPoints)))`.
+```
+Authoritative Source (e.g. Government/Census/Bhashini)
+                     │
+                     ▼
+          Controlled Ingestion
+                     │
+                     ▼
+        Approved Dataset Attributes
+                     │
+                     ▼
+       Deterministic JCS Canonicalizer (RFC 8785 subset)
+                     │
+                     ▼
+            SHA-256 Checksum
+                     │
+                     ▼
+      Build-Time Cryptographic Verification Gate
+```
 
-Any deviation between a page's structured claims and its cryptographic evidence hash halts the build immediately in `evidence-check.ts`.
+* **Scope**: Guarantees that no internal developer edit, AI build script, or template generator has modified or corrupted factual claims since their controlled ingestion.
+* **Deterministic Rules (JCS / RFC 8785 subset)**:
+  1. **Key Sorting**: Keys sorted lexicographically by UTF-16 code units.
+  2. **Whitespace**: Zero extraneous whitespace between tokens.
+  3. **IEEE 754 Normalization**: `-0` normalized to `0`; finite number enforcement.
+  4. **Undefined Omission**: Undefined object properties strictly omitted; array elements normalized to `null`.
+  5. **Hash Computation**: `SHA-256(UTF8_BYTES(JCS(dataPoints)))`.
+  6. **Test Suite**: Verified across 31 RFC 8785 test vectors (`npm run seo:jcs:test`).
+
+### Cryptographically Signed Telemetry Snapshots
+To prevent the Opportunity Engine from optimizing against altered or stale data, every telemetry snapshot written to `data/gsc-exports/` includes:
+```json
+{
+  "metadata": {
+    "retrievedAt": "2026-10-02T...",
+    "source": "gsc_live_api",
+    "siteUrl": "https://chatr.chat/",
+    "rowCount": 5000,
+    "schemaVersion": 1,
+    "sha256": "43d07d7207e1b9d1c6cec1ab61c9d8a0..."
+  },
+  "rows": [...]
+}
+```
+Upon ingestion, `ingestGscTelemetry()` recomputes `SHA-256(JCS(rows))` against `metadata.sha256`. Only cryptographically matching files are labeled `verified_export_snapshot`.
 
 ---
 
@@ -137,6 +176,7 @@ To connect the live telemetry pipeline:
 3. **Credential Configuration**:
    - Option A: Set `GSC_CLIENT_EMAIL` and `GSC_PRIVATE_KEY` environment variables.
    - Option B: Drop the downloaded JSON file to `chatr-seo-acquisition/config/gsc-service-account.json` (strictly gitignored).
+   - Optional: Set `GSC_ROW_LIMIT` (defaults to 25,000 rows with automatic batch pagination).
 4. **Run Live Verification**:
    ```bash
    npm run seo:gsc:verify
@@ -145,7 +185,7 @@ To connect the live telemetry pipeline:
    ```
    🔌 Authenticating with Google Search Console API...
    🔑 OAuth2 token successfully acquired.
-   📡 Querying Search Analytics API [property: https://chatr.chat/]...
+   📡 Querying Search Analytics API [property: https://chatr.chat/, target: 25000 rows]...
    ✅ LIVE TELEMETRY VERIFIED: Retrieved X real query records from Google Search Console.
-   💾 Persisted production telemetry snapshot to: data/gsc-exports/telemetry-[date].json
+   💾 Persisted production telemetry snapshot (SHA-256: ...) to: data/gsc-exports/telemetry-[date].json
    ```

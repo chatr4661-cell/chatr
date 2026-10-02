@@ -34,6 +34,7 @@
     "seo:opportunity": "tsx chatr-seo-acquisition/telemetry/opportunity-engine.ts",
     "seo:provenance:audit": "tsx chatr-seo-acquisition/quality/audit-provenance.ts",
     "seo:gsc:verify": "tsx chatr-seo-acquisition/telemetry/verify-gsc-connection.ts",
+    "seo:jcs:test": "tsx chatr-seo-acquisition/quality/test-jcs-vectors.ts",
     "backend:migration:inventory": "bash scripts/backend-migration/inventory.sh",
     "backend:migration:preflight": "bash scripts/backend-migration/preflight.sh",
     "backend:migration:export": "bash scripts/backend-migration/export-source.sh",

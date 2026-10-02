@@ -12,10 +12,11 @@
  *  - Persists validated telemetry to chatr-seo-acquisition/data/gsc-exports/
  */
 
-import { createSign } from 'node:crypto';
+import { createHash, createSign } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { GscRow } from './gsc-analyzer';
+import { canonicalizeJson } from '../quality/provenance-verifier';
 
 export interface GscApiQueryOptions {
   siteUrl?: string;
@@ -26,13 +27,14 @@ export interface GscApiQueryOptions {
 }
 
 export interface IngestionResult {
-  source: 'gsc_live_api' | 'verified_export_snapshot' | 'fallback_telemetry';
+  source: 'gsc_live_api' | 'verified_export_snapshot' | 'unverified_export_snapshot' | 'fallback_telemetry';
   retrievedAt: string;
   siteUrl: string;
   dateRange: { startDate: string; endDate: string };
   rows: GscRow[];
   totalQueries: number;
   persistedSnapshotPath?: string;
+  snapshotSha256?: string;
 }
 
 /**
@@ -264,15 +266,17 @@ export async function ingestGscTelemetry(
       console.log('🔑 Successfully obtained Google OAuth2 access token.');
 
       console.log(`📡 Querying GSC Search Analytics [${thirtyDaysAgo} to ${threeDaysAgo}]...`);
+      const rowLimit = parseInt(process.env.GSC_ROW_LIMIT || '25000', 10);
       const liveRows = await queryGscSearchAnalytics(token, customSiteUrl, {
         startDate: thirtyDaysAgo,
         endDate: threeDaysAgo,
-        rowLimit: 5000
+        rowLimit
       });
 
       console.log(`✅ Retrieved ${liveRows.length} live query records from Google Search Console API.`);
 
-      // Persist snapshot to telemetry store
+      // Persist snapshot to telemetry store with deterministic cryptographic checksum
+      const rowsSha256 = createHash('sha256').update(canonicalizeJson(liveRows), 'utf8').digest('hex');
       const snapshotFilename = `telemetry-${today.toISOString().split('T')[0]}.json`;
       const snapshotPath = resolve(exportsDir, snapshotFilename);
       const snapshotPayload = {
@@ -282,12 +286,14 @@ export async function ingestGscTelemetry(
           siteUrl: customSiteUrl,
           startDate: thirtyDaysAgo,
           endDate: threeDaysAgo,
-          rowCount: liveRows.length
+          rowCount: liveRows.length,
+          schemaVersion: 1,
+          sha256: rowsSha256
         },
         rows: liveRows
       };
       writeFileSync(snapshotPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
-      console.log(`💾 Persisted live GSC telemetry snapshot to: ${snapshotPath}`);
+      console.log(`💾 Persisted live GSC telemetry snapshot (SHA-256: ${rowsSha256.slice(0, 16)}...) to: ${snapshotPath}`);
 
       return {
         source: 'gsc_live_api',
@@ -296,7 +302,8 @@ export async function ingestGscTelemetry(
         dateRange: { startDate: thirtyDaysAgo, endDate: threeDaysAgo },
         rows: liveRows,
         totalQueries: liveRows.length,
-        persistedSnapshotPath: snapshotPath
+        persistedSnapshotPath: snapshotPath,
+        snapshotSha256: rowsSha256
       };
     } catch (apiError) {
       console.warn('⚠️ GSC Live API call failed (falling back to snapshot):', apiError);
@@ -312,15 +319,31 @@ export async function ingestGscTelemetry(
       try {
         const fileContent = JSON.parse(readFileSync(snapshotPath, 'utf8'));
         const rows: GscRow[] = Array.isArray(fileContent) ? fileContent : fileContent.rows || [];
-        console.log(`📥 Ingested ${rows.length} records from verified snapshot: ${latestSnapshotFile}`);
+        const metadata = fileContent.metadata;
+        let source: IngestionResult['source'] = 'unverified_export_snapshot';
+
+        if (metadata && typeof metadata.sha256 === 'string' && metadata.sha256.length === 64) {
+          const computedHash = createHash('sha256').update(canonicalizeJson(rows), 'utf8').digest('hex');
+          if (computedHash === metadata.sha256) {
+            source = 'verified_export_snapshot';
+            console.log(`🔒 Snapshot cryptographic integrity verified (${metadata.sha256.slice(0, 16)}...).`);
+          } else {
+            console.warn(`⚠️ Snapshot integrity verification MISMATCH! Expected ${metadata.sha256}, computed ${computedHash}. Treating as unverified_export_snapshot.`);
+          }
+        } else {
+          console.warn(`ℹ️ Snapshot at ${latestSnapshotFile} lacks cryptographic metadata.sha256. Labeled as unverified_export_snapshot.`);
+        }
+
+        console.log(`📥 Ingested ${rows.length} records from ${source}: ${latestSnapshotFile}`);
         return {
-          source: 'verified_export_snapshot',
+          source,
           retrievedAt: fileContent.metadata?.retrievedAt || new Date().toISOString(),
           siteUrl: fileContent.metadata?.siteUrl || customSiteUrl,
           dateRange: fileContent.metadata ? { startDate: fileContent.metadata.startDate, endDate: fileContent.metadata.endDate } : { startDate: thirtyDaysAgo, endDate: threeDaysAgo },
           rows,
           totalQueries: rows.length,
-          persistedSnapshotPath: snapshotPath
+          persistedSnapshotPath: snapshotPath,
+          snapshotSha256: metadata?.sha256
         };
       } catch (parseErr) {
         console.warn('⚠️ Failed to parse snapshot JSON file:', parseErr);

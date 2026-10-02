@@ -117,19 +117,26 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
     console.log(`   Property:   ${siteUrl}`);
     console.log(`   Date Range: ${thirtyDaysAgo} ──► ${threeDaysAgo}`);
 
+    const rowLimit = parseInt(process.env.GSC_ROW_LIMIT || '25000', 10);
+    console.log(`   Row Target: ${rowLimit} max rows`);
+
     const rows: GscRow[] = await queryGscSearchAnalytics(accessToken, siteUrl, {
       startDate: thirtyDaysAgo,
       endDate: threeDaysAgo,
-      rowLimit: 5000
+      rowLimit
     });
 
     console.log(`\n✅ LIVE TELEMETRY VERIFIED: Retrieved ${rows.length} real query records from Google Search Console.`);
 
-    // Persist snapshot
+    // Persist snapshot with cryptographic SHA-256 signature
     const exportsDir = resolve(rootDir, 'chatr-seo-acquisition/data/gsc-exports');
     mkdirSync(exportsDir, { recursive: true });
     const snapshotFilename = `telemetry-${today.toISOString().split('T')[0]}.json`;
     const snapshotPath = resolve(exportsDir, snapshotFilename);
+
+    const { canonicalizeJson } = await import('../quality/provenance-verifier');
+    const { createHash } = await import('node:crypto');
+    const rowsSha256 = createHash('sha256').update(canonicalizeJson(rows), 'utf8').digest('hex');
 
     const snapshotPayload = {
       metadata: {
@@ -138,12 +145,14 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
         siteUrl,
         startDate: thirtyDaysAgo,
         endDate: threeDaysAgo,
-        rowCount: rows.length
+        rowCount: rows.length,
+        schemaVersion: 1,
+        sha256: rowsSha256
       },
       rows
     };
     writeFileSync(snapshotPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
-    console.log(`💾 Persisted production telemetry snapshot to:\n   ${snapshotPath}\n`);
+    console.log(`💾 Persisted production telemetry snapshot (SHA-256: ${rowsSha256.slice(0, 16)}...) to:\n   ${snapshotPath}\n`);
 
     if (rows.length > 0) {
       console.log('📊 Top Queries by Impressions:');
