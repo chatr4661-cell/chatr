@@ -123,7 +123,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const value: ChatContextType = {
+  const value: ChatContextType = React.useMemo(() => ({
     activeConversationId,
     setActiveConversationId,
     session,
@@ -132,7 +132,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     isAuthReady,
     isUserOnline,
     onlineUsers,
-  };
+  }), [
+    activeConversationId,
+    setActiveConversationId,
+    session,
+    user,
+    isOnline,
+    isAuthReady,
+    isUserOnline,
+    onlineUsers,
+  ]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

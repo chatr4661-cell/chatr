@@ -141,7 +141,6 @@ export const usePresenceTracking = (userId: string | undefined) => {
       if (heartbeatRef.current) {
         clearInterval(heartbeatRef.current);
       }
-      updateStatus(false);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       if (channelRef.current) {
