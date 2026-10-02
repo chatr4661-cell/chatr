@@ -59,33 +59,41 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('Session retrieval error:', sessionError);
-          return;
+          console.warn('[ChatContext] Session retrieval error:', sessionError);
         }
 
         if (existingSession && mounted) {
           setSession(existingSession);
           setUser(existingSession.user);
-          setIsAuthReady(true);
           console.log('✅ Session restored:', existingSession.user.id);
           
           // Sync to native Android on session restore
           syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
-        } else if (mounted) {
-          setIsAuthReady(true);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error('[ChatContext] Auth initialization error:', error);
+      } finally {
+        if (mounted) {
+          setIsAuthReady(true);
+        }
       }
     };
 
     initializeAuth();
+
+    // Fallback safety: never leave isAuthReady false for more than 1.5s
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setIsAuthReady(true);
+      }
+    }, 1500);
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
 
       console.log('🔐 Auth event:', event);
+      setIsAuthReady(true);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setSession(newSession);
@@ -110,6 +118,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);

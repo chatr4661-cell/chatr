@@ -23,19 +23,34 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
 
   React.useEffect(() => {
+    let active = true;
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (active) setIsAuthenticated(!!session);
+      } catch (err) {
+        console.warn('[ProtectedRoute] checkAuth error:', err);
+        if (active) setIsAuthenticated(false);
+      }
     };
 
     checkAuth();
 
+    // Safety timeout: never hang in loading state for more than 1.5s
+    const safetyTimer = setTimeout(() => {
+      if (active) {
+        setIsAuthenticated((prev) => (prev === null ? false : prev));
+      }
+    }, 1500);
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
+      if (active) setIsAuthenticated(!!session);
     });
 
     return () => {
+      active = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);

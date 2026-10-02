@@ -96,17 +96,38 @@ const SubdomainRedirect = () => {
 
   React.useEffect(() => {
     let active = true;
-    import('@/integrations/supabase/client').then(({ supabase }) => {
-      supabase.auth.getSession().then(({ data }) => {
-        if (active) setSession(data.session ? 'in' : 'out');
+    import('@/integrations/supabase/client')
+      .then(({ supabase }) => {
+        supabase.auth
+          .getSession()
+          .then(({ data }) => {
+            if (active) setSession(data?.session ? 'in' : 'out');
+          })
+          .catch((err) => {
+            console.warn('[SubdomainRedirect] getSession error:', err);
+            if (active) setSession('out');
+          });
+
+        const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+          if (active) setSession(s ? 'in' : 'out');
+        });
+        return () => sub.subscription.unsubscribe();
+      })
+      .catch((err) => {
+        console.warn('[SubdomainRedirect] client load error:', err);
+        if (active) setSession('out');
       });
-      const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-        if (active) setSession(s ? 'in' : 'out');
-      });
-      return () => sub.subscription.unsubscribe();
-    });
+
+    // Safety fallback: never hang in loading state for more than 1.5s
+    const safetyTimer = setTimeout(() => {
+      if (active) {
+        setSession((prev) => (prev === 'loading' ? 'out' : prev));
+      }
+    }, 1500);
+
     return () => {
       active = false;
+      clearTimeout(safetyTimer);
     };
   }, []);
 
@@ -230,6 +251,7 @@ const App = () => {
             {/* Desktop Layout Routes (web.chatr.chat) */}
             <Route path="/desktop" element={<DesktopLayout />}>
               <Route index element={<Navigate to="/desktop/chat" replace />} />
+              <Route path="home" element={<Navigate to="/desktop/chat" replace />} />
               <Route path="chat" element={<LazyRoute component={LazyPages.DesktopChat} />} />
               <Route path="contacts" element={<LazyRoute component={LazyPages.DesktopContacts} />} />
               <Route path="calls" element={<LazyRoute component={LazyPages.DesktopCalls} />} />

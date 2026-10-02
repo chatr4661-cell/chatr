@@ -39,6 +39,11 @@ const Auth = () => {
 
 
   React.useEffect(() => {
+    let isMounted = true;
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 1500);
+
     const checkSession = async () => {
       try {
         logAuthEvent('Auth page: Checking session');
@@ -47,7 +52,10 @@ const Auth = () => {
         
         if (sessionError) {
           logAuthError('Session check', sessionError);
-          setLoading(false);
+          if (isMounted) {
+            clearTimeout(safetyTimer);
+            setLoading(false);
+          }
           return;
         }
 
@@ -58,38 +66,18 @@ const Auth = () => {
             provider: session.user.app_metadata?.provider,
           });
           
-          setUserId(session.user.id);
-          
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error('[AUTH] Profile fetch error:', profileError);
+          if (isMounted) {
+            clearTimeout(safetyTimer);
+            setUserId(session.user.id);
           }
 
-          if (profile) {
-            const { data: roles } = await supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", session.user.id);
-            
-            const isAdmin = roles?.some(r => r.role === "admin");
-            
-            if (profile.onboarding_completed || profile.username || profile.phone_number) {
-              const redirectPath = sessionStorage.getItem('auth_redirect');
-              sessionStorage.removeItem('auth_redirect');
-              
-              console.log('[AUTH] User signed in:', profile.username || profile.email);
-              
-              window.location.href = redirectPath || (isAdmin ? '/admin' : '/');
-              return;
-            }
-          }
-          
-          setLoading(false);
+          const stateFrom = (location.state as any)?.from?.pathname ||
+            (typeof (location.state as any)?.from === 'string' ? (location.state as any)?.from : null);
+          const storedRedirect = sessionStorage.getItem('auth_redirect');
+          const defaultTarget = window.innerWidth >= 1024 ? '/desktop/chat' : '/chat';
+          const redirectPath = stateFrom || storedRedirect || defaultTarget;
+          if (storedRedirect) sessionStorage.removeItem('auth_redirect');
+          navigate(redirectPath, { replace: true });
           return;
         }
 
@@ -159,7 +147,11 @@ const Auth = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, [toast, navigate]);
 
   if (loading) {

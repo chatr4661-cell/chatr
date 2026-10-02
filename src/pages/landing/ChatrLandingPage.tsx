@@ -52,16 +52,19 @@ export const ChatrLandingPage: React.FC<ChatrLandingPageProps> = ({ initialAuthO
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+      if (event === 'SIGNED_IN' && session?.user) {
         setIsAuthenticated(true);
         setAuthModalOpen(false);
         // Destination redirect
         const stateFrom = (location.state as any)?.from?.pathname ||
           (typeof (location.state as any)?.from === 'string' ? (location.state as any)?.from : null);
         const storedRedirect = sessionStorage.getItem('auth_redirect');
-        const target = stateFrom || storedRedirect || '/';
+        const defaultTarget = window.innerWidth >= 1024 ? '/desktop/chat' : '/chat';
+        const target = stateFrom || storedRedirect || defaultTarget;
         if (storedRedirect) sessionStorage.removeItem('auth_redirect');
         navigate(target, { replace: true });
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        setIsAuthenticated(true);
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
       }

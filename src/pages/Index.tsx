@@ -230,22 +230,27 @@ const Index = () => {
 
     // THEN check for existing session (this also parses OAuth hash)
     const initAuth = async () => {
-      // Check if URL has OAuth hash params - give Supabase time to parse them
-      const hasOAuthHash = window.location.hash.includes('access_token');
-      if (hasOAuthHash) {
-        console.log('[Index] OAuth hash detected, waiting for session...');
-        // Supabase will parse hash and fire SIGNED_IN event
-        return;
-      }
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (isCancelled) return;
-      
-      if (session) {
-        setUser(session.user);
-        setMounted(true);
-      } else {
-        navigate('/auth', { replace: true });
+      try {
+        // Check if URL has OAuth hash params - give Supabase time to parse them
+        const hasOAuthHash = window.location.hash.includes('access_token');
+        if (hasOAuthHash) {
+          console.log('[Index] OAuth hash detected, waiting for session...');
+          // Supabase will parse hash and fire SIGNED_IN event
+          return;
+        }
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isCancelled) return;
+        
+        if (session) {
+          setUser(session.user);
+          setMounted(true);
+        } else {
+          navigate('/auth', { replace: true });
+        }
+      } catch (err) {
+        console.warn('[Index] initAuth error:', err);
+        if (!isCancelled) navigate('/auth', { replace: true });
       }
     };
     
