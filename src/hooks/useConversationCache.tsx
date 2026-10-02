@@ -85,49 +85,46 @@ export const useConversationCache = () => {
   }, []);
 
   const getCachedMessages = useCallback(async (conversationId: string): Promise<any[] | null> => {
-    if (!db) return null;
-
     try {
-      const cached = await db.get('messages', conversationId);
+      const database = await getDB();
+      const cached = await database.get('messages', conversationId);
       if (!cached) return null;
 
       const age = Date.now() - cached.timestamp;
       if (age > CACHE_TTL) {
-        await db.delete('messages', conversationId);
+        await database.delete('messages', conversationId);
         return null;
       }
 
       return cached.messages;
     } catch (error) {
-      console.error('Cache read error:', error);
+      console.warn('Cache read error:', error);
       return null;
     }
-  }, [db]);
+  }, []);
 
   const setCachedMessages = useCallback(async (conversationId: string, messages: any[]) => {
-    if (!db) return;
-
     try {
-      await db.put('messages', {
+      const database = await getDB();
+      await database.put('messages', {
         conversationId,
         messages,
         timestamp: Date.now(),
       });
     } catch (error) {
-      console.error('Cache write error:', error);
+      console.warn('Cache write error:', error);
     }
-  }, [db]);
+  }, []);
 
   const clearCache = useCallback(async () => {
-    if (!db) return;
-
     try {
-      await db.clear('conversations');
-      await db.clear('messages');
+      const database = await getDB();
+      await database.clear('conversations');
+      await database.clear('messages');
     } catch (error) {
-      console.error('Cache clear error:', error);
+      console.warn('Cache clear error:', error);
     }
-  }, [db]);
+  }, []);
 
   return {
     getCachedConversations,
