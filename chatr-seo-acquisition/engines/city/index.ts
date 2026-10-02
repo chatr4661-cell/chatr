@@ -82,7 +82,8 @@ export function generateCityPages(): Array<{ candidate: PageCandidate; html: str
           state: c.state,
           languages: c.primaryLanguages,
           hubs: c.businessHubs
-        }
+        },
+        provenance: c.provenance
       },
       metadata: {
         title,

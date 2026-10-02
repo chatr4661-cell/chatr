@@ -91,7 +91,8 @@ export function generateComparePages(): Array<{ candidate: PageCandidate; html: 
           competitor: c.competitor,
           dimensions: c.dimensions,
           title: c.comparisonTitle
-        }
+        },
+        provenance: c.provenance
       },
       metadata: {
         title,

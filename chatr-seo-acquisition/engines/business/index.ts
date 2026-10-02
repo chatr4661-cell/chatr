@@ -84,7 +84,8 @@ export function generateBusinessPages(): Array<{ candidate: PageCandidate; html:
           category: b.category,
           city: b.city,
           features: b.features
-        }
+        },
+        provenance: b.provenance
       },
       metadata: {
         title,

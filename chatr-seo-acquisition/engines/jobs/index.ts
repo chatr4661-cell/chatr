@@ -108,7 +108,8 @@ export function generateJobPages(): Array<{ candidate: PageCandidate; html: stri
           city: j.city,
           salary: j.typicalSalaryRange,
           screening: j.screeningQuestions
-        }
+        },
+        provenance: j.provenance
       },
       metadata: {
         title,

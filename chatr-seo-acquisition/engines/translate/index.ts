@@ -97,7 +97,8 @@ export function generateTranslatePages(): Array<{ candidate: PageCandidate; html
           target: lp.targetLanguage,
           phrases: lp.commonPhrases,
           linguistic: lp.linguisticNotes
-        }
+        },
+        provenance: lp.provenance
       },
       metadata: {
         title,
