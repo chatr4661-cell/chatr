@@ -99,8 +99,60 @@ async function fetchGoogleAccessToken(clientEmail: string, privateKeyPem: string
   return data.access_token;
 }
 
+export interface ServiceAccountCredentials {
+  clientEmail: string;
+  privateKey: string;
+  source: 'env_vars' | 'credentials_file';
+  filePath?: string;
+}
+
 /**
- * Queries Google Search Console Search Analytics API.
+ * Loads service account credentials from env variables or local credentials file.
+ */
+export function loadServiceAccountCredentials(rootDir: string = process.cwd()): ServiceAccountCredentials | null {
+  // Option 1: Direct environment variables
+  const envEmail = process.env.GSC_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
+  const envKey = process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY;
+  if (envEmail && envKey) {
+    return {
+      clientEmail: envEmail.trim(),
+      privateKey: envKey.trim(),
+      source: 'env_vars'
+    };
+  }
+
+  // Option 2: JSON file via environment variable or default configuration path
+  const candidatePaths = [
+    process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    process.env.GSC_CREDENTIALS_PATH,
+    resolve(rootDir, 'chatr-seo-acquisition/config/gsc-service-account.json')
+  ].filter(Boolean) as string[];
+
+  for (const candPath of candidatePaths) {
+    const resolvedPath = resolve(rootDir, candPath);
+    if (existsSync(resolvedPath)) {
+      try {
+        const raw = readFileSync(resolvedPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed.client_email && parsed.private_key) {
+          return {
+            clientEmail: parsed.client_email.trim(),
+            privateKey: parsed.private_key.trim(),
+            source: 'credentials_file',
+            filePath: resolvedPath
+          };
+        }
+      } catch (err) {
+        console.warn(`⚠️ Could not parse service account credentials at ${resolvedPath}:`, err);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Queries Google Search Console Search Analytics API with automatic batch pagination.
  */
 export async function queryGscSearchAnalytics(
   accessToken: string,
@@ -114,84 +166,101 @@ export async function queryGscSearchAnalytics(
   const startDate = options.startDate || thirtyThreeDaysAgo.toISOString().split('T')[0];
   const endDate = options.endDate || threeDaysAgo.toISOString().split('T')[0];
   const dimensions = options.dimensions || ['query', 'page', 'country', 'device'];
-  const rowLimit = options.rowLimit || 5000;
+  const totalRowTarget = options.rowLimit || 5000;
 
   const encodedSiteUrl = encodeURIComponent(siteUrl);
   const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodedSiteUrl}/searchAnalytics/query`;
 
-  const requestBody = {
-    startDate,
-    endDate,
-    dimensions,
-    rowLimit,
-    dataState: 'final'
-  };
+  const allRows: GscRow[] = [];
+  let startRow = 0;
+  const batchSize = Math.min(totalRowTarget, 5000);
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  });
+  while (allRows.length < totalRowTarget) {
+    const requestBody = {
+      startDate,
+      endDate,
+      dimensions,
+      rowLimit: Math.min(batchSize, totalRowTarget - allRows.length),
+      startRow,
+      dataState: 'final'
+    };
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`GSC Search Analytics API request failed [${response.status}]: ${errText}`);
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`GSC Search Analytics API request failed [${response.status}]: ${errText}`);
+    }
+
+    const data = (await response.json()) as {
+      rows?: Array<{
+        keys: string[];
+        clicks: number;
+        impressions: number;
+        ctr: number;
+        position: number;
+      }>;
+    };
+
+    if (!data.rows || !Array.isArray(data.rows) || data.rows.length === 0) {
+      break;
+    }
+
+    for (const r of data.rows) {
+      allRows.push({
+        query: r.keys[0] || '',
+        page: r.keys[1] || '',
+        country: r.keys[2] || '',
+        device: r.keys[3] || '',
+        clicks: r.clicks || 0,
+        impressions: r.impressions || 0,
+        ctr: r.ctr || 0,
+        position: r.position || 0
+      });
+    }
+
+    if (data.rows.length < batchSize) {
+      break; // Exhausted available rows
+    }
+
+    startRow += data.rows.length;
   }
 
-  const data = (await response.json()) as {
-    rows?: Array<{
-      keys: string[];
-      clicks: number;
-      impressions: number;
-      ctr: number;
-      position: number;
-    }>;
-  };
-
-  if (!data.rows || !Array.isArray(data.rows)) {
-    return [];
-  }
-
-  return data.rows.map((r) => ({
-    query: r.keys[0] || '',
-    page: r.keys[1] || '',
-    country: r.keys[2] || '',
-    device: r.keys[3] || '',
-    clicks: r.clicks || 0,
-    impressions: r.impressions || 0,
-    ctr: r.ctr || 0,
-    position: r.position || 0
-  }));
+  return allRows;
 }
 
 /**
  * Main Telemetry Ingestion Function:
- *  1. Attempts live GSC API with Service Account credentials.
+ *  1. Attempts live GSC API with Service Account credentials (env or config file).
  *  2. If credentials not set or fails, falls back to latest verified export in data/gsc-exports/.
  *  3. Falls back to baseline telemetry with clear diagnostic label.
  */
 export async function ingestGscTelemetry(
   rootDir: string = process.cwd(),
-  customSiteUrl: string = 'https://chatr.chat/'
+  customSiteUrl: string = process.env.GSC_SITE_URL || 'https://chatr.chat/'
 ): Promise<IngestionResult> {
   const exportsDir = resolve(rootDir, 'chatr-seo-acquisition/data/gsc-exports');
   mkdirSync(exportsDir, { recursive: true });
 
-  const clientEmail = process.env.GSC_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GSC_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY;
+  const credentials = loadServiceAccountCredentials(rootDir);
 
   const today = new Date();
   const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const thirtyDaysAgo = new Date(today.getTime() - 33 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   // Path 1: Live GSC API via Service Account
-  if (clientEmail && privateKey) {
+  if (credentials) {
     try {
       console.log(`🔌 Authenticating with Google Search Console API for "${customSiteUrl}"...`);
-      const token = await fetchGoogleAccessToken(clientEmail, privateKey);
+      console.log(`   (Credential source: ${credentials.source}${credentials.filePath ? ` -> ${credentials.filePath}` : ''})`);
+      const token = await fetchGoogleAccessToken(credentials.clientEmail, credentials.privateKey);
       console.log('🔑 Successfully obtained Google OAuth2 access token.');
 
       console.log(`📡 Querying GSC Search Analytics [${thirtyDaysAgo} to ${threeDaysAgo}]...`);

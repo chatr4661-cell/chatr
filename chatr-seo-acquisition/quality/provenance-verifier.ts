@@ -1,33 +1,63 @@
 /**
  * PROVENANCE CANONICALIZATION & CRYPTOGRAPHIC VERIFIER
  *
- * Implements deterministic RFC 8785 JSON Canonicalization Scheme (JCS)
- * to verify that evidence hashes are cryptographically computed from the
+ * Implements a deterministic JCS-compatible (RFC 8785 subset) canonicalizer
+ * to verify that evidence hashes are cryptographically computed from
  * authoritative record attributes rather than arbitrary strings.
  *
+ * Technical Scope:
+ *  - Deterministic key ordering (lexicographical sorting by UTF-16 code units)
+ *  - Strict whitespace elimination
+ *  - IEEE 754 zero normalization (-0 normalized to 0, finite validation)
+ *  - Strict omission of undefined properties in objects and normalization in arrays
+ *
  * Verification Pipeline:
- *  Official Source Record ──► Canonicalize (RFC 8785) ──► SHA-256(bytes) ──► Verify against evidenceHash
+ *  Official Source Record ──► Canonicalize (JCS) ──► SHA-256(bytes) ──► Verify against evidenceHash
  */
 
 import { createHash } from 'node:crypto';
 
 /**
- * Deterministically sorts object keys recursively (RFC 8785 JCS).
+ * Deterministically sorts object keys recursively (JCS / RFC 8785 compatible).
  */
 export function canonicalizeJson(obj: unknown): string {
-  if (obj === null || typeof obj !== 'object') {
+  if (obj === null) {
+    return 'null';
+  }
+
+  if (typeof obj === 'number') {
+    if (!Number.isFinite(obj)) {
+      throw new TypeError('Canonical JSON does not permit non-finite numbers (NaN, Infinity).');
+    }
+    // Normalize -0 to 0 according to RFC 8785 Section 3.2.2.3
+    return Object.is(obj, -0) ? '0' : JSON.stringify(obj);
+  }
+
+  if (typeof obj !== 'object') {
     return JSON.stringify(obj);
   }
 
   if (Array.isArray(obj)) {
-    return `[${obj.map((item) => canonicalizeJson(item)).join(',')}]`;
+    const items = obj.map((item) => {
+      if (item === undefined || typeof item === 'function' || typeof item === 'symbol') {
+        return 'null';
+      }
+      return canonicalizeJson(item);
+    });
+    return `[${items.join(',')}]`;
   }
 
-  const sortedKeys = Object.keys(obj as Record<string, unknown>).sort();
-  const pairs = sortedKeys.map((key) => {
-    const val = (obj as Record<string, unknown>)[key];
-    return `${JSON.stringify(key)}:${canonicalizeJson(val)}`;
-  });
+  const rawObj = obj as Record<string, unknown>;
+  const sortedKeys = Object.keys(rawObj).sort();
+  const pairs: string[] = [];
+
+  for (const key of sortedKeys) {
+    const val = rawObj[key];
+    if (val === undefined || typeof val === 'function' || typeof val === 'symbol') {
+      continue;
+    }
+    pairs.push(`${JSON.stringify(key)}:${canonicalizeJson(val)}`);
+  }
 
   return `{${pairs.join(',')}}`;
 }

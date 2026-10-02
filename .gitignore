@@ -27,3 +27,13 @@ supabase/.temp/
 .temp/
 .vite/
 .vite-nocache/
+
+# Environment & Credentials
+.env
+.env.*
+!.env.example
+*.pem
+*service-account*.json
+gsc-credentials.json
+chatr-seo-acquisition/config/*.json
+!chatr-seo-acquisition/config/.gitkeep
