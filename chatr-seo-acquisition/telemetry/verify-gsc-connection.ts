@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   loadServiceAccountCredentials,
+  parseConfiguredRowLimit,
   queryGscSearchAnalytics,
   type GscRow
 } from './gsc-ingestion';
@@ -75,6 +76,7 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
   console.log('════════════════════════════════════════════════════════════════════════\n');
 
   const siteUrl = process.env.GSC_SITE_URL || 'https://chatr.chat/';
+  const rowLimit = parseConfiguredRowLimit();
   const credentials = loadServiceAccountCredentials(rootDir);
 
   if (!credentials) {
@@ -117,7 +119,7 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
     console.log(`   Property:   ${siteUrl}`);
     console.log(`   Date Range: ${thirtyDaysAgo} ──► ${threeDaysAgo}`);
 
-    const rowLimit = parseInt(process.env.GSC_ROW_LIMIT || '25000', 10);
+    const rowLimit = parseConfiguredRowLimit();
     console.log(`   Row Target: ${rowLimit} max rows`);
 
     const rows: GscRow[] = await queryGscSearchAnalytics(accessToken, siteUrl, {
@@ -128,7 +130,7 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
 
     console.log(`\n✅ LIVE TELEMETRY VERIFIED: Retrieved ${rows.length} real query records from Google Search Console.`);
 
-    // Persist snapshot with cryptographic SHA-256 signature
+    // Persist snapshot with deterministic SHA-256 integrity digest
     const exportsDir = resolve(rootDir, 'chatr-seo-acquisition/data/gsc-exports');
     mkdirSync(exportsDir, { recursive: true });
     const snapshotFilename = `telemetry-${today.toISOString().split('T')[0]}.json`;
@@ -152,7 +154,7 @@ export async function verifyGscConnection(rootDir: string = process.cwd()): Prom
       rows
     };
     writeFileSync(snapshotPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
-    console.log(`💾 Persisted production telemetry snapshot (SHA-256: ${rowsSha256.slice(0, 16)}...) to:\n   ${snapshotPath}\n`);
+    console.log(`💾 Persisted production telemetry snapshot (SHA-256 integrity digest: ${rowsSha256.slice(0, 16)}...) to:\n   ${snapshotPath}\n`);
 
     if (rows.length > 0) {
       console.log('📊 Top Queries by Impressions:');

@@ -109,6 +109,58 @@ export interface ServiceAccountCredentials {
 }
 
 /**
+ * Hard ceiling for Google Search Analytics single query: 25,000 rows.
+ * Rejects out-of-bounds or non-integer configuration.
+ */
+export function parseConfiguredRowLimit(
+  envValue: string | undefined = process.env.GSC_ROW_LIMIT,
+  defaultLimit: number = 25000
+): number {
+  if (!envValue || envValue.trim() === '') {
+    return defaultLimit;
+  }
+  const parsed = Number(envValue.trim());
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 25000) {
+    throw new RangeError(
+      `Invalid GSC_ROW_LIMIT: "${envValue}". GSC_ROW_LIMIT must be an integer between 1 and 25000 (Google Search Analytics single-request ceiling).`
+    );
+  }
+  return parsed;
+}
+
+export const MAX_SNAPSHOT_AGE_DAYS = 90;
+
+/**
+ * Validates that a telemetry snapshot was captured within the allowable freshness window.
+ */
+export function validateSnapshotFreshness(
+  retrievedAt: string,
+  maxAgeDays: number = MAX_SNAPSHOT_AGE_DAYS
+): { valid: boolean; ageDays: number; reason?: string } {
+  const retrievedTime = new Date(retrievedAt).getTime();
+  if (isNaN(retrievedTime)) {
+    return { valid: false, ageDays: NaN, reason: `Invalid ISO 8601 date: "${retrievedAt}"` };
+  }
+  const now = Date.now();
+  const diffMs = now - retrievedTime;
+  const ageDays = diffMs / (1000 * 60 * 60 * 24);
+
+  if (diffMs < -1000 * 60 * 60) {
+    return { valid: false, ageDays, reason: `Snapshot timestamp is in the future: "${retrievedAt}"` };
+  }
+
+  if (ageDays > maxAgeDays) {
+    return {
+      valid: false,
+      ageDays,
+      reason: `Snapshot age (${Math.round(ageDays)} days) exceeds maximum freshness window (${maxAgeDays} days)`
+    };
+  }
+
+  return { valid: true, ageDays };
+}
+
+/**
  * Loads service account credentials from env variables or local credentials file.
  */
 export function loadServiceAccountCredentials(rootDir: string = process.cwd()): ServiceAccountCredentials | null {
@@ -168,7 +220,7 @@ export async function queryGscSearchAnalytics(
   const startDate = options.startDate || thirtyThreeDaysAgo.toISOString().split('T')[0];
   const endDate = options.endDate || threeDaysAgo.toISOString().split('T')[0];
   const dimensions = options.dimensions || ['query', 'page', 'country', 'device'];
-  const totalRowTarget = options.rowLimit || 5000;
+  const totalRowTarget = options.rowLimit ?? parseConfiguredRowLimit();
 
   const encodedSiteUrl = encodeURIComponent(siteUrl);
   const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodedSiteUrl}/searchAnalytics/query`;
@@ -265,8 +317,8 @@ export async function ingestGscTelemetry(
       const token = await fetchGoogleAccessToken(credentials.clientEmail, credentials.privateKey);
       console.log('🔑 Successfully obtained Google OAuth2 access token.');
 
-      console.log(`📡 Querying GSC Search Analytics [${thirtyDaysAgo} to ${threeDaysAgo}]...`);
-      const rowLimit = parseInt(process.env.GSC_ROW_LIMIT || '25000', 10);
+      const rowLimit = parseConfiguredRowLimit();
+      console.log(`📡 Querying GSC Search Analytics [${thirtyDaysAgo} to ${threeDaysAgo}, max rows: ${rowLimit}]...`);
       const liveRows = await queryGscSearchAnalytics(token, customSiteUrl, {
         startDate: thirtyDaysAgo,
         endDate: threeDaysAgo,
@@ -275,7 +327,7 @@ export async function ingestGscTelemetry(
 
       console.log(`✅ Retrieved ${liveRows.length} live query records from Google Search Console API.`);
 
-      // Persist snapshot to telemetry store with deterministic cryptographic checksum
+      // Persist snapshot to telemetry store with deterministic SHA-256 integrity digest
       const rowsSha256 = createHash('sha256').update(canonicalizeJson(liveRows), 'utf8').digest('hex');
       const snapshotFilename = `telemetry-${today.toISOString().split('T')[0]}.json`;
       const snapshotPath = resolve(exportsDir, snapshotFilename);
@@ -293,7 +345,7 @@ export async function ingestGscTelemetry(
         rows: liveRows
       };
       writeFileSync(snapshotPath, JSON.stringify(snapshotPayload, null, 2), 'utf8');
-      console.log(`💾 Persisted live GSC telemetry snapshot (SHA-256: ${rowsSha256.slice(0, 16)}...) to: ${snapshotPath}`);
+      console.log(`💾 Persisted live GSC telemetry snapshot (SHA-256 integrity digest: ${rowsSha256.slice(0, 16)}...) to: ${snapshotPath}`);
 
       return {
         source: 'gsc_live_api',
@@ -325,13 +377,19 @@ export async function ingestGscTelemetry(
         if (metadata && typeof metadata.sha256 === 'string' && metadata.sha256.length === 64) {
           const computedHash = createHash('sha256').update(canonicalizeJson(rows), 'utf8').digest('hex');
           if (computedHash === metadata.sha256) {
-            source = 'verified_export_snapshot';
-            console.log(`🔒 Snapshot cryptographic integrity verified (${metadata.sha256.slice(0, 16)}...).`);
+            // Validate snapshot freshness
+            const freshness = validateSnapshotFreshness(metadata.retrievedAt);
+            if (freshness.valid) {
+              source = 'verified_export_snapshot';
+              console.log(`🔒 Snapshot integrity digest & freshness verified (${metadata.sha256.slice(0, 16)}..., age: ${freshness.ageDays.toFixed(1)}d).`);
+            } else {
+              console.warn(`⚠️ Snapshot freshness validation failed: ${freshness.reason}. Labeled as unverified_export_snapshot.`);
+            }
           } else {
-            console.warn(`⚠️ Snapshot integrity verification MISMATCH! Expected ${metadata.sha256}, computed ${computedHash}. Treating as unverified_export_snapshot.`);
+            console.warn(`⚠️ Snapshot integrity digest MISMATCH! Expected ${metadata.sha256}, computed ${computedHash}. Labeled as unverified_export_snapshot.`);
           }
         } else {
-          console.warn(`ℹ️ Snapshot at ${latestSnapshotFile} lacks cryptographic metadata.sha256. Labeled as unverified_export_snapshot.`);
+          console.warn(`ℹ️ Snapshot at ${latestSnapshotFile} lacks SHA-256 integrity digest. Labeled as unverified_export_snapshot.`);
         }
 
         console.log(`📥 Ingested ${rows.length} records from ${source}: ${latestSnapshotFile}`);
