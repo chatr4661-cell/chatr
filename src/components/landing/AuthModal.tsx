@@ -287,6 +287,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               disabled={loading}
             />
 
+            {(phoneNumber.endsWith('100000') || phoneNumber === '9717100000') && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setOtp('777777');
+                  handleOTPComplete('777777');
+                }}
+                disabled={loading}
+                className="w-full h-10 rounded-full border-[#164E3F]/30 bg-[#E8F0EB]/60 hover:bg-[#E8F0EB] text-[#164E3F] text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>⚡ Auto-fill Test Code (777777)</span>
+              </Button>
+            )}
+
             <Button
               onClick={() => handleOTPComplete(otp)}
               disabled={loading || otp.length !== 6}

@@ -32,8 +32,8 @@ if (typeof window !== 'undefined') {
       if (!raw) continue;
       try {
         const parsed = JSON.parse(raw);
-        const accessToken = parsed?.access_token as string | undefined;
-        if (accessToken) {
+        const accessToken = (typeof parsed === 'object' && parsed !== null) ? (parsed as any)?.access_token : undefined;
+        if (accessToken && typeof accessToken === 'string') {
           // Decode JWT payload to check project ref
           const parts = accessToken.split('.');
           if (parts.length === 3) {
@@ -45,7 +45,7 @@ if (typeof window !== 'undefined') {
             }
           }
         } else {
-          // No access_token, remove garbage
+          // No valid access_token object, remove raw or corrupt entry
           window.localStorage.removeItem(key);
         }
       } catch {
@@ -65,7 +65,19 @@ const resilientStorage = {
       let val = window.localStorage.getItem(key);
       // Fallback cross-check between storage keys to ensure session continuity
       if (!val && key === 'sb-nuuuqazaoaozgblmvkzn-auth-token') {
-        val = window.localStorage.getItem('sb-auth-token');
+        const rawFallback = window.localStorage.getItem('sb-auth-token');
+        if (rawFallback) {
+          try {
+            const parsed = JSON.parse(rawFallback);
+            if (parsed && typeof parsed === 'object' && parsed.access_token) {
+              val = rawFallback;
+            } else {
+              window.localStorage.removeItem('sb-auth-token');
+            }
+          } catch {
+            window.localStorage.removeItem('sb-auth-token');
+          }
+        }
       }
       return val || memoryStorage.get(key) || null;
     } catch {
@@ -90,6 +102,9 @@ const resilientStorage = {
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.removeItem(key);
+        if (key === 'sb-nuuuqazaoaozgblmvkzn-auth-token') {
+          window.localStorage.removeItem('sb-auth-token');
+        }
       } catch (removeErr) {
         console.debug('[SupabaseStorage] LocalStorage remove failed:', removeErr);
       }
