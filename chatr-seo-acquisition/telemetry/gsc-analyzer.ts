@@ -69,6 +69,8 @@ export interface TelemetryReport {
     query: string;
     page: string;
     impressions: number;
+    clicks: number;
+    position: number;
     ctr: number;
     recommendedAction: string;
   }>;
@@ -76,6 +78,7 @@ export interface TelemetryReport {
     query: string;
     competingPages: string[];
     topPosition: number;
+    totalImpressions: number;
   }>;
 }
 
@@ -86,35 +89,73 @@ export function analyzeSearchTelemetry(
   let totalImpressions = 0;
   let totalClicks = 0;
 
-  const queryPageMap = new Map<string, Set<string>>();
-  const strikingDistance: StrikingDistanceOpportunity[] = [];
-  const lowCtr: TelemetryReport['lowCtrSnippets'] = [];
+  // Step 1: Consolidate dimensional slices (query x page x country x device) into unique (query, page) tuples
+  interface ConsolidatedQueryPage {
+    query: string;
+    page: string;
+    impressions: number;
+    clicks: number;
+    posSum: number;
+  }
+
+  const queryPageMap = new Map<string, ConsolidatedQueryPage>();
+  const queryToPagesMap = new Map<string, Map<string, { impressions: number; clicks: number; posSum: number }>>();
 
   for (const row of rows) {
     totalImpressions += row.impressions;
     totalClicks += row.clicks;
 
-    // Track query -> pages for cannibalization
-    if (!queryPageMap.has(row.query)) {
-      queryPageMap.set(row.query, new Set());
-    }
-    queryPageMap.get(row.query)!.add(row.page);
-
-    // Striking Distance: position between 4.0 and 20.0 with substantial impressions
-    if (row.position >= 4.0 && row.position <= 20.0 && row.impressions >= 50) {
-      const currentClicks = row.clicks;
-      const c = calibration.top3BaselineCtr;
-
-      // Incremental estimated gain over current clicks
-      const conservative = Math.max(0, Math.round(row.impressions * c.conservative - currentClicks));
-      const expected = Math.max(0, Math.round(row.impressions * c.expected - currentClicks));
-      const optimistic = Math.max(0, Math.round(row.impressions * c.optimistic - currentClicks));
-
-      strikingDistance.push({
+    const pairKey = `${row.query}:::${row.page}`;
+    if (!queryPageMap.has(pairKey)) {
+      queryPageMap.set(pairKey, {
         query: row.query,
         page: row.page,
-        impressions: row.impressions,
-        position: parseFloat(row.position.toFixed(1)),
+        impressions: 0,
+        clicks: 0,
+        posSum: 0
+      });
+    }
+    const pair = queryPageMap.get(pairKey)!;
+    pair.impressions += row.impressions;
+    pair.clicks += row.clicks;
+    pair.posSum += row.position * row.impressions;
+
+    // Track for cannibalization
+    if (!queryToPagesMap.has(row.query)) {
+      queryToPagesMap.set(row.query, new Map());
+    }
+    const pMap = queryToPagesMap.get(row.query)!;
+    if (!pMap.has(row.page)) {
+      pMap.set(row.page, { impressions: 0, clicks: 0, posSum: 0 });
+    }
+    const pEntry = pMap.get(row.page)!;
+    pEntry.impressions += row.impressions;
+    pEntry.clicks += row.clicks;
+    pEntry.posSum += row.position * row.impressions;
+  }
+
+  const strikingDistance: StrikingDistanceOpportunity[] = [];
+  const lowCtr: TelemetryReport['lowCtrSnippets'] = [];
+
+  // Step 2: Evaluate unique (query, page) pairs
+  for (const pair of queryPageMap.values()) {
+    const avgPosition = pair.impressions > 0 ? pair.posSum / pair.impressions : 0;
+    const ctr = pair.impressions > 0 ? (pair.clicks / pair.impressions) : 0;
+
+    // Striking Distance: weighted position between 3.5 and 20.0 with >= 50 impressions
+    if (avgPosition >= 3.5 && avgPosition <= 20.0 && pair.impressions >= 50) {
+      const currentClicks = pair.clicks;
+      const c = calibration.top3BaselineCtr;
+
+      const conservative = Math.max(0, Math.round(pair.impressions * c.conservative - currentClicks));
+      const expected = Math.max(0, Math.round(pair.impressions * c.expected - currentClicks));
+      const optimistic = Math.max(0, Math.round(pair.impressions * c.optimistic - currentClicks));
+
+      strikingDistance.push({
+        query: pair.query,
+        page: pair.page,
+        impressions: pair.impressions,
+        position: parseFloat(avgPosition.toFixed(1)),
         currentClicks,
         experimentalEstimatedGain: {
           conservativeClicks: conservative,
@@ -126,42 +167,58 @@ export function analyzeSearchTelemetry(
       });
     }
 
-    // High impressions but low CTR (< 2.5% for top 10 position)
-    if (row.position <= 10.0 && row.impressions >= 100 && row.ctr < 0.025) {
+    // High impressions but low CTR (< 2.5% for top 10 position, >= 100 impressions)
+    if (avgPosition <= 10.0 && pair.impressions >= 100 && ctr < 0.025) {
       lowCtr.push({
-        query: row.query,
-        page: row.page,
-        impressions: row.impressions,
-        ctr: parseFloat((row.ctr * 100).toFixed(2)),
+        query: pair.query,
+        page: pair.page,
+        impressions: pair.impressions,
+        clicks: pair.clicks,
+        position: parseFloat(avgPosition.toFixed(1)),
+        ctr: parseFloat((ctr * 100).toFixed(3)),
         recommendedAction: 'Rewrite Title tag and Meta description to match high-intent search query and improve CTR.'
       });
     }
   }
 
-  // Cannibalization check: Queries where 2 or more distinct pages receive impressions
+  // Step 3: Cannibalization check across consolidated pages
   const cannibalizationRisks: TelemetryReport['cannibalizationRisks'] = [];
-  for (const [query, pages] of queryPageMap.entries()) {
-    if (pages.size > 1) {
-      const matchingRows = rows.filter((r) => r.query === query).sort((a, b) => a.position - b.position);
-      const topRow = matchingRows[0];
-      if (topRow && topRow.impressions >= 30) {
+  for (const [query, pMap] of queryToPagesMap.entries()) {
+    if (pMap.size > 1) {
+      let queryTotalImpr = 0;
+      let topPosition = 100;
+      const competingPages: Array<{ page: string; impressions: number; avgPos: number }> = [];
+
+      for (const [page, pData] of pMap.entries()) {
+        queryTotalImpr += pData.impressions;
+        const pageAvgPos = pData.impressions > 0 ? pData.posSum / pData.impressions : 100;
+        if (pageAvgPos < topPosition) topPosition = pageAvgPos;
+        competingPages.push({ page, impressions: pData.impressions, avgPos: pageAvgPos });
+      }
+
+      if (queryTotalImpr >= 30) {
+        // Sort competing pages by impressions descending
+        competingPages.sort((a, b) => b.impressions - a.impressions);
         cannibalizationRisks.push({
           query,
-          competingPages: Array.from(pages),
-          topPosition: parseFloat(topRow.position.toFixed(1))
+          competingPages: competingPages.map((cp) => cp.page),
+          topPosition: parseFloat(topPosition.toFixed(1)),
+          totalImpressions: queryTotalImpr
         });
       }
     }
   }
 
-  const averageCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
+  cannibalizationRisks.sort((a, b) => b.totalImpressions - a.totalImpressions);
+
+  const averageCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
   return {
     timestamp: new Date().toISOString(),
-    totalQueriesAnalyzed: rows.length,
+    totalQueriesAnalyzed: queryPageMap.size,
     totalImpressions,
     totalClicks,
-    averageCtr: parseFloat((averageCtr * 100).toFixed(2)),
+    averageCtr: parseFloat(averageCtr.toFixed(4)),
     calibrationProfileUsed: calibration,
     strikingDistanceOpportunities: strikingDistance.sort((a, b) => b.impressions - a.impressions).slice(0, 20),
     lowCtrSnippets: lowCtr.sort((a, b) => b.impressions - a.impressions).slice(0, 20),

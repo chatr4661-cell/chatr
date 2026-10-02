@@ -143,22 +143,24 @@ Authoritative Source (e.g. Government/Census/Bhashini)
   5. **Hash Computation**: `SHA-256(UTF8_BYTES(JCS(dataPoints)))`.
   6. **Test Suite**: Verified across 31 RFC 8785 test vectors (`npm run seo:jcs:test`).
 
-### Cryptographically Signed Telemetry Snapshots
-To prevent the Opportunity Engine from optimizing against altered or stale data, every telemetry snapshot written to `data/gsc-exports/` includes:
+### Cryptographic Integrity-Verified Telemetry Snapshots
+To prevent the Opportunity Engine from optimizing against altered or stale data, every telemetry snapshot written to `data/gsc-exports/` includes a SHA-256 integrity digest (computed over RFC 8785 canonical JSON):
 ```json
 {
   "metadata": {
-    "retrievedAt": "2026-10-02T...",
+    "retrievedAt": "2026-10-02T15:36:00.000Z",
     "source": "gsc_live_api",
     "siteUrl": "sc-domain:chatr.chat",
-    "rowCount": 5000,
+    "rowCount": 3236,
     "schemaVersion": 1,
-    "sha256": "43d07d7207e1b9d1c6cec1ab61c9d8a0..."
+    "sha256": "02335fef4725cdf391af7b05dee346626cfd8b05790f2d789fd6808e9c0cb0b5"
   },
   "rows": [...]
 }
 ```
 Upon ingestion, `ingestGscTelemetry()` recomputes `SHA-256(JCS(rows))` against `metadata.sha256`. Only cryptographically matching files are labeled `verified_export_snapshot`.
+
+> **Note on Row Limits & Search Analytics Behavior**: The operational query engine supports up to Google's documented single-request ceiling of `25,000` rows (configurable via `GSC_ROW_LIMIT` between 1 and 25,000). Google Search Analytics internally applies anonymization thresholds and data truncation, meaning returned row counts represent the rows supplied by Google for the specified dimension matrix and date window rather than an unbounded dataset.
 
 ---
 

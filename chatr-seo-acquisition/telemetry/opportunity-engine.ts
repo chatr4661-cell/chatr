@@ -70,12 +70,12 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
       targetPage: low.page,
       currentMetrics: {
         impressions: low.impressions,
-        clicks: 0,
-        position: 0,
+        clicks: low.clicks,
+        position: low.position,
         ctr: low.ctr
       },
       recommendedAction: low.recommendedAction,
-      rationale: `Ranking in top positions but achieving only ${low.ctr}% CTR due to unaligned title or snippet.`
+      rationale: `Ranking at position ${low.position.toFixed(1)} with ${low.impressions.toLocaleString()} impressions but achieving only ${low.ctr}% CTR due to unaligned title, meta snippet, or intent mismatch.`
     });
   }
 
@@ -83,17 +83,17 @@ export async function runOpportunityEngine(rootDir: string = process.cwd()): Pro
   for (const can of report.cannibalizationRisks) {
     directives.push({
       type: 'CANNIBALIZATION_CONSOLIDATION',
-      priority: 'MEDIUM',
+      priority: can.totalImpressions >= 1000 ? 'HIGH' : 'MEDIUM',
       targetQuery: can.query,
       targetPage: can.competingPages[0],
       currentMetrics: {
-        impressions: 0,
+        impressions: can.totalImpressions,
         clicks: 0,
         position: can.topPosition,
         ctr: 0
       },
-      recommendedAction: `Consolidate internal linking and canonical directives between competing URLs: ${can.competingPages.join(', ')}`,
-      rationale: `Multiple pages are splitting search impressions for query "${can.query}".`
+      recommendedAction: `Consolidate internal linking and canonical directives. Direct ranking signals to primary URL "${can.competingPages[0]}" over competing URLs: ${can.competingPages.slice(1).join(', ')}`,
+      rationale: `Multiple pages are splitting ${can.totalImpressions.toLocaleString()} search impressions for query "${can.query}".`
     });
   }
 
