@@ -38,6 +38,26 @@ function computeFileSha256(filePath: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
+/**
+ * Validates whether a SHA-256 mismatch is strictly due to cross-platform Git
+ * line-ending conversion (e.g. Linux LF vs Windows CRLF) rather than a code modification.
+ * Binary files are strictly excluded and must match byte-for-byte.
+ */
+function checkLineEndingEquivalence(filePath: string, expectedSha256: string): boolean {
+  try {
+    const content = readFileSync(filePath);
+    if (content.includes(0)) return false;
+    const text = content.toString('utf8');
+    const asCrlf = createHash('sha256').update(Buffer.from(text.replace(/\r?\n/g, '\r\n'), 'utf8')).digest('hex');
+    if (asCrlf === expectedSha256) return true;
+    const asLf = createHash('sha256').update(Buffer.from(text.replace(/\r\n/g, '\n'), 'utf8')).digest('hex');
+    if (asLf === expectedSha256) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function scanDirectory(dirPath: string, rootDir: string): Map<string, { sha256: string; sizeBytes: number }> {
   const map = new Map<string, { sha256: string; sizeBytes: number }>();
   if (!existsSync(dirPath)) return map;
@@ -145,11 +165,14 @@ export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeRep
     if (!current) {
       deletedFiles.push(expectedPath);
     } else if (current.sha256 !== meta.sha256) {
-      modifiedFiles.push({
-        path: expectedPath,
-        expectedHash: meta.sha256.slice(0, 12),
-        actualHash: current.sha256.slice(0, 12)
-      });
+      const fullPath = resolve(rootDir, expectedPath);
+      if (!checkLineEndingEquivalence(fullPath, meta.sha256)) {
+        modifiedFiles.push({
+          path: expectedPath,
+          expectedHash: meta.sha256.slice(0, 12),
+          actualHash: current.sha256.slice(0, 12)
+        });
+      }
     }
   }
 
