@@ -223,6 +223,9 @@ export const generateRobotsTxt = (): string => {
     if (p === '/auth') {
       return ['Disallow: /auth/', 'Disallow: /auth$'];
     }
+    if (p === '/business') {
+      return ['Disallow: /business$'];
+    }
     return [`Disallow: ${p}`];
   };
 

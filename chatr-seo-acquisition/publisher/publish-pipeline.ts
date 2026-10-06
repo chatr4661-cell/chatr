@@ -11,7 +11,7 @@
  *  7. Print diagnostic telemetry report
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { verifyCoreFreeze } from '../contracts/core-freeze';
 import { evaluateQualityGate, type PageCandidate, type QualityGateEvaluation } from '../quality/quality-gate';
@@ -130,6 +130,25 @@ export function runPublishPipeline(): PublishResult {
   writeFileSync(resolve(OUTPUT_DIR, 'sitemap-index.xml'), indexXml, 'utf8');
   sitemapsEmitted.push('sitemap-index.xml');
   console.log('   Created master sitemap-index.xml');
+
+  // STEP 6: Mirror to dist/ for production serving if dist directory exists
+  const DIST_DIR = resolve('dist');
+  if (existsSync(DIST_DIR)) {
+    console.log(`\n🌐 Step 6: Syncing published SEO assets to ${DIST_DIR} for production edge serving...`);
+    for (const page of passedPages) {
+      const distDest = resolve(DIST_DIR, page.relativePath);
+      mkdirSync(dirname(distDest), { recursive: true });
+      writeFileSync(distDest, page.html, 'utf8');
+    }
+    for (const sitemap of sitemapsEmitted) {
+      const srcFile = resolve(OUTPUT_DIR, sitemap);
+      const distFile = resolve(DIST_DIR, sitemap);
+      if (existsSync(srcFile)) {
+        writeFileSync(distFile, readFileSync(srcFile));
+      }
+    }
+    console.log(`   Synchronized ${passedPages.length} HTML pages and ${sitemapsEmitted.length} sitemaps into dist/.`);
+  }
 
   console.log('\n─────────────────────────────────────────────────────────────────');
   console.log('🎯 PUBLISHING PIPELINE COMPLETE:');

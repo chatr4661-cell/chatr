@@ -16,7 +16,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
@@ -82,7 +82,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
@@ -141,7 +141,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
@@ -200,7 +200,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
@@ -259,7 +259,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
@@ -318,7 +318,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
@@ -377,7 +377,7 @@ Disallow: /auth/
 Disallow: /auth$
 Disallow: /bluetooth-test
 Disallow: /booking
-Disallow: /business
+Disallow: /business$
 Disallow: /call-history
 Disallow: /calls
 Disallow: /capture
