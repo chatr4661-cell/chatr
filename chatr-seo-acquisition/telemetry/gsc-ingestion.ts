@@ -226,6 +226,7 @@ export async function queryGscSearchAnalytics(
   const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodedSiteUrl}/searchAnalytics/query`;
 
   const allRows: GscRow[] = [];
+  let startRow = 0;
   // Google Search Analytics allows up to 25,000 rows per query request
   const batchSize = Math.min(totalRowTarget, 25000);
 
