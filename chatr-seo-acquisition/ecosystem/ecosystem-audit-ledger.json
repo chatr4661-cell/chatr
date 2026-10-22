@@ -1,0 +1,1979 @@
+{
+  "generatedAt": "2026-10-22T09:13:56.369Z",
+  "totalPropertiesAudited": 28,
+  "averageHealthScore": 94,
+  "gscTelemetryBaseline": {
+    "totalImpressions": 160614,
+    "totalClicks": 80,
+    "trackedQueries": 3172
+  },
+  "trafficQualitySample": {
+    "totalRequests": 8,
+    "verifiedHumanSessions": 2,
+    "searchEngineCrawls": 2,
+    "aiGroundingCrawls": 2,
+    "automatedScraperNoise": 2,
+    "humanSharePercent": "25.0%",
+    "botNoiseSharePercent": "75.0%"
+  },
+  "properties": [
+    {
+      "domainId": "CHATR_MAIN",
+      "hostname": "chatr.chat",
+      "canonicalOrigin": "https://chatr.chat",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1568,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host chatr.chat returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (9647 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 9647,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 1658 discovered URLs.",
+          "evidence": {
+            "urlCount": 1658,
+            "isXml": true,
+            "bytes": 252453
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (1217 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 1217
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "CHATR_INDIA_B2B",
+      "hostname": "chatrchat.in",
+      "canonicalOrigin": "https://chatrchat.in",
+      "isAlias": false,
+      "liveStatus": 308,
+      "server": "Vercel",
+      "responseTimeMs": 2089,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host chatrchat.in returned HTTP 308 (Vercel)",
+          "evidence": {
+            "status": 308,
+            "server": "Vercel"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (5382 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 5382,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 19 discovered URLs.",
+          "evidence": {
+            "urlCount": 19,
+            "isXml": true,
+            "bytes": 2581
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (11088 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 11088
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TALENTXCEL_IN_APEX",
+      "hostname": "talentxcel.in",
+      "canonicalOrigin": "https://talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2659,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (4390 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 4390,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 19 discovered URLs.",
+          "evidence": {
+            "urlCount": 19,
+            "isXml": true,
+            "bytes": 1680
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_JOBS",
+      "hostname": "jobs.talentxcel.in",
+      "canonicalOrigin": "https://jobs.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2940,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host jobs.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1450 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1450,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 550 discovered URLs.",
+          "evidence": {
+            "urlCount": 550,
+            "isXml": true,
+            "bytes": 143229
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_LEARNING",
+      "hostname": "learning.talentxcel.in",
+      "canonicalOrigin": "https://learning.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2931,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host learning.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1167 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1167,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 32 discovered URLs.",
+          "evidence": {
+            "urlCount": 32,
+            "isXml": true,
+            "bytes": 4774
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_PASSPORT",
+      "hostname": "passport.talentxcel.in",
+      "canonicalOrigin": "https://passport.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2798,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host passport.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1364 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1364,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 7 discovered URLs.",
+          "evidence": {
+            "urlCount": 7,
+            "isXml": true,
+            "bytes": 1157
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_GOVERNMENT",
+      "hostname": "government.talentxcel.in",
+      "canonicalOrigin": "https://government.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2716,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host government.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1122 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1122,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 15 discovered URLs.",
+          "evidence": {
+            "urlCount": 15,
+            "isXml": true,
+            "bytes": 2490
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_EMPLOYERS",
+      "hostname": "employers.talentxcel.in",
+      "canonicalOrigin": "https://employers.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2835,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host employers.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1224 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1224,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 7 discovered URLs.",
+          "evidence": {
+            "urlCount": 7,
+            "isXml": true,
+            "bytes": 1061
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_EMPLOYER_ALIAS",
+      "hostname": "employer.talentxcel.in",
+      "canonicalOrigin": "https://employers.talentxcel.in",
+      "isAlias": true,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1983,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ALIAS_REDIRECT",
+          "name": "Alias 301/308 Permanent Redirection",
+          "category": "CANONICAL",
+          "passed": false,
+          "score": 0,
+          "details": "Expected redirect for alias employer.talentxcel.in, got HTTP 200",
+          "evidence": {
+            "status": 200,
+            "location": null
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1224 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1224,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 7 discovered URLs.",
+          "evidence": {
+            "urlCount": 7,
+            "isXml": true,
+            "bytes": 1061
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 80
+    },
+    {
+      "domainId": "TX_COLLEGES",
+      "hostname": "colleges.talentxcel.in",
+      "canonicalOrigin": "https://colleges.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2889,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host colleges.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1128 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1128,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 10252 discovered URLs.",
+          "evidence": {
+            "urlCount": 10252,
+            "isXml": true,
+            "bytes": 2092443
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_CAREERS",
+      "hostname": "careers.talentxcel.in",
+      "canonicalOrigin": "https://careers.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2351,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host careers.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1114 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1114,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 92 discovered URLs.",
+          "evidence": {
+            "urlCount": 92,
+            "isXml": true,
+            "bytes": 14547
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_SALARY",
+      "hostname": "salary.talentxcel.in",
+      "canonicalOrigin": "https://salary.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2739,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host salary.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1087 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1087,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 183 discovered URLs.",
+          "evidence": {
+            "urlCount": 183,
+            "isXml": true,
+            "bytes": 29076
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TX_RESUME",
+      "hostname": "resume.talentxcel.in",
+      "canonicalOrigin": "https://resume.talentxcel.in",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2330,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host resume.talentxcel.in returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, s-maxage=86400, stale-while-revalidate=604800\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (1151 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 1151,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 39 discovered URLs.",
+          "evidence": {
+            "urlCount": 39,
+            "isXml": true,
+            "bytes": 6293
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (2609 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 2609
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "TALENTXCEL_NET_APEX",
+      "hostname": "talentxcel.net",
+      "canonicalOrigin": "https://talentxcel.net",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1543,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host talentxcel.net returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (2858 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 2858,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 32 discovered URLs.",
+          "evidence": {
+            "urlCount": 32,
+            "isXml": true,
+            "bytes": 4141
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "TX_NET_ACADEMY",
+      "hostname": "academy.talentxcel.net",
+      "canonicalOrigin": "https://academy.talentxcel.net",
+      "isAlias": false,
+      "liveStatus": 0,
+      "server": "unknown",
+      "responseTimeMs": 251,
+      "checks": [
+        {
+          "checkId": "HOST_CONNECTIVITY",
+          "name": "Host Connectivity",
+          "category": "UPTIME",
+          "passed": false,
+          "score": 0,
+          "details": "Failed to connect to https://academy.talentxcel.net: fetch failed"
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": false,
+          "score": 0,
+          "details": "robots.txt probe failed: fetch failed"
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 32 discovered URLs.",
+          "evidence": {
+            "urlCount": 32,
+            "isXml": true,
+            "bytes": 4141
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt not reachable."
+        }
+      ],
+      "overallHealthScore": 40
+    },
+    {
+      "domainId": "TX_NET_AI",
+      "hostname": "ai.talentxcel.net",
+      "canonicalOrigin": "https://ai.talentxcel.net",
+      "isAlias": false,
+      "liveStatus": 307,
+      "server": "cloudflare",
+      "responseTimeMs": 1530,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host ai.talentxcel.net returned HTTP 307 (cloudflare)",
+          "evidence": {
+            "status": 307,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (2858 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 2858,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 32 discovered URLs.",
+          "evidence": {
+            "urlCount": 32,
+            "isXml": true,
+            "bytes": 4141
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_TALES_APEX",
+      "hostname": "nutytales.com",
+      "canonicalOrigin": "https://nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2530,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3604 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3604,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 79 discovered URLs.",
+          "evidence": {
+            "urlCount": 79,
+            "isXml": true,
+            "bytes": 13813
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (4363 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 4363
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "NUTY_TALES_WWW_ALIAS",
+      "hostname": "www.nutytales.com",
+      "canonicalOrigin": "https://nutytales.com",
+      "isAlias": true,
+      "liveStatus": 301,
+      "server": "cloudflare",
+      "responseTimeMs": 1384,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ALIAS_REDIRECT",
+          "name": "Alias 301/308 Permanent Redirection",
+          "category": "CANONICAL",
+          "passed": true,
+          "score": 100,
+          "details": "Alias correctly redirects with HTTP 301 to https://nutytales.com/",
+          "evidence": {
+            "status": 301,
+            "location": "https://nutytales.com/"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3604 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3604,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 79 discovered URLs.",
+          "evidence": {
+            "urlCount": 79,
+            "isXml": true,
+            "bytes": 13813
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 100,
+          "details": "llms.txt present and valid (4363 bytes) for AI search citations (ChatGPT, Perplexity, Claude).",
+          "evidence": {
+            "bytes": 4363
+          }
+        }
+      ],
+      "overallHealthScore": 100
+    },
+    {
+      "domainId": "NUTY_NRI",
+      "hostname": "nri.nutytales.com",
+      "canonicalOrigin": "https://nri.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2097,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host nri.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3612 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3612,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 26 discovered URLs.",
+          "evidence": {
+            "urlCount": 26,
+            "isXml": true,
+            "bytes": 4544
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_BUSINESS",
+      "hostname": "business.nutytales.com",
+      "canonicalOrigin": "https://business.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2202,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host business.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3622 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3622,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 27 discovered URLs.",
+          "evidence": {
+            "urlCount": 27,
+            "isXml": true,
+            "bytes": 5183
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_GIFTING",
+      "hostname": "gifting.nutytales.com",
+      "canonicalOrigin": "https://gifting.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1512,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host gifting.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3620 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3620,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 9 discovered URLs.",
+          "evidence": {
+            "urlCount": 9,
+            "isXml": true,
+            "bytes": 1686
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_WEDDINGS",
+      "hostname": "weddings.nutytales.com",
+      "canonicalOrigin": "https://weddings.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1741,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host weddings.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3622 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3622,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 25 discovered URLs.",
+          "evidence": {
+            "urlCount": 25,
+            "isXml": true,
+            "bytes": 4604
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_CRAFTS",
+      "hostname": "crafts.nutytales.com",
+      "canonicalOrigin": "https://crafts.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1645,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host crafts.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3618 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3618,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 27 discovered URLs.",
+          "evidence": {
+            "urlCount": 27,
+            "isXml": true,
+            "bytes": 5063
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_STAYS",
+      "hostname": "stays.nutytales.com",
+      "canonicalOrigin": "https://stays.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 2446,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host stays.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3616 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3616,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 14 discovered URLs.",
+          "evidence": {
+            "urlCount": 14,
+            "isXml": true,
+            "bytes": 2580
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_TRAVEL",
+      "hostname": "travel.nutytales.com",
+      "canonicalOrigin": "https://travel.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1838,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host travel.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3618 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3618,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 12 discovered URLs.",
+          "evidence": {
+            "urlCount": 12,
+            "isXml": true,
+            "bytes": 2212
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_MIDDLE_EAST",
+      "hostname": "middleeast.nutytales.com",
+      "canonicalOrigin": "https://middleeast.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1807,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host middleeast.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3626 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3626,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 52 discovered URLs.",
+          "evidence": {
+            "urlCount": 52,
+            "isXml": true,
+            "bytes": 10697
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_EUROPE",
+      "hostname": "europe.nutytales.com",
+      "canonicalOrigin": "https://europe.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1865,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host europe.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3618 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3618,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 52 discovered URLs.",
+          "evidence": {
+            "urlCount": 52,
+            "isXml": true,
+            "bytes": 10639
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    },
+    {
+      "domainId": "NUTY_AMERICA",
+      "hostname": "america.nutytales.com",
+      "canonicalOrigin": "https://america.nutytales.com",
+      "isAlias": false,
+      "liveStatus": 200,
+      "server": "cloudflare",
+      "responseTimeMs": 1962,
+      "checks": [
+        {
+          "checkId": "CANONICAL_ROOT_200",
+          "name": "Canonical Origin 200 OK Accessibility",
+          "category": "UPTIME",
+          "passed": true,
+          "score": 100,
+          "details": "Canonical host america.nutytales.com returned HTTP 200 (cloudflare)",
+          "evidence": {
+            "status": 200,
+            "server": "cloudflare"
+          }
+        },
+        {
+          "checkId": "EDGE_CACHE_CONTROL",
+          "name": "Edge Cache-Control Header Presence",
+          "category": "CACHE",
+          "passed": true,
+          "score": 100,
+          "details": "Cache-Control configured: \"public, max-age=0, must-revalidate\"",
+          "evidence": {
+            "cacheControl": "public, max-age=0, must-revalidate"
+          }
+        },
+        {
+          "checkId": "ROBOTS_TXT_VALIDITY",
+          "name": "robots.txt Protocol & Policy Verification",
+          "category": "ROBOTS",
+          "passed": true,
+          "score": 100,
+          "details": "robots.txt 200 OK (3620 bytes). Sitemap declared: true. Sensitive paths protected: true.",
+          "evidence": {
+            "bytes": 3620,
+            "hasSitemapDirective": true,
+            "protectsAdmin": true
+          }
+        },
+        {
+          "checkId": "SITEMAP_INDEXABILITY",
+          "name": "Sitemap XML Indexability & Format",
+          "category": "SITEMAP",
+          "passed": true,
+          "score": 100,
+          "details": "Sitemap 200 OK. Valid XML structure with 52 discovered URLs.",
+          "evidence": {
+            "urlCount": 52,
+            "isXml": true,
+            "bytes": 10641
+          }
+        },
+        {
+          "checkId": "AEO_LLMS_TXT",
+          "name": "AI Engine Optimization (llms.txt Standard)",
+          "category": "AEO_GEO",
+          "passed": true,
+          "score": 60,
+          "details": "llms.txt returned HTTP 404. Optional standard for AI grounding."
+        }
+      ],
+      "overallHealthScore": 92
+    }
+  ],
+  "crossDiscoveryRulesCount": 7
+}
