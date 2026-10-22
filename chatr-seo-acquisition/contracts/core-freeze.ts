@@ -107,6 +107,8 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/pages/ChatrWeb.tsx',
   'src/pages/QRLogin.tsx',
   'src/components/chat/LinkedDevicesSheet.tsx',
+  'src/components/qr/QRLoginScanner.tsx',
+  'supabase/functions/qr-login/index.ts',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {

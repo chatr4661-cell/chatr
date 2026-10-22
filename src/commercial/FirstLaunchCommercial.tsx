@@ -59,7 +59,7 @@ export const FirstLaunchCommercial: React.FC<FirstLaunchCommercialProps> = ({ on
   return (
     <aside
       aria-label="Welcome to CHATR Ecosystem Commercial"
-      className="fixed bottom-5 right-5 left-5 md:left-auto md:w-[440px] z-50 bg-slate-950/95 backdrop-blur-xl border border-slate-800 text-white shadow-2xl rounded-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
+      className="fixed top-4 right-4 left-4 md:left-auto md:w-[440px] z-50 bg-slate-950/95 backdrop-blur-xl border border-slate-800 text-white shadow-2xl rounded-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-top-4"
     >
       {/* Progress bar (4.8 seconds total duration) */}
       <div className="h-1 w-full bg-slate-800/80 overflow-hidden">

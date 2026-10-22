@@ -50,11 +50,17 @@ const QRLogin = () => {
         os: navigator.platform
       };
 
+      const { data: { session } } = await supabase.auth.getSession();
+
       const { data, error } = await supabase.functions.invoke('qr-login', {
         body: {
           action: 'authenticate',
           token,
-          deviceInfo
+          deviceInfo,
+          sessionTokens: session ? {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          } : undefined
         }
       });
 

@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, token, deviceInfo } = await req.json();
+    const { action, token, deviceInfo, sessionTokens, deviceId } = await req.json();
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
 
     // Generate new QR token
@@ -89,37 +89,38 @@ serve(async (req) => {
 
       // If authenticated, return session data
       if (data.status === 'authenticated' && data.user_id) {
-        // Generate a custom session token for the web client
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(data.user_id);
+        const storedTokens = data.device_info?.session_tokens;
         
-        if (userError || !userData.user) {
-          throw new Error('Failed to get user data');
-        }
-
-        // Create a magic link or session
-        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: userData.user.email!,
-        });
-
-        if (linkError) {
-          console.error('Error generating magic link:', linkError);
-          // Fallback: return user info for manual handling
+        // Return session tokens directly for instant seamless login without magic link redirect
+        if (storedTokens?.access_token && storedTokens?.refresh_token) {
           return new Response(JSON.stringify({ 
             success: true, 
             status: 'authenticated',
             userId: data.user_id,
-            email: userData.user.email
+            sessionTokens: storedTokens
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
+        }
+
+        // Fallback: try generating a magic link if user has an email
+        const { data: userData } = await supabase.auth.admin.getUserById(data.user_id);
+        let magicLink: string | undefined = undefined;
+
+        if (userData?.user?.email) {
+          const { data: linkData } = await supabase.auth.admin.generateLink({
+            type: 'magiclink',
+            email: userData.user.email,
+          });
+          magicLink = linkData?.properties?.action_link;
         }
 
         return new Response(JSON.stringify({ 
           success: true, 
           status: 'authenticated',
           userId: data.user_id,
-          magicLink: linkData.properties?.action_link
+          email: userData?.user?.email,
+          magicLink
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -200,13 +201,19 @@ serve(async (req) => {
         });
       }
 
-      // Update session with user authentication
+      // Update session with user authentication and session tokens
+      const updatedDeviceInfo = {
+        ...(deviceInfo || {}),
+        session_tokens: sessionTokens || null
+      };
+
       const { error: updateError } = await supabase
         .from('qr_login_sessions')
         .update({ 
           user_id: user.id,
           status: 'authenticated',
-          authenticated_at: new Date().toISOString()
+          authenticated_at: new Date().toISOString(),
+          device_info: updatedDeviceInfo
         })
         .eq('id', session.id);
 
