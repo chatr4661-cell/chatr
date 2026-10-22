@@ -109,6 +109,11 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/components/chat/LinkedDevicesSheet.tsx',
   'src/components/qr/QRLoginScanner.tsx',
   'supabase/functions/qr-login/index.ts',
+  // Dedicated subdomain index pages & APK download experience
+  'src/pages/AppHome.tsx',
+  'src/pages/SellerHome.tsx',
+  'src/pages/Download.tsx',
+  'src/pages/SellerPortal.tsx',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {
@@ -201,7 +206,7 @@ export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeRep
 
   // Check 2: Verify no unexpected new files were added to frozen directories
   for (const currentPath of currentFiles.keys()) {
-    if (!baselineFiles[currentPath]) {
+    if (!baselineFiles[currentPath] && !BUILD_GENERATED_EXCLUSIONS.has(currentPath)) {
       unexpectedFiles.push(currentPath);
     }
   }

@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Sparkles, X, ChevronRight, ChevronDown, ChevronUp, Globe2, ExternalLink, ShieldCheck, Play, Pause } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import {
+  Sparkles,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ShieldCheck,
+  Play,
+  Pause,
+  ArrowLeftRight
+} from 'lucide-react';
 import { FirstLaunchCommercial } from './FirstLaunchCommercial';
 import { CommercialHubModal } from './CommercialHubModal';
 import { COMMERCIAL_CAMPAIGNS, getAttributedUrl, isCommercialGatewayEnabled } from './campaignRegistry';
@@ -8,13 +20,36 @@ import { recordCommercialImpression, recordCommercialClick } from './commercialA
 
 export const CommercialGatewayManager: React.FC = () => {
   const [hubOpen, setHubOpen] = useState(false);
-  const [barDismissed, setBarDismissed] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true); // Expanded by default so visual commercial is immediately visible
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Expandable floating widget
   const [isPaused, setIsPaused] = useState(false);
   const [tickerIndex, setTickerIndex] = useState(0);
+  const [dockSide, setDockSide] = useState<'right' | 'left'>(() => {
+    try {
+      const saved = localStorage.getItem('chatr_commercial_dock_side');
+      return saved === 'left' ? 'left' : 'right';
+    } catch {
+      return 'right';
+    }
+  });
+
   const location = useLocation();
 
-  // Rotate through the 7 brands every 5 seconds in the top commercial banner
+  // ONLY render at index page ('/' or '') as explicitly instructed
+  const isIndexPage = location.pathname === '/' || location.pathname === '';
+
+  // Save dock side preference (Right ↔ Left)
+  const toggleDockSide = () => {
+    const nextSide = dockSide === 'right' ? 'left' : 'right';
+    setDockSide(nextSide);
+    try {
+      localStorage.setItem('chatr_commercial_dock_side', nextSide);
+    } catch {
+      // ignore storage error
+    }
+  };
+
+  // Rotate through the 7 brands every 5 seconds when not paused
   useEffect(() => {
     if (isPaused) return;
     const timer = setInterval(() => {
@@ -26,27 +61,13 @@ export const CommercialGatewayManager: React.FC = () => {
   // Record impression for active brand
   useEffect(() => {
     const current = COMMERCIAL_CAMPAIGNS[tickerIndex];
-    if (current && !barDismissed) {
+    if (current && !isDismissed && isIndexPage) {
       recordCommercialImpression(current.id, true, 2000);
     }
-  }, [tickerIndex, barDismissed]);
+  }, [tickerIndex, isDismissed, isIndexPage]);
 
-  if (!isCommercialGatewayEnabled()) {
-    return null;
-  }
-
-  // Critical workflow protection: NEVER show commercial triggers in active calls, chat conversations, or auth
-  const isCriticalWorkflow =
-    location.pathname.startsWith('/chat') ||
-    location.pathname.startsWith('/calls') ||
-    location.pathname.startsWith('/call/') ||
-    location.pathname.startsWith('/auth') ||
-    location.pathname.startsWith('/qr-login') ||
-    location.pathname.startsWith('/admin') ||
-    location.pathname === '/gateway' ||
-    location.pathname === '/commercial';
-
-  if (isCriticalWorkflow) {
+  // Check if feature flag enabled and strictly on index route
+  if (!isCommercialGatewayEnabled() || !isIndexPage) {
     return null;
   }
 
@@ -54,188 +75,293 @@ export const CommercialGatewayManager: React.FC = () => {
 
   return (
     <>
-      {/* 1. First-launch commercial sequence */}
+      {/* 1. First-launch commercial sequence (runs once strictly on index) */}
       <FirstLaunchCommercial onOpenGatewayHub={() => setHubOpen(true)} />
 
-      {/* 2. TOP COMMERCIAL ADVERTISEMENT BILLBOARD (Positioned at the very top of the page) */}
-      {!barDismissed ? (
-        <aside
-          aria-label="Commercial Gateway Ecosystem Advertisement"
-          className="w-full bg-slate-950 text-white border-b border-slate-800 z-50 text-xs shadow-xl transition-all duration-300"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-        >
-          {/* Top Ticker Bar */}
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
-                <Sparkles className="w-3 h-3" />
-                Commercial Gateway
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-blue-500/30 text-[10px] font-mono">
-                  7
+      {/* 2. FLOATING EXPANDABLE COMMERCIAL ADVERTISEMENT WIDGET */}
+      {!isDismissed ? (
+        isExpanded ? (
+          /* EXPANDED FLOATING COMMERCIAL CARD */
+          <aside
+            aria-label="Commercial Ecosystem Advertisement"
+            className={`fixed top-20 sm:top-24 ${
+              dockSide === 'right' ? 'right-4 sm:right-6' : 'left-4 sm:left-6'
+            } z-40 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] rounded-2xl bg-slate-950/95 text-white border border-slate-800 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95`}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            {/* Header with Title and Control Buttons */}
+            <div className="px-3.5 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                  <Sparkles className="w-3 h-3" />
+                  Commercial
                 </span>
-              </span>
+                <span className="text-slate-400 font-mono text-[11px] shrink-0">
+                  [{tickerIndex + 1}/7]
+                </span>
+                <span className="font-semibold text-slate-200 truncate text-[11px]">
+                  {currentBrand.brandName}
+                </span>
+              </div>
 
-              <span className="text-slate-400 font-mono text-[11px] shrink-0">
-                [{tickerIndex + 1}/7]
-              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Switch Dock Side (Left ↔ Right) */}
+                <button
+                  type="button"
+                  onClick={toggleDockSide}
+                  title={dockSide === 'right' ? 'Dock to Left side' : 'Dock to Right side'}
+                  aria-label="Switch side"
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                </button>
 
-              <span className="font-semibold text-white truncate hidden sm:inline">
-                {currentBrand.brandName}:
-              </span>
-              <span className="text-slate-300 truncate hidden md:inline">
-                {currentBrand.headline}
-              </span>
+                {/* Pause / Play auto-rotation */}
+                <button
+                  type="button"
+                  onClick={() => setIsPaused(!isPaused)}
+                  title={isPaused ? 'Resume auto-play' : 'Pause auto-play'}
+                  aria-label="Toggle auto-play"
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                </button>
+
+                {/* Collapse button */}
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  title="Collapse commercial"
+                  aria-label="Collapse commercial"
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <ChevronUp className="w-4 h-4" />
+                </button>
+
+                {/* Dismiss button */}
+                <button
+                  type="button"
+                  onClick={() => setIsDismissed(true)}
+                  title="Dismiss advertisement"
+                  aria-label="Dismiss advertisement"
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Controls & Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Photographic Image Banner */}
+            <div className="relative h-44 w-full bg-slate-900 overflow-hidden group">
+              <img
+                src={currentBrand.imageUrl}
+                alt={currentBrand.brandName}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+              <div className={`absolute inset-0 bg-gradient-to-t ${currentBrand.gradient} opacity-30`} />
+
+              {/* Badges on Image */}
+              <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/75 backdrop-blur-md text-white border border-white/20">
+                  <ShieldCheck className="w-3 h-3 text-blue-400" />
+                  {currentBrand.badgeText}
+                </span>
+                <span className="text-[10px] font-mono text-white/90 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
+                  {currentBrand.displayHostname}
+                </span>
+              </div>
+
+              {/* Bottom Brand Title Overlay */}
+              <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                <h3 className="text-base font-extrabold text-white drop-shadow-md">
+                  {currentBrand.brandName}
+                </h3>
+              </div>
+            </div>
+
+            {/* Details Body */}
+            <div className="p-3.5 space-y-2.5">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-400">
+                  <span>{currentBrand.categoryLabel}</span>
+                  <span className="text-slate-600">•</span>
+                  <span className="text-slate-400">Commercial Ad</span>
+                </div>
+                <h4 className="text-sm font-bold text-white mt-0.5 leading-snug">
+                  {currentBrand.headline}
+                </h4>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
+                  {currentBrand.valueProposition}
+                </p>
+              </div>
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1">
+                {currentBrand.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-900 border border-slate-800 text-slate-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* Carousel Navigation & Outbound Actions */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                {/* 7-Brand Step Controls & Dots */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTickerIndex((prev) => (prev - 1 + COMMERCIAL_CAMPAIGNS.length) % COMMERCIAL_CAMPAIGNS.length)}
+                    title="Previous destination"
+                    aria-label="Previous destination"
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+
+                  <div className="flex items-center gap-1 px-1">
+                    {COMMERCIAL_CAMPAIGNS.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setTickerIndex(i)}
+                        className={`h-1.5 rounded-full transition-all ${
+                          i === tickerIndex ? 'w-4 bg-blue-500' : 'w-1.5 bg-slate-700 hover:bg-slate-500'
+                        }`}
+                        title={`View ${COMMERCIAL_CAMPAIGNS[i].brandName}`}
+                        aria-label={`Go to ${COMMERCIAL_CAMPAIGNS[i].brandName}`}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setTickerIndex((prev) => (prev + 1) % COMMERCIAL_CAMPAIGNS.length)}
+                    title="Next destination"
+                    aria-label="Next destination"
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setHubOpen(true)}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors"
+                  >
+                    All (7)
+                  </button>
+
+                  <a
+                    href={getAttributedUrl(currentBrand, 'floating_card')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => recordCommercialClick(currentBrand.id, 'floating_card')}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-md transition-colors"
+                  >
+                    <span>Visit</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </aside>
+        ) : (
+          /* COLLAPSED SLEEK FLOATING PILL */
+          <div
+            className={`fixed top-20 sm:top-24 ${
+              dockSide === 'right' ? 'right-4 sm:right-6' : 'left-4 sm:left-6'
+            } z-40 animate-in fade-in duration-200`}
+          >
+            <div className="flex items-center gap-2 p-1.5 pl-2 pr-2.5 rounded-full bg-slate-950/95 text-white border border-slate-800 shadow-2xl backdrop-blur-xl group hover:border-blue-500/50 transition-all">
+              {/* Flip Side Button */}
               <button
                 type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-colors"
-                title={isExpanded ? 'Collapse commercial' : 'Expand commercial'}
+                onClick={toggleDockSide}
+                title={dockSide === 'right' ? 'Dock to Left side' : 'Dock to Right side'}
+                aria-label="Switch side"
+                className="p-1 text-slate-400 hover:text-white transition-colors"
               >
-                <span>{isExpanded ? 'Hide Details' : 'View Commercial'}</span>
-                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                <ArrowLeftRight className="w-3 h-3" />
               </button>
 
+              {/* Thumbnail of active rotating brand */}
+              <div
+                onClick={() => setIsExpanded(true)}
+                className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-slate-700 cursor-pointer"
+              >
+                <img
+                  src={currentBrand.imageUrl}
+                  alt={currentBrand.brandName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Text label */}
               <button
                 type="button"
-                onClick={() => setHubOpen(true)}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-xs"
+                onClick={() => setIsExpanded(true)}
+                className="flex flex-col text-left cursor-pointer"
               >
-                <span>Explore All (7)</span>
-                <ChevronRight className="w-3 h-3" />
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-blue-400">
+                    Sponsored
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-400">
+                    [{tickerIndex + 1}/7]
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-white max-w-[130px] truncate leading-tight">
+                  {currentBrand.brandName}
+                </span>
               </button>
 
+              {/* Expand Trigger */}
               <button
                 type="button"
-                onClick={() => setBarDismissed(true)}
-                aria-label="Dismiss top commercial"
-                title="Dismiss commercial bar"
-                className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                onClick={() => setIsExpanded(true)}
+                className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-colors"
               >
-                <X className="w-3.5 h-3.5" />
+                <span>View</span>
+                <ChevronDown className="w-3 h-3" />
               </button>
             </div>
           </div>
-
-          {/* Expanded Rich Visual Commercial Advertisement Card */}
-          {isExpanded && (
-            <div className="border-t border-slate-800/80 bg-slate-900/60 px-4 py-3.5 animate-in fade-in duration-200">
-              <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                
-                {/* Visual Image Banner Left Side */}
-                <div className="md:col-span-4 relative h-36 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 group shadow-md">
-                  <img
-                    src={currentBrand.imageUrl}
-                    alt={currentBrand.brandName}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className={`absolute inset-0 bg-gradient-to-t ${currentBrand.gradient} opacity-30`} />
-
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/70 backdrop-blur-sm text-white border border-white/20 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-blue-400" />
-                      {currentBrand.badgeText}
-                    </span>
-                  </div>
-
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                    <span className="text-sm font-bold text-white drop-shadow-md">
-                      {currentBrand.brandName}
-                    </span>
-                    <span className="text-[10px] font-mono text-white/80 bg-black/60 px-1.5 py-0.5 rounded">
-                      {currentBrand.displayHostname}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Details & Action Right Side */}
-                <div className="md:col-span-8 flex flex-col justify-between space-y-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400">
-                        {currentBrand.categoryLabel}
-                      </span>
-                      <span className="text-slate-600 dark:text-slate-500">•</span>
-                      <span className="text-[11px] text-slate-400">
-                        Commercial Advertisement
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-bold text-white leading-tight">
-                      {currentBrand.headline}
-                    </h3>
-
-                    <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                      {currentBrand.valueProposition}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                    <div className="flex items-center gap-1.5">
-                      {currentBrand.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Play / Pause toggle */}
-                      <button
-                        type="button"
-                        onClick={() => setIsPaused(!isPaused)}
-                        className="p-1.5 rounded-md text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors"
-                        title={isPaused ? 'Resume auto-play' : 'Pause auto-play'}
-                      >
-                        {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
-                      </button>
-
-                      {/* Outbound Link CTA */}
-                      <a
-                        href={getAttributedUrl(currentBrand, 'top_billboard')}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => recordCommercialClick(currentBrand.id, 'top_billboard')}
-                        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-xs"
-                      >
-                        <span>{currentBrand.ctaText}</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-        </aside>
+        )
       ) : (
-        /* Minimized Top Pill */
-        <div className="fixed top-3 left-4 z-50">
+        /* MINIMIZED FLOATING ICON PILL (If dismissed) */
+        <div
+          className={`fixed top-20 sm:top-24 ${
+            dockSide === 'right' ? 'right-4 sm:right-6' : 'left-4 sm:left-6'
+          } z-40`}
+        >
           <button
             type="button"
-            onClick={() => setBarDismissed(false)}
-            title="Open CHATR Commercial Gateway"
-            aria-label="Open Commercial Gateway"
-            className="group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-950/90 text-white border border-slate-800 shadow-lg hover:border-blue-400 backdrop-blur-md transition-all duration-200"
+            onClick={() => {
+              setIsDismissed(false);
+              setIsExpanded(true);
+            }}
+            title="Open Commercial Advertisement"
+            aria-label="Open Commercial Advertisement"
+            className="group flex items-center gap-1.5 p-2 rounded-full bg-slate-950/90 text-white border border-slate-800 shadow-xl hover:border-blue-500 backdrop-blur-md transition-all"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-400 group-hover:scale-110 transition-transform" />
-            <span>Commercial Gateway</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-blue-600/30 text-blue-300 text-[10px] font-mono">
-              7
+            <span className="text-[10px] font-bold hidden group-hover:inline pr-1">
+              Commercial [7]
             </span>
           </button>
         </div>
       )}
 
-      {/* 3. Persistent Commercial Hub Modal with React Portal */}
+      {/* 3. Commercial Hub Modal with React Portal */}
       <CommercialHubModal isOpen={hubOpen} onClose={() => setHubOpen(false)} />
     </>
   );

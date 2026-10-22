@@ -27,7 +27,7 @@
       "destination": "/manifest.json"
     },
     {
-      "source": "/((?!api/|assets/|sitemap.*\\.xml|sitemaps/|sw\\.js|firebase-messaging-sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3|\\.well-known/|security\\.txt).*)",
+      "source": "/((?!api/|assets/|download/|.*\\.apk|sitemap.*\\.xml|sitemaps/|sw\\.js|firebase-messaging-sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3|\\.well-known/|security\\.txt).*)",
       "destination": "/index.html"
     }
   ],
@@ -247,6 +247,23 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/download/(.*)\\.apk",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"chatr.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
         }
       ]
     }

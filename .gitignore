@@ -12,6 +12,8 @@ dist
 dist-seo
 dist-ssr
 *.local
+*.apk
+public/download/*.apk
 
 # Editor directories and files
 .vscode/*
