@@ -61,6 +61,7 @@ import { BottomNav } from '@/components/BottomNav';
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
+import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -79,6 +80,7 @@ const Index = () => {
   
   // Stealth Mode hook
   const { mode } = useStealthMode();
+  const { isModuleVisible } = useModuleRegistry();
   
   const getModeLabel = (modeType: StealthModeType): string => {
     switch (modeType) {
@@ -705,6 +707,10 @@ const Index = () => {
     },
   ];
 
+  const visibleMainHubs = React.useMemo(() => {
+    return mainHubs.filter(item => isModuleVisible(item.route));
+  }, [mainHubs, isModuleVisible]);
+
   // Show minimal skeleton while checking auth (no animations for speed)
   if (!mounted || !user) {
     return (
@@ -892,7 +898,7 @@ const Index = () => {
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground mb-2">All Services</h2>
           <div className="grid grid-cols-4 gap-3">
-            {mainHubs.map((category, index) => (
+            {visibleMainHubs.map((category, index) => (
               <button
                 key={category.title}
                 onClick={() => {
@@ -949,13 +955,15 @@ const Index = () => {
             <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
           </h2>
           <div className="grid grid-cols-3 gap-3">
-            <button
-              onClick={() => navigate('/food-ordering')}
-              className="h-14 rounded-[24px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <Utensils className="w-6 h-6 text-white/90" strokeWidth={1.5} />
-              <span className="text-[10px] text-white font-medium mt-0.5">Food Ordering</span>
-            </button>
+            {isModuleVisible('/food-ordering') && (
+              <button
+                onClick={() => navigate('/food-ordering')}
+                className="h-14 rounded-[24px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Utensils className="w-6 h-6 text-white/90" strokeWidth={1.5} />
+                <span className="text-[10px] text-white font-medium mt-0.5">Food Ordering</span>
+              </button>
+            )}
             <button
               onClick={() => navigate('/local-deals')}
               className="h-14 rounded-[24px] bg-gradient-to-r from-green-400 to-green-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
@@ -979,34 +987,42 @@ const Index = () => {
             <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
           </h2>
           <div className="grid grid-cols-4 gap-2">
-            <button
-              onClick={() => navigate('/chatr-wallet')}
-              className="h-14 rounded-[22px] bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-              <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
-            </button>
-            <button
-              onClick={() => navigate('/chatr-studio')}
-              className="h-14 rounded-[22px] bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-              <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
-            </button>
-            <button
-              onClick={() => navigate('/ai-assistant')}
-              className="h-14 rounded-[22px] bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-              <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
-            </button>
-            <button
-              onClick={() => navigate('/emergency-services')}
-              className="h-14 rounded-[22px] bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-              <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
-            </button>
+            {isModuleVisible('/chatr-wallet') && (
+              <button
+                onClick={() => navigate('/chatr-wallet')}
+                className="h-14 rounded-[22px] bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
+              </button>
+            )}
+            {isModuleVisible('/chatr-studio') && (
+              <button
+                onClick={() => navigate('/chatr-studio')}
+                className="h-14 rounded-[22px] bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
+              </button>
+            )}
+            {isModuleVisible('/ai-assistant') && (
+              <button
+                onClick={() => navigate('/ai-assistant')}
+                className="h-14 rounded-[22px] bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
+              </button>
+            )}
+            {(isModuleVisible('/emergency') || isModuleVisible('/emergency-services')) && (
+              <button
+                onClick={() => navigate('/emergency-services')}
+                className="h-14 rounded-[22px] bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

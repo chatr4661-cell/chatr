@@ -274,6 +274,7 @@ export const PaymentVerification = lazy(() => import('@/pages/admin/PaymentVerif
 export const AdminJobHealth = lazy(() => import('@/pages/admin/JobHealth'));
 export const AdminTokenHealth = lazy(() => import('@/pages/admin/TokenHealth'));
 export const ChatrWorldAdmin = lazy(() => import('@/pages/ChatrWorldAdmin'));
+export const ModuleControlCenter = lazy(() => import('@/pages/admin/ModuleControlCenter'));
 
 // Settings & Account
 export const Account = lazy(() => import('@/pages/Account'));

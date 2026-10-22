@@ -44,6 +44,7 @@ import { preloadCriticalRoutes } from "./routes/lazyPages";
 // Layout components (small, keep eager)
 import { AdminLayout } from "./components/AdminLayout";
 import DesktopLayout from "./layouts/DesktopLayout";
+import { ModuleRouteGuard } from "./components/ModuleRouteGuard";
 import { CommercialGatewayManager } from "./commercial/CommercialGatewayManager";
 const CommercialGatewayPage = React.lazy(() => import("./commercial/CommercialGatewayPage"));
 
@@ -316,7 +317,7 @@ const App = () => {
             <Route path="/mental-health" element={<LazyRoute component={LazyPages.MentalHealth} />} />
             <Route path="/health-reminders" element={<LazyRoute component={LazyPages.HealthReminders} />} />
             <Route path="/health-risks" element={<LazyRoute component={LazyPages.HealthRiskPredictions} />} />
-            <Route path="/emergency" element={<LazyRoute component={LazyPages.EmergencyButton} />} />
+            <Route path="/emergency" element={<ModuleRouteGuard moduleId="emergency" component={LazyPages.EmergencyButton} />} />
             <Route path="/emergency-services" element={<LazyRoute component={LazyPages.EmergencyServices} />} />
             
             {/* Care Path Routes */}
@@ -357,9 +358,10 @@ const App = () => {
             <Route path="/developer-portal" element={<LazyRoute component={LazyPages.DeveloperPortal} />} />
             <Route path="/mcp-console" element={<ProtectedLazyRoute component={LazyPages.McpDeveloperDashboard} />} />
             <Route path="/official-accounts" element={<LazyRoute component={LazyPages.OfficialAccounts} />} />
-            <Route path="/chatr-studio" element={<LazyRoute component={LazyPages.ChatrStudio} />} />
+            <Route path="/chatr-studio" element={<ModuleRouteGuard moduleId="studio" component={LazyPages.ChatrStudio} />} />
+            <Route path="/studio" element={<Navigate to="/chatr-studio" replace />} />
             <Route path="/studio/design/:id" element={<LazyRoute component={LazyPages.StudioDesignView} />} />
-            <Route path="/food-ordering" element={<LazyRoute component={LazyPages.FoodOrdering} />} />
+            <Route path="/food-ordering" element={<ModuleRouteGuard moduleId="food-ordering" component={LazyPages.FoodOrdering} />} />
             <Route path="/restaurant/:id" element={<LazyRoute component={LazyPages.RestaurantDetail} />} />
             <Route path="/food-checkout/:id" element={<LazyRoute component={LazyPages.FoodCheckout} />} />
             <Route path="/order-tracking/:orderId" element={<LazyRoute component={LazyPages.OrderTracking} />} />
@@ -373,7 +375,7 @@ const App = () => {
             <Route path="/earn/history" element={<ProtectedLazyRoute component={LazyPages.EarnHistory} />} />
             
             {/* Business / Dhandha Routes */}
-            <Route path="/dhandha" element={<ProtectedLazyRoute component={LazyPages.Dhandha} />} />
+            <Route path="/dhandha" element={<ModuleRouteGuard moduleId="dhandha" component={LazyPages.Dhandha} />} />
             
             {/* Points & Payment Routes */}
             <Route path="/chatr-points" element={<LazyRoute component={LazyPages.ChatrPoints} />} />
@@ -381,7 +383,9 @@ const App = () => {
             <Route path="/stealth-mode" element={<ProtectedLazyRoute component={LazyPages.StealthMode} />} />
             <Route path="/growth" element={<LazyRoute component={LazyPages.ChatrGrowth} />} />
             <Route path="/chatr-growth" element={<LazyRoute component={LazyPages.ChatrGrowth} />} />
-            <Route path="/chatr-wallet" element={<LazyRoute component={LazyPages.ChatrWallet} />} />
+            <Route path="/chatr-wallet" element={<ModuleRouteGuard moduleId="chatrpay" component={LazyPages.ChatrWallet} />} />
+            <Route path="/wallet" element={<Navigate to="/chatr-wallet" replace />} />
+            <Route path="/chatrpay" element={<Navigate to="/chatr-wallet" replace />} />
             <Route path="/chatr-plus-subscribe" element={<LazyRoute component={LazyPages.ChatrPlusSubscribe} />} />
             <Route path="/ambassador-program" element={<LazyRoute component={LazyPages.AmbassadorProgram} />} />
             <Route path="/doctor-onboarding" element={<LazyRoute component={LazyPages.DoctorOnboarding} />} />
@@ -391,9 +395,9 @@ const App = () => {
             <Route path="/kyc-verification" element={<ProtectedLazyRoute component={LazyPages.KYCVerificationPage} />} />
             
             {/* AI & Settings Routes */}
-            <Route path="/chatr-world" element={<LazyRoute component={LazyPages.ChatrWorld} />} />
-            <Route path="/chatr-games" element={<LazyRoute component={LazyPages.ChatrGames} />} />
-            <Route path="/native-apps" element={<LazyRoute component={LazyPages.MiniApps} />} />
+            <Route path="/chatr-world" element={<ModuleRouteGuard moduleId="chatr-world" component={LazyPages.ChatrWorld} />} />
+            <Route path="/chatr-games" element={<ModuleRouteGuard moduleId="chatr-games" component={LazyPages.ChatrGames} />} />
+            <Route path="/native-apps" element={<ModuleRouteGuard moduleId="native-apps" component={LazyPages.MiniApps} />} />
             <Route path="/store/app/:id" element={<LazyRoute component={LazyPages.StoreAppDetail} />} />
             <Route path="/store/my-apps" element={<LazyRoute component={LazyPages.StoreMyApps} />} />
             <Route path="/store/updates" element={<LazyRoute component={LazyPages.StoreUpdates} />} />
@@ -401,11 +405,11 @@ const App = () => {
             <Route path="/store/developer" element={<LazyRoute component={LazyPages.StoreDeveloperDashboard} />} />
             <Route path="/chatr-os" element={<LazyRoute component={LazyPages.ChatrOS} />} />
             <Route path="/os-detection" element={<LazyRoute component={LazyPages.OSDetection} />} />
-            <Route path="/ai-agents" element={<LazyRoute component={LazyPages.AIAgentsHub} />} />
+            <Route path="/ai-agents" element={<ModuleRouteGuard moduleId="ai-agents" component={LazyPages.AIAgentsHub} />} />
             <Route path="/ai-agents/create" element={<LazyRoute component={LazyPages.AIAgentCreate} />} />
             <Route path="/ai-agents/chat/:agentId" element={<LazyRoute component={LazyPages.AIAgentChatNew} />} />
             <Route path="/ai-agents/settings/:agentId" element={<LazyRoute component={LazyPages.AIAgents} />} />
-            <Route path="/ai-assistant" element={<LazyRoute component={LazyPages.AIAssistant} />} />
+            <Route path="/ai-assistant" element={<ModuleRouteGuard moduleId="ai-assistant" component={LazyPages.AIAssistant} />} />
             <Route path="/jobs" element={<LazyRoute component={LazyPages.TalentxcelJobs} />} />
             <Route path="/jobs/:jobId" element={<LazyRoute component={LazyPages.TalentxcelJobs} />} />
             <Route path="/local-jobs" element={<Navigate to="/jobs" replace />} />
@@ -423,7 +427,8 @@ const App = () => {
             <Route path="/ai-browser-home" element={<LazyRoute component={LazyPages.AIBrowserHome} />} />
             <Route path="/ai-search" element={<LazyRoute component={LazyPages.AIBrowserHome} />} />
             <Route path="/ai-browser" element={<LazyRoute component={LazyPages.AIBrowserView} />} />
-            <Route path="/chat-ai" element={<LazyRoute component={LazyPages.AIChat} />} />
+            <Route path="/chat-ai" element={<ModuleRouteGuard moduleId="chat-ai" component={LazyPages.AIChat} />} />
+            <Route path="/chatr-intelligence" element={<Navigate to="/chat-ai" replace />} />
             <Route path="/capture" element={<LazyRoute component={LazyPages.Capture} />} />
             <Route path="/account" element={<LazyRoute component={LazyPages.Account} />} />
             <Route path="/prechu-ai" element={<ProtectedLazyRoute component={LazyPages.PrechuAI} />} />
@@ -447,6 +452,7 @@ const App = () => {
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<LazyRoute component={LazyPages.AdminDashboard} />} />
+              <Route path="modules" element={<LazyRoute component={LazyPages.ModuleControlCenter} />} />
               <Route path="feature-builder" element={<LazyRoute component={LazyPages.FeatureBuilder} />} />
               <Route path="schema-manager" element={<LazyRoute component={LazyPages.SchemaManager} />} />
               <Route path="users" element={<LazyRoute component={LazyPages.AdminUsers} />} />

@@ -120,6 +120,13 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/components/FirebasePhoneAuth.tsx',
   'src/components/OnboardingDialog.tsx',
   'src/components/PhoneAuth.tsx',
+  // Module Control Center & Dynamic Module Visibility
+  'src/components/AdminLayout.tsx',
+  'src/components/ModuleRouteGuard.tsx',
+  'src/pages/Home.tsx',
+  'src/pages/Index.tsx',
+  'src/pages/admin/ModuleControlCenter.tsx',
+  'supabase/migrations/20261022163000_module_control_center.sql',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {

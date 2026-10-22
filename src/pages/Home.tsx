@@ -17,6 +17,7 @@ import { AppleCard, AppleGroupedList, AppleListItem } from '@/components/ui/Appl
 import { AppleSearchBar } from '@/components/ui/AppleInput';
 import { AppleButton, AppleIconButton } from '@/components/ui/AppleButton';
 import { BottomNav } from '@/components/BottomNav';
+import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
 
 // Inline haptic hook to avoid import delay
 const useNativeHaptics = () => ({
@@ -93,6 +94,16 @@ const Home = memo(() => {
     notifications: 0
   });
   const [recentChats, setRecentChats] = useState<any[]>(cachedData?.recentChats || []);
+
+  const { isModuleVisible } = useModuleRegistry();
+
+  const visibleQuickActions = useMemo(() => {
+    return quickActions.filter(action => isModuleVisible(action.route));
+  }, [isModuleVisible]);
+
+  const visibleMainServices = useMemo(() => {
+    return mainServices.filter(service => isModuleVisible(service.route));
+  }, [isModuleVisible]);
 
   // Navigation with haptic feedback
   const handleNavigate = useCallback((route: string) => {
@@ -336,7 +347,7 @@ const Home = memo(() => {
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3 apple-section-header">Quick Actions</h2>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide snap-x snap-mandatory">
-              {quickActions.map((action) => (
+              {visibleQuickActions.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => handleNavigate(action.route)}
@@ -412,7 +423,7 @@ const Home = memo(() => {
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3 apple-section-header">All Services</h2>
             <div className="grid grid-cols-4 gap-3">
-              {mainServices.map((service) => (
+              {visibleMainServices.map((service) => (
                 <AppleCard
                   key={service.label}
                   variant="default"
