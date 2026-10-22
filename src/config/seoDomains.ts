@@ -7,7 +7,7 @@
  * never emitted into this repository's sitemap or robots.txt.
  */
 
-export type SeoDomainId = 'chatr.chat' | 'chatrchat.in' | 'talentxcel.in' | 'talentxcel.net';
+export type SeoDomainId = 'chatr.chat' | 'chatrchat.in' | 'talentxcel.in' | 'talentxcel.net' | 'app.chatr.chat' | 'seller.chatr.chat' | 'web.chatr.chat';
 
 export interface SeoDomain {
   id: SeoDomainId;
@@ -41,6 +41,30 @@ export const SEO_DOMAINS: SeoDomain[] = [
       'business-automation',
       'ai-workspace',
     ],
+  },
+  {
+    id: 'app.chatr.chat',
+    origin: 'https://app.chatr.chat',
+    owned: true,
+    gscProperty: 'https://app.chatr.chat/',
+    purpose: 'Official Android APK download and native app acquisition portal.',
+    clusters: ['app-download', 'android-apk', 'mobile-messaging', 'super-app'],
+  },
+  {
+    id: 'seller.chatr.chat',
+    origin: 'https://seller.chatr.chat',
+    owned: true,
+    gscProperty: 'https://seller.chatr.chat/',
+    purpose: 'CHATR+ Merchant Hub, business registrations & seller operations.',
+    clusters: ['seller-portal', 'merchant-services', 'business-tools', 'appointments'],
+  },
+  {
+    id: 'web.chatr.chat',
+    origin: 'https://web.chatr.chat',
+    owned: true,
+    gscProperty: 'https://web.chatr.chat/',
+    purpose: 'Desktop browser chat and multi-device QR authentication surface.',
+    clusters: ['web-chat', 'desktop-messaging', 'qr-login'],
   },
   {
     id: 'chatrchat.in',

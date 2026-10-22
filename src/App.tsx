@@ -72,21 +72,24 @@ const isWebSubdomain = () => {
          new URLSearchParams(window.location.search).get('subdomain') === 'web';
 };
 
-// Component to handle subdomain redirect
-const SubdomainRedirect = () => {
-  const redirectInfo = React.useMemo(() => {
-    const hostname = window.location.hostname;
-    if (hostname.startsWith('seller.') && window.location.pathname === '/') {
-      return { to: '/seller/portal', type: 'seller' };
-    }
-    if (isWebSubdomain() && window.location.pathname === '/') {
-      return { to: '/web', type: 'web' };
-    }
-    return null;
-  }, []);
+// Check if on seller subdomain (seller.chatr.chat)
+const isSellerSubdomain = () => {
+  const hostname = window.location.hostname;
+  return hostname === 'seller.chatr.chat' || 
+         hostname.startsWith('seller.') || 
+         new URLSearchParams(window.location.search).get('subdomain') === 'seller';
+};
 
-  // Signed-out visitors (including crawlers) get the public marketing homepage.
-  // Signed-in users keep the existing in-app dashboard untouched.
+// Check if on app subdomain (app.chatr.chat)
+const isAppSubdomain = () => {
+  const hostname = window.location.hostname;
+  return hostname === 'app.chatr.chat' || 
+         hostname.startsWith('app.') || 
+         new URLSearchParams(window.location.search).get('subdomain') === 'app';
+};
+
+// Component to handle subdomain routing & public/private separation
+const SubdomainRedirect = () => {
   const hasStoredSession = React.useMemo(() => {
     try {
       return Object.keys(localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'));
@@ -114,12 +117,46 @@ const SubdomainRedirect = () => {
     };
   }, []);
 
-  if (redirectInfo) {
-    return <Navigate to={redirectInfo.to} replace />;
+  if (session === 'loading') return <PageLoader />;
+
+  // 1. Seller Subdomain: seller.chatr.chat
+  if (isSellerSubdomain()) {
+    if (session === 'in') {
+      return <Navigate to="/seller/portal" replace />;
+    }
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LazyPages.SellerHome />
+      </Suspense>
+    );
   }
 
+  // 2. Web Subdomain: web.chatr.chat
+  if (isWebSubdomain()) {
+    if (session === 'in') {
+      return <Navigate to="/desktop/chat" replace />;
+    }
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LazyPages.ChatrWeb />
+      </Suspense>
+    );
+  }
+
+  // 3. App Subdomain: app.chatr.chat
+  if (isAppSubdomain()) {
+    if (session === 'in') {
+      return <Index />;
+    }
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LazyPages.AppHome />
+      </Suspense>
+    );
+  }
+
+  // 4. Primary Consumer Domain: chatr.chat
   if (session === 'in') return <Index />;
-  if (session === 'loading') return <PageLoader />;
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -225,6 +262,8 @@ const App = () => {
             <Route path="/disclaimer" element={<LazyRoute component={LazyPages.Disclaimer} />} />
             <Route path="/join" element={<LazyRoute component={LazyPages.JoinInvite} />} />
             <Route path="/web" element={<LazyRoute component={LazyPages.ChatrWeb} />} />
+            <Route path="/app" element={<LazyRoute component={LazyPages.AppHome} />} />
+            <Route path="/seller" element={<LazyRoute component={LazyPages.SellerHome} />} />
             
             {/* Desktop Layout Routes (web.chatr.chat) */}
             <Route path="/desktop" element={<DesktopLayout />}>

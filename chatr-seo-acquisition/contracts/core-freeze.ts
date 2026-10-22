@@ -114,6 +114,12 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/pages/SellerHome.tsx',
   'src/pages/Download.tsx',
   'src/pages/SellerPortal.tsx',
+  'src/pages/PublicHome.tsx',
+  'src/routes/lazyPages.tsx',
+  'src/components/SEOHead.tsx',
+  'src/components/FirebasePhoneAuth.tsx',
+  'src/components/OnboardingDialog.tsx',
+  'src/components/PhoneAuth.tsx',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {

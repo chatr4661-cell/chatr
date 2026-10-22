@@ -5,43 +5,39 @@ import {
   ArrowLeft, 
   Smartphone, 
   Monitor, 
-  Download as DownloadIcon,
-  CheckCircle2,
-  MessageCircle,
-  Heart,
-  Shield,
-  Zap
+  CheckCircle2, 
+  MessageCircle, 
+  Heart, 
+  Shield, 
+  Zap,
+  Clock,
+  Sparkles
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { SEOHead } from '@/components/SEOHead';
 import logo from '@/assets/chatr-logo.png';
 
 export default function Download() {
   const navigate = useNavigate();
-  const appUrl = window.location.origin;
 
   const features = [
-    { icon: MessageCircle, title: 'Instant Messaging', description: 'Chat with anyone, anywhere' },
-    { icon: Heart, title: 'Healthcare Platform', description: 'Complete digital health services' },
-    { icon: Shield, title: 'Health Passport', description: 'Your medical records in one place' },
-    { icon: Zap, title: 'AI Assistant', description: '24/7 health guidance' }
+    { icon: MessageCircle, title: 'Instant Messaging', description: 'Private, end-to-end encrypted messaging with zero trackers.' },
+    { icon: Heart, title: 'Healthcare Platform', description: 'Digital health passport, appointments, and vitals.' },
+    { icon: Shield, title: 'Live Call Translation', description: 'Translate multi-language voice and video calls in real time.' },
+    { icon: Zap, title: 'AI Assistant', description: '24/7 personal intelligence and automated chat assistance.' }
   ];
 
-  const handleDownloadAndroid = () => {
-    // In production, this would link to Google Play Store
-    window.open('https://play.google.com/store', '_blank');
-  };
-
-  const handleDownloadIOS = () => {
-    // In production, this would link to Apple App Store
-    window.open('https://www.apple.com/app-store/', '_blank');
-  };
-
   const handleOpenWeb = () => {
-    navigate('/auth');
+    navigate('/web');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
+      <SEOHead
+        title="Download CHATR — CHATR Web & Mobile Apps"
+        description="Access CHATR Web instantly on your browser. Native Android and iOS apps are coming soon with end-to-end encryption, calling, and health features."
+        canonicalUrl="https://chatr.chat/download"
+      />
+
       {/* Header */}
       <div className="p-4 backdrop-blur-glass bg-gradient-glass border-b border-glass-border sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -57,7 +53,7 @@ export default function Download() {
             <img src={logo} alt="chatr+ Logo" className="h-8 object-contain" />
           </div>
           <Button onClick={handleOpenWeb} variant="outline">
-            Open Web App
+            Open CHATR Web
           </Button>
         </div>
       </div>
@@ -66,91 +62,118 @@ export default function Download() {
         {/* Hero Section */}
         <div className="text-center space-y-4 py-8">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Download Chatr+
+            Get CHATR
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            India's next-gen all-in-one messaging & healthcare platform
+            All-in-one messaging, calling, and healthcare platform
           </p>
         </div>
 
-        {/* Download Options */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {/* Mobile Apps */}
-          <Card className="bg-card/50 backdrop-blur-glass border-glass-border">
+        {/* Access Options Grid */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-stretch">
+          
+          {/* Mobile Apps Card — COMING SOON BANNER */}
+          <Card className="bg-card/50 backdrop-blur-glass border-glass-border relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-4 right-4">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1.5 shadow-xs">
+                <Clock className="w-3.5 h-3.5" />
+                Coming Soon
+              </span>
+            </div>
+
             <CardContent className="p-6 space-y-6">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <Smartphone className="h-6 w-6 text-primary" />
+                <div className="p-3 rounded-full bg-amber-500/10">
+                  <Smartphone className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Mobile App</h2>
-                  <p className="text-sm text-muted-foreground">For Android & iOS</p>
+                  <h2 className="text-xl font-bold">Android &amp; iOS Apps</h2>
+                  <p className="text-sm text-muted-foreground">Native Mobile Experience</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Button 
-                  onClick={handleDownloadAndroid}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  size="lg"
-                >
-                  <DownloadIcon className="mr-2 h-5 w-5" />
-                  Download for Android
-                </Button>
-                
-                <Button 
-                  onClick={handleDownloadIOS}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  size="lg"
-                >
-                  <DownloadIcon className="mr-2 h-5 w-5" />
-                  Download for iPhone
-                </Button>
+              {/* Coming Soon Banner */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 space-y-3">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-base">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <span>Mobile Apps Coming Soon</span>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  We are currently finalizing and polishing the native CHATR Android and iOS mobile app releases. Direct APK and app store releases will be available shortly after testing!
+                </p>
+                <div className="pt-2 border-t border-amber-500/20 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span>In active development &amp; final quality certification</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span>Official Google Play &amp; Apple App Store releases ahead</span>
+                  </div>
+                </div>
               </div>
 
-              {/* QR Code */}
-              <div className="flex flex-col items-center gap-3 pt-4 border-t border-glass-border">
-                <p className="text-sm text-muted-foreground">Scan to download on mobile</p>
-                <div className="p-4 bg-white rounded-lg">
-                  <QRCodeSVG value={appUrl} size={150} />
-                </div>
+              {/* Web Reassurance */}
+              <div className="p-4 rounded-xl bg-muted/40 border border-border/50 text-center space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  In the meantime, you can use CHATR immediately on any phone, tablet, or computer browser with zero installation:
+                </p>
+                <Button 
+                  onClick={handleOpenWeb}
+                  variant="outline"
+                  className="w-full text-sm font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  Use CHATR Web on Mobile / Desktop
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Web App */}
-          <Card className="bg-card/50 backdrop-blur-glass border-glass-border">
+          {/* CHATR Web Card — ACTIVE & AVAILABLE NOW */}
+          <Card className="bg-card/50 backdrop-blur-glass border-glass-border relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-4 right-4">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Available Now
+              </span>
+            </div>
+
             <CardContent className="p-6 space-y-6">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-full bg-accent/10">
                   <Monitor className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Web App</h2>
-                  <p className="text-sm text-muted-foreground">Use in your browser</p>
+                  <h2 className="text-xl font-bold">CHATR Web</h2>
+                  <p className="text-sm text-muted-foreground">Use in your computer or mobile browser</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Access Chatr+ directly from your browser. Works on desktop and mobile.
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Access CHATR directly on desktop and mobile browsers. Syncs in real time with your phone using WhatsApp-style QR code or direct phone login.
                 </p>
 
                 <Button 
                   onClick={handleOpenWeb}
-                  className="w-full"
+                  className="w-full py-6 text-base font-semibold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
                   size="lg"
                   variant="default"
                 >
-                  Open Web App
+                  Open CHATR Web
                 </Button>
 
                 <div className="space-y-2 pt-4 border-t border-glass-border">
-                  <p className="text-sm font-medium">Features include:</p>
+                  <p className="text-sm font-medium">Web Features:</p>
                   <ul className="space-y-2">
-                    {['Real-time messaging', 'Voice & video calls', 'Health passport access', 'AI health assistant'].map((feature) => (
+                    {[
+                      'Instant phone & QR code authentication',
+                      'Zero-delay message synchronization',
+                      'Full keyboard navigation & search',
+                      'Voice & video calling in browser'
+                    ].map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -159,11 +182,12 @@ export default function Download() {
               </div>
             </CardContent>
           </Card>
+
         </div>
 
         {/* Features Grid */}
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-6">Why Choose Chatr+?</h2>
+        <div className="max-w-4xl mx-auto pt-4">
+          <h2 className="text-2xl font-bold text-center mb-6">Why Choose CHATR?</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {features.map((feature) => (
               <Card key={feature.title} className="bg-card/50 backdrop-blur-glass border-glass-border">
@@ -181,36 +205,15 @@ export default function Download() {
           </div>
         </div>
 
-        {/* System Requirements */}
-        <Card className="max-w-4xl mx-auto bg-card/50 backdrop-blur-glass border-glass-border">
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4">System Requirements</h3>
-            <div className="grid md:grid-cols-3 gap-6 text-sm">
-              <div>
-                <p className="font-medium mb-2">Android</p>
-                <p className="text-muted-foreground">Android 7.0 or higher</p>
-              </div>
-              <div>
-                <p className="font-medium mb-2">iOS</p>
-                <p className="text-muted-foreground">iOS 13.0 or higher</p>
-              </div>
-              <div>
-                <p className="font-medium mb-2">Web</p>
-                <p className="text-muted-foreground">Modern browsers (Chrome, Firefox, Safari, Edge)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* CTA */}
         <div className="text-center space-y-4 py-8">
           <h2 className="text-2xl font-bold">Ready to get started?</h2>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button onClick={handleOpenWeb} size="lg">
-              Start Using Chatr+
-            </Button>
-            <Button onClick={() => navigate('/')} variant="outline" size="lg">
-              Learn More
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Launch CHATR Web in your browser today with zero installation required.
+          </p>
+          <div className="flex justify-center">
+            <Button onClick={handleOpenWeb} size="lg" className="px-8 py-6 text-base font-bold shadow-lg">
+              Launch CHATR Web
             </Button>
           </div>
         </div>

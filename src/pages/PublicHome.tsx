@@ -74,7 +74,7 @@ const PublicHome: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [siAnswerEnabled, setSiAnswerEnabled] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [countryCode, setCountryCode] = useState('+91');
+  const [countryCode, setCountryCode] = useState('+1');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   // Interactive Health & Shield States (matching uploaded screens)
@@ -88,8 +88,8 @@ const PublicHome: React.FC = () => {
   const [healthTab, setHealthTab] = useState<'today' | 'vitals' | 'sleep' | 'activity' | 'trends'>('today');
 
   const countryCodes = [
-    { code: '+91', country: 'IN', flag: '🇮🇳' },
     { code: '+1', country: 'US', flag: '🇺🇸' },
+    { code: '+91', country: 'IN', flag: '🇮🇳' },
     { code: '+44', country: 'UK', flag: '🇬🇧' },
     { code: '+971', country: 'AE', flag: '🇦🇪' },
     { code: '+65', country: 'SG', flag: '🇸🇬' },

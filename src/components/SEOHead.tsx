@@ -23,6 +23,7 @@ interface SEOHeadProps {
   canonicalUrl?: string;
   schemaData?: object;
   noIndex?: boolean;
+  googleSiteVerification?: string;
   articleData?: {
     publishedTime?: string;
     modifiedTime?: string;
@@ -41,6 +42,7 @@ export const SEOHead = ({
   canonicalUrl,
   schemaData,
   noIndex,
+  googleSiteVerification,
   articleData,
   breadcrumbList,
 }: SEOHeadProps) => {
@@ -133,6 +135,9 @@ export const SEOHead = ({
       <meta name="title" content={title} />
       <meta name="description" content={description} />
       {keywords && <meta name="keywords" content={keywords} />}
+      {googleSiteVerification && (
+        <meta name="google-site-verification" content={googleSiteVerification} />
+      )}
 
       {/* Robots */}
       {shouldNoIndex ? (

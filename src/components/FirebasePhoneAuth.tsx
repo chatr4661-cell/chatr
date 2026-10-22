@@ -124,7 +124,7 @@ export const FirebasePhoneAuth: React.FC = () => {
   } = useFirebasePhoneAuth();
 
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [countryCode, setCountryCode] = useState('+91');
+  const [countryCode, setCountryCode] = useState('+1');
   const [otp, setOtp] = useState('');
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {

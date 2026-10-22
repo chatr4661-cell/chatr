@@ -331,6 +331,8 @@ export const Refund = lazy(() => import('@/pages/Refund'));
 export const Disclaimer = lazy(() => import('@/pages/Disclaimer'));
 export const JoinInvite = lazy(() => import('@/pages/JoinInvite'));
 export const ChatrWeb = lazy(() => import('@/pages/ChatrWeb'));
+export const AppHome = lazy(() => import('@/pages/AppHome'));
+export const SellerHome = lazy(() => import('@/pages/SellerHome'));
 export const NotFound = lazy(() => import('@/pages/NotFound'));
 
 // CHATR++ Identity System

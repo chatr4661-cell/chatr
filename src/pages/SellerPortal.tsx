@@ -77,7 +77,7 @@ export default function SellerPortal() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        navigate('/auth');
+        navigate(window.location.hostname.startsWith('seller.') ? '/seller' : '/auth?redirect=/seller/portal');
         return;
       }
 
