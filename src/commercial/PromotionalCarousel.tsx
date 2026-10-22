@@ -138,9 +138,14 @@ export const PromotionalCarousel: React.FC<PromotionalCarouselProps> = ({
               <div
                 className={`relative w-full aspect-video md:aspect-[4/3] rounded-2xl p-6 text-white bg-gradient-to-br ${campaigns[activeIndex].gradient} shadow-lg flex flex-col justify-between overflow-hidden`}
               >
-                {/* Background decorative glow */}
-                <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-                <div className="absolute -bottom-12 -left-12 w-36 h-36 rounded-full bg-black/10 blur-2xl pointer-events-none" />
+                {/* Real photographic creative asset with overlay */}
+                <img
+                  src={campaigns[activeIndex].imageUrl}
+                  alt={campaigns[activeIndex].brandName}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className={`absolute inset-0 bg-gradient-to-t ${campaigns[activeIndex].gradient} opacity-40`} />
+                <div className="absolute inset-0 bg-black/30" />
 
                 <div className="relative z-10 flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md text-white border border-white/25">

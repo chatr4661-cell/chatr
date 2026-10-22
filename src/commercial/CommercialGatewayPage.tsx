@@ -125,24 +125,34 @@ export default function CommercialGatewayPage() {
                 key={camp.id}
                 className="flex flex-col justify-between rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
               >
-                {/* Visual Top Banner */}
-                <div className={`p-6 bg-gradient-to-br ${camp.gradient} text-white relative`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/20 backdrop-blur-sm text-white">
-                      <ShieldCheck className="w-3 h-3" />
+                {/* Visual Top Banner with Photographic Asset */}
+                <div className="relative h-44 overflow-hidden bg-slate-900 group">
+                  <img
+                    src={camp.imageUrl}
+                    alt={camp.brandName}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-t ${camp.gradient} opacity-40`} />
+                  <div className="absolute inset-0 bg-black/25" />
+
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-black/60 backdrop-blur-sm text-white border border-white/20">
+                      <ShieldCheck className="w-3 h-3 text-blue-400" />
                       {camp.badgeText}
                     </span>
-                    <span className="text-[11px] font-mono text-white/80">
+                    <span className="text-[11px] font-mono text-white/90 bg-black/50 px-2 py-0.5 rounded">
                       {camp.displayHostname}
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-bold tracking-tight text-white mt-1">
-                    {camp.brandName}
-                  </h3>
-                  <p className="text-xs text-white/80 mt-0.5 line-clamp-1">
-                    {camp.categoryLabel}
-                  </p>
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <h3 className="text-xl font-bold tracking-tight text-white drop-shadow-md">
+                      {camp.brandName}
+                    </h3>
+                    <p className="text-xs text-white/90 font-medium line-clamp-1">
+                      {camp.categoryLabel}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Content Body */}

@@ -23,6 +23,7 @@ export interface CommercialCampaign {
   gradient: string;
   cardBgLight: string;
   tags: string[];
+  imageUrl: string;
   weight: number; // Rotation weighting factor (1 to 10)
   enabled: boolean;
 }

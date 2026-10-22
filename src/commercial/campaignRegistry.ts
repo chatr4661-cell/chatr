@@ -3,12 +3,7 @@ import type { CommercialCampaign } from './types';
 /**
  * CHATR COMMERCIAL GATEWAY — CAMPAIGN REGISTRY
  * 
- * Central registry of all 7 verified commercial destinations.
- * Invariants:
- * - 100% verified live destinations.
- * - Truthful headlines and value propositions extracted directly from verified production services.
- * - Zero fabricated customer numbers, discounts, or unverified claims.
- * - Standardized first-party campaign attribution parameters.
+ * Central registry of all 7 verified commercial destinations with photographic creative assets.
  */
 
 export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
@@ -28,6 +23,7 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-blue-600 via-indigo-600 to-sky-700',
     cardBgLight: 'bg-blue-50/80 hover:bg-blue-50',
     tags: ['Career Passport', 'Global Talent', 'AI Pathways'],
+    imageUrl: '/images/commercial/talentxcel-in.jpg',
     weight: 9,
     enabled: true,
   },
@@ -48,6 +44,7 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-purple-600 via-indigo-700 to-violet-900',
     cardBgLight: 'bg-purple-50/80 hover:bg-purple-50',
     tags: ['AI Development', 'Integrated Foundation', 'Code Workbench'],
+    imageUrl: '/images/commercial/talentxcel-net.jpg',
     weight: 8,
     enabled: true,
   },
@@ -68,6 +65,7 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-emerald-600 via-teal-600 to-green-700',
     cardBgLight: 'bg-emerald-50/80 hover:bg-emerald-50',
     tags: ['Shared Inbox', 'WhatsApp AI', 'Browser Calling'],
+    imageUrl: '/images/commercial/chatr-business.jpg',
     weight: 10,
     enabled: true,
   },
@@ -88,6 +86,7 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-amber-600 via-orange-600 to-amber-800',
     cardBgLight: 'bg-amber-50/80 hover:bg-amber-50',
     tags: ['Single-Origin', 'Pampore Saffron', 'Kagzi Walnuts'],
+    imageUrl: '/images/commercial/nutytales.jpg',
     weight: 9,
     enabled: true,
   },
@@ -108,6 +107,7 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-pink-600 via-rose-600 to-rose-800',
     cardBgLight: 'bg-pink-50/80 hover:bg-pink-50',
     tags: ['Parent Care Hampers', 'Worldwide Delivery', 'Verified Dispatch'],
+    imageUrl: '/images/commercial/nutytales-nri.jpg',
     weight: 8,
     enabled: true,
   },
@@ -128,6 +128,7 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-cyan-600 via-teal-600 to-sky-700',
     cardBgLight: 'bg-cyan-50/80 hover:bg-cyan-50',
     tags: ['ATS Parser', 'PDF Export', 'Recruiter Formats'],
+    imageUrl: '/images/commercial/resume-builder.jpg',
     weight: 9,
     enabled: true,
   },
@@ -148,14 +149,12 @@ export const COMMERCIAL_CAMPAIGNS: CommercialCampaign[] = [
     gradient: 'from-indigo-600 via-blue-700 to-indigo-900',
     cardBgLight: 'bg-indigo-50/80 hover:bg-indigo-50',
     tags: ['Verified Employers', 'Remote & Tech', '1-Click Apply'],
+    imageUrl: '/images/commercial/talentxcel-jobs.jpg',
     weight: 10,
     enabled: true,
   },
 ];
 
-/**
- * Generates attributed destination URL with consistent campaign parameters.
- */
 export function getAttributedUrl(
   campaign: CommercialCampaign,
   placementContext: string = 'carousel'
@@ -174,18 +173,12 @@ export function getAttributedUrl(
   }
 }
 
-/**
- * Returns active campaigns ordered by weight.
- */
 export function getActiveCampaigns(): CommercialCampaign[] {
   return COMMERCIAL_CAMPAIGNS
     .filter(c => c.enabled)
     .sort((a, b) => b.weight - a.weight);
 }
 
-/**
- * Kill-switch helper to check if commercial engine is enabled.
- */
 export function isCommercialGatewayEnabled(): boolean {
   if (typeof window === 'undefined') return true;
   try {
