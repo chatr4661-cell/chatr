@@ -95,7 +95,7 @@ const Home = memo(() => {
   });
   const [recentChats, setRecentChats] = useState<any[]>(cachedData?.recentChats || []);
 
-  const { isModuleVisible } = useModuleRegistry();
+  const { isModuleVisible, isAdmin, modules } = useModuleRegistry();
 
   const visibleQuickActions = useMemo(() => {
     return quickActions.filter(action => isModuleVisible(action.route));
@@ -292,6 +292,11 @@ const Home = memo(() => {
                   Sign In
                 </AppleButton>
               )}
+              {isAdmin && (
+                <AppleButton size="sm" onClick={() => handleNavigate('/admin/modules')} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3">
+                  Modules
+                </AppleButton>
+              )}
               {isAuthenticated && (
                 <div className="relative">
                   <AppleIconButton
@@ -423,22 +428,31 @@ const Home = memo(() => {
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3 apple-section-header">All Services</h2>
             <div className="grid grid-cols-4 gap-3">
-              {visibleMainServices.map((service) => (
-                <AppleCard
-                  key={service.label}
-                  variant="default"
-                  onClick={() => handleNavigate(service.route)}
-                  className="flex flex-col items-center gap-2 p-3"
-                >
-                  <div className={cn(
-                    "w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-md",
-                    service.color
-                  )}>
-                    <service.icon className="w-5 h-5 text-white" strokeWidth={2} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-center leading-tight line-clamp-1">{service.label}</span>
-                </AppleCard>
-              ))}
+              {visibleMainServices.map((service) => {
+                const mod = modules.find(m => m.route === service.route);
+                const isNonPublished = mod && mod.lifecycleState !== 'published';
+                return (
+                  <AppleCard
+                    key={service.label}
+                    variant="default"
+                    onClick={() => handleNavigate(service.route)}
+                    className="relative flex flex-col items-center gap-2 p-3"
+                  >
+                    {isAdmin && isNonPublished && (
+                      <span className="absolute top-1 right-1 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-amber-500/20 text-amber-500 border border-amber-500/40">
+                        {mod.lifecycleState}
+                      </span>
+                    )}
+                    <div className={cn(
+                      "w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-md",
+                      service.color
+                    )}>
+                      <service.icon className="w-5 h-5 text-white" strokeWidth={2} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-center leading-tight line-clamp-1">{service.label}</span>
+                  </AppleCard>
+                );
+              })}
             </div>
           </div>
 

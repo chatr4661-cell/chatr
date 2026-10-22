@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
+import { DEFAULT_MODULE_REGISTRY } from '@/services/moduleRegistry/defaultRegistry';
 import { PageLoader } from '@/components/PageLoader';
 import { ShieldAlert, ArrowLeft, Wrench, Beaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,8 @@ export const ModuleRouteGuard: React.FC<ModuleRouteGuardProps> = ({
     return <PageLoader />;
   }
 
-  const moduleDef = modules.find((m) => m.id === moduleId);
+  const moduleDef = modules.find((m) => m.id === moduleId)
+    || DEFAULT_MODULE_REGISTRY.find((m) => m.id === moduleId);
 
   // If module is not in registry, treat as standard unmanaged route
   if (!moduleDef) {

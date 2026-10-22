@@ -94,11 +94,6 @@ export async function fetchModules(isAdmin: boolean = false): Promise<ModuleDefi
 
       const merged = Array.from(mergedMap.values());
       setCachedModules(merged);
-
-      // If user is non-admin, filter to only published modules
-      if (!isAdmin) {
-        return merged.filter(m => m.lifecycleState === 'published');
-      }
       return merged;
     }
   } catch (err) {
@@ -107,14 +102,9 @@ export async function fetchModules(isAdmin: boolean = false): Promise<ModuleDefi
 
   // Fallback to local cache or defaults
   const cached = getCachedModules();
-  const activeList = cached && cached.length >= DEFAULT_MODULE_REGISTRY.length
+  return (cached && cached.length >= DEFAULT_MODULE_REGISTRY.length)
     ? cached
     : DEFAULT_MODULE_REGISTRY;
-
-  if (!isAdmin) {
-    return activeList.filter(m => m.lifecycleState === 'published');
-  }
-  return activeList;
 }
 
 /**

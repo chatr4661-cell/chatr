@@ -123,6 +123,7 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   // Module Control Center & Dynamic Module Visibility
   'src/components/AdminLayout.tsx',
   'src/components/ModuleRouteGuard.tsx',
+  'src/hooks/useUserRole.ts',
   'src/pages/Home.tsx',
   'src/pages/Index.tsx',
   'src/pages/admin/ModuleControlCenter.tsx',

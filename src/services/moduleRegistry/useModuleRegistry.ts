@@ -65,25 +65,20 @@ export function useModuleRegistry() {
     (routeOrId: string): boolean => {
       // Find matching module by id or route
       const cleanPath = routeOrId.split('?')[0].replace(/\/+$/, '') || '/';
-      const mod = modules.find(m => m.id === routeOrId || m.route === cleanPath || m.route === routeOrId);
+      const mod = modules.find(m => m.id === routeOrId || m.route === cleanPath || m.route === routeOrId)
+        || DEFAULT_MODULE_REGISTRY.find(m => m.id === routeOrId || m.route === cleanPath || m.route === routeOrId);
 
       if (!mod) {
         // Unmanaged routes remain visible by default so core pages work
         return true;
       }
 
-      switch (mod.lifecycleState) {
-        case 'published':
-          return true;
-        case 'development':
-          return Boolean(isAdmin);
-        case 'testing':
-          return Boolean(isAdmin);
-        case 'hidden':
-        case 'disabled':
-        default:
-          return false;
+      if (mod.lifecycleState === 'published') {
+        return true;
       }
+
+      // Modules in development, testing, hidden, or disabled are visible ONLY to administrator (9717845477)
+      return Boolean(isAdmin);
     },
     [modules, isAdmin]
   );
