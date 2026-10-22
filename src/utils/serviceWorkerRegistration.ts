@@ -19,17 +19,33 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       return null;
     }
 
-    // Check if already registered
-    const existing = await navigator.serviceWorker.getRegistration('/');
-    if (existing?.active?.scriptURL.endsWith('/firebase-messaging-sw.js')) {
-      console.log('✅ Service Worker already active');
-      // Silently try to update - don't throw if it fails
-      existing.update().catch(() => {});
-      return existing;
+    // Clean any legacy app-shell worker before installing the notification worker
+    const allRegistrations = await navigator.serviceWorker.getRegistrations();
+    let existingNotificationWorker: ServiceWorkerRegistration | null = null;
+
+    for (const reg of allRegistrations) {
+      const scriptURL = (reg.active && reg.active.scriptURL) || (reg.installing && reg.installing.scriptURL) || (reg.waiting && reg.waiting.scriptURL) || '';
+      if (scriptURL.endsWith('/firebase-messaging-sw.js')) {
+        existingNotificationWorker = reg;
+      } else {
+        await reg.unregister().catch(() => {});
+      }
     }
 
-    // Retire a legacy app-shell worker before installing the notification worker.
-    if (existing) await existing.unregister();
+    // Clear legacy app shell caches
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => {
+          if (!name.includes('firebase')) caches.delete(name);
+        });
+      }).catch(() => {});
+    }
+
+    if (existingNotificationWorker) {
+      console.log('✅ Service Worker already active');
+      existingNotificationWorker.update().catch(() => {});
+      return existingNotificationWorker;
+    }
 
     const workerUrl = new URL('./firebase-messaging-sw.js', window.location.origin).toString();
     const swCheck = await fetch(workerUrl, { method: 'HEAD', redirect: 'error' }).catch(() => null);

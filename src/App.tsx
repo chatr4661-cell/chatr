@@ -27,10 +27,13 @@ import { useUISpeedBudget } from "./hooks/useUISpeedBudget";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import OAuthConsent from "./pages/OAuthConsent";
-import Home from "./pages/Home";
-import Chat from "./pages/Chat";
-import Calls from "./pages/Calls";
-import Profile from "./pages/Profile";
+
+// Heavy authenticated pages lazy-loaded to keep entry bundle lean.
+// preloadCriticalRoutes() warms them during idle time after initial render.
+const Home = React.lazy(() => import("./pages/Home"));
+const Chat = React.lazy(() => import("./pages/Chat"));
+const Calls = React.lazy(() => import("./pages/Calls"));
+const Profile = React.lazy(() => import("./pages/Profile"));
 
 // ============================================
 // ALL OTHER PAGES - Lazy loaded for performance
@@ -241,19 +244,19 @@ const App = () => {
             <Route path="/health-streaks" element={<LazyRoute component={LazyPages.HealthStreaksPage} />} />
             <Route path="/chronic-vitals" element={<LazyRoute component={LazyPages.ChronicVitalsPage} />} />
             
-            {/* Main App Routes - Critical paths kept eager */}
-            <Route path="/chat" element={<Chat />} />
+            {/* Main App Routes - Code split with preloadCriticalRoutes warming */}
+            <Route path="/chat" element={<LazyRoute component={Chat} />} />
             <Route path="/voice-assistant" element={<LazyRoute component={LazyPages.VoiceAssistant} />} />
-            <Route path="/chat/:conversationId" element={<Chat />} />
+            <Route path="/chat/:conversationId" element={<LazyRoute component={Chat} />} />
             <Route path="/starred-messages" element={<LazyRoute component={LazyPages.StarredMessages} />} />
             <Route path="/chat/:conversationId/media" 
               element={<Suspense fallback={<PageLoader />}>{React.createElement(React.lazy(() => import('@/components/chat/MediaViewer').then(m => ({ default: m.MediaViewer }))))}</Suspense>}
             />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile" element={<LazyRoute component={Profile} />} />
             <Route path="/contacts" element={<LazyRoute component={LazyPages.Contacts} />} />
             <Route path="/global-contacts" element={<LazyRoute component={LazyPages.GlobalContacts} />} />
             <Route path="/call-history" element={<LazyRoute component={LazyPages.CallHistory} />} />
-            <Route path="/calls" element={<Calls />} />
+            <Route path="/calls" element={<LazyRoute component={Calls} />} />
             <Route path="/smart-inbox" element={<LazyRoute component={LazyPages.SmartInbox} />} />
             <Route path="/stories" element={<LazyRoute component={LazyPages.Stories} />} />
             <Route path="/communities" element={<LazyRoute component={LazyPages.Communities} />} />
@@ -366,7 +369,7 @@ const App = () => {
             <Route path="/geofence-history" element={<LazyRoute component={LazyPages.GeofenceHistory} />} />
             
             {/* Public browser - no auth required */}
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<LazyRoute component={Home} />} />
             <Route path="/geo" element={<LazyRoute component={LazyPages.GeoDiscovery} />} />
             <Route path="/search" element={<LazyRoute component={LazyPages.UniversalSearch} />} />
             <Route path="/universal-search" element={<LazyRoute component={LazyPages.UniversalSearch} />} />

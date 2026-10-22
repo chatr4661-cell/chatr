@@ -27,7 +27,7 @@
       "destination": "/manifest.json"
     },
     {
-      "source": "/((?!api/|assets/|sitemap.*\\.xml|sitemaps/|sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3|\\.well-known/|security\\.txt).*)",
+      "source": "/((?!api/|assets/|sitemap.*\\.xml|sitemaps/|sw\\.js|firebase-messaging-sw\\.js|manifest\\.json|favicon\\.ico|robots\\.txt|llms\\.txt|ringtone\\.mp3|\\.well-known/|security\\.txt).*)",
       "destination": "/index.html"
     }
   ],
@@ -157,7 +157,88 @@
       ]
     },
     {
-      "source": "/sw.js",
+      "source": "/assets/(.*)\\.(woff2|woff|ttf|otf|eot)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)\\.(png|jpg|jpeg|gif|webp|svg|ico)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(favicon\\.png|favicon\\.ico|chatr-logo\\.png)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(ringtones|videos)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(translate|business|jobs|guides|compare|city|knowledge)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/chatr/(translate|locations)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-cache, no-store, must-revalidate, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/(sw\\.js|firebase-messaging-sw\\.js)",
       "headers": [
         {
           "key": "Content-Type",
@@ -165,7 +246,7 @@
         },
         {
           "key": "Cache-Control",
-          "value": "no-cache"
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
