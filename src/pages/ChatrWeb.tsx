@@ -211,7 +211,7 @@ const ChatrWeb = () => {
           <div className="text-center mb-6">
             <h2 className="text-lg font-semibold mb-2">Scan QR Code</h2>
             <p className="text-sm text-muted-foreground">
-              Open CHATR on your phone → Tap Menu → Scan QR
+              Scan with your phone camera or CHATR app → Settings → Linked Devices
             </p>
           </div>
 
@@ -226,16 +226,16 @@ const ChatrWeb = () => {
 
               {status === 'pending' && qrToken && (
                 <div className="relative">
-                  <div className="bg-white p-4 rounded-xl">
+                  <div className="bg-white p-3 rounded-xl shadow-sm">
                     <QRCodeSVG
-                      value={`chatr://qr-login?token=${qrToken}`}
-                      size={224}
-                      level="M"
-                      includeMargin={false}
+                      value={`https://chatr.chat/qr-login?token=${qrToken}`}
+                      size={230}
+                      level="H"
+                      includeMargin={true}
                       imageSettings={{
                         src: chatrLogo,
-                        height: 40,
-                        width: 40,
+                        height: 38,
+                        width: 38,
                         excavate: true,
                       }}
                     />

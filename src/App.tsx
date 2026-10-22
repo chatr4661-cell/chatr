@@ -44,6 +44,8 @@ import { preloadCriticalRoutes } from "./routes/lazyPages";
 // Layout components (small, keep eager)
 import { AdminLayout } from "./components/AdminLayout";
 import DesktopLayout from "./layouts/DesktopLayout";
+import { CommercialGatewayManager } from "./commercial/CommercialGatewayManager";
+const CommercialGatewayPage = React.lazy(() => import("./commercial/CommercialGatewayPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -185,9 +187,12 @@ const App = () => {
             <VoiceAutoReadListener />
             <MiniPlayer />
             <FeatureEngagementTracker />
+            <CommercialGatewayManager />
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SubdomainRedirect />} />
+            <Route path="/gateway" element={<LazyRoute component={CommercialGatewayPage} />} />
+            <Route path="/commercial" element={<LazyRoute component={CommercialGatewayPage} />} />
             
             <Route path="/launcher" element={<ProtectedLazyRoute component={LazyPages.Launcher} />} />
             <Route path="/auth" element={<Auth />} />
@@ -343,6 +348,7 @@ const App = () => {
             <Route path="/doctor-onboarding" element={<LazyRoute component={LazyPages.DoctorOnboarding} />} />
             <Route path="/doctor-portal" element={<ProtectedLazyRoute component={LazyPages.DoctorPortal} />} />
             <Route path="/qr-payment" element={<LazyRoute component={LazyPages.QRPayment} />} />
+            <Route path="/qr-login" element={<LazyRoute component={LazyPages.QRLogin} />} />
             <Route path="/kyc-verification" element={<ProtectedLazyRoute component={LazyPages.KYCVerificationPage} />} />
             
             {/* AI & Settings Routes */}

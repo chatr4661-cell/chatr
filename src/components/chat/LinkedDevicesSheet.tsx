@@ -3,10 +3,11 @@
  * Manage devices connected to your account
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useMultiDeviceSync } from '@/hooks/useMultiDeviceSync';
+import QRLoginScanner from '@/components/qr/QRLoginScanner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { 
   Smartphone, 
@@ -49,6 +50,8 @@ export const LinkedDevicesSheet: React.FC<LinkedDevicesSheetProps> = ({
     unlinkDevice,
     unlinkAllOtherDevices
   } = useMultiDeviceSync();
+
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -230,10 +233,11 @@ export const LinkedDevicesSheet: React.FC<LinkedDevicesSheetProps> = ({
               <li>Go to Settings → Linked Devices</li>
               <li>Scan the QR code with this phone</li>
             </ol>
-            <Button variant="outline" className="w-full mt-3">
+            <Button variant="outline" className="w-full mt-3" onClick={() => setScannerOpen(true)}>
               <Smartphone className="w-4 h-4 mr-2" />
               Scan QR Code
             </Button>
+            <QRLoginScanner open={scannerOpen} onOpenChange={setScannerOpen} />
           </div>
 
           {/* Security Warning */}

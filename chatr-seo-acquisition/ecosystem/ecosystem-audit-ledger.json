@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T09:13:56.369Z",
+  "generatedAt": "2026-10-22T09:41:40.850Z",
   "totalPropertiesAudited": 28,
   "averageHealthScore": 94,
   "gscTelemetryBaseline": {
@@ -24,7 +24,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1568,
+      "responseTimeMs": 2768,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -96,7 +96,7 @@
       "isAlias": false,
       "liveStatus": 308,
       "server": "Vercel",
-      "responseTimeMs": 2089,
+      "responseTimeMs": 945,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -168,7 +168,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2659,
+      "responseTimeMs": 1879,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -240,7 +240,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2940,
+      "responseTimeMs": 2640,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -312,7 +312,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2931,
+      "responseTimeMs": 1977,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -384,7 +384,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2798,
+      "responseTimeMs": 1637,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -456,7 +456,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2716,
+      "responseTimeMs": 1748,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -528,7 +528,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2835,
+      "responseTimeMs": 1782,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -600,7 +600,7 @@
       "isAlias": true,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1983,
+      "responseTimeMs": 2598,
       "checks": [
         {
           "checkId": "CANONICAL_ALIAS_REDIRECT",
@@ -672,7 +672,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2889,
+      "responseTimeMs": 1864,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -744,7 +744,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2351,
+      "responseTimeMs": 1729,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -816,7 +816,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2739,
+      "responseTimeMs": 1875,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -888,7 +888,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2330,
+      "responseTimeMs": 1468,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -960,7 +960,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1543,
+      "responseTimeMs": 3171,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1029,7 +1029,7 @@
       "isAlias": false,
       "liveStatus": 0,
       "server": "unknown",
-      "responseTimeMs": 251,
+      "responseTimeMs": 341,
       "checks": [
         {
           "checkId": "HOST_CONNECTIVITY",
@@ -1078,7 +1078,7 @@
       "isAlias": false,
       "liveStatus": 307,
       "server": "cloudflare",
-      "responseTimeMs": 1530,
+      "responseTimeMs": 1900,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1147,7 +1147,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2530,
+      "responseTimeMs": 1556,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1219,7 +1219,7 @@
       "isAlias": true,
       "liveStatus": 301,
       "server": "cloudflare",
-      "responseTimeMs": 1384,
+      "responseTimeMs": 1757,
       "checks": [
         {
           "checkId": "CANONICAL_ALIAS_REDIRECT",
@@ -1291,7 +1291,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2097,
+      "responseTimeMs": 1572,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1360,7 +1360,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2202,
+      "responseTimeMs": 1651,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1429,7 +1429,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1512,
+      "responseTimeMs": 2371,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1498,7 +1498,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1741,
+      "responseTimeMs": 1675,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1567,7 +1567,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1645,
+      "responseTimeMs": 1797,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1636,7 +1636,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 2446,
+      "responseTimeMs": 1707,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1705,7 +1705,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1838,
+      "responseTimeMs": 1473,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1774,7 +1774,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1807,
+      "responseTimeMs": 1576,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1843,7 +1843,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1865,
+      "responseTimeMs": 1639,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
@@ -1912,7 +1912,7 @@
       "isAlias": false,
       "liveStatus": 200,
       "server": "cloudflare",
-      "responseTimeMs": 1962,
+      "responseTimeMs": 1576,
       "checks": [
         {
           "checkId": "CANONICAL_ROOT_200",
