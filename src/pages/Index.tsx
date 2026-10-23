@@ -616,13 +616,6 @@ const Index = () => {
       iconColor: 'bg-gradient-to-br from-indigo-400 to-indigo-600',
       route: '/official-accounts'
     },
-    {
-      icon: Globe,
-      title: 'Chatr Browser',
-      description: 'Search & browse with AI',
-      iconColor: 'bg-gradient-to-br from-blue-400 to-cyan-500',
-      route: '/ai-browser-home'
-    },
   ];
 
   const quickAccessServices = [

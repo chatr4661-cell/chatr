@@ -20,6 +20,8 @@ const ROUTE_ALIASES: Record<string, string> = {
   '/apps': '/native-apps',
   '/vendor': '/dhandha',
   '/seller': '/dhandha',
+  '/ai-browser-home': '/chatr-world',
+  '/browser': '/chatr-world',
 };
 
 export function useModuleRegistry() {
