@@ -857,13 +857,7 @@ const Index = () => {
           {/* Left Column: Communication Core (FaceTime & WhatsApp Grade) */}
           <div className="lg:col-span-7 space-y-3 sm:space-y-3.5">
             {/* Quick Actions / Communication Dock */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground">Communication Hub</h2>
-                <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">Instant Calling & Chat</span>
-              </div>
-              <QuickActions />
-            </div>
+            <QuickActions />
 
             {/* Recent Activity (FaceTime Recents & WhatsApp Chats with 1-tap call triggers) */}
             <RecentActivity />
@@ -887,7 +881,7 @@ const Index = () => {
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="Search anything on Chatr (services, contacts, doctors, jobs)..."
+                    placeholder="Search..."
                     className="pl-9 pr-9 h-8.5 sm:h-9 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 shadow-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {

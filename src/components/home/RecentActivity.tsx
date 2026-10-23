@@ -311,14 +311,9 @@ export const RecentActivity = () => {
     <div className="rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 p-3 sm:p-3.5 shadow-xs">
       {/* Header with WhatsApp & FaceTime style tab filters */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div>
-          <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
-            Recent Activity
-          </h2>
-          <p className="text-[10px] sm:text-[11px] text-muted-foreground">
-            Direct FaceTime audio/video & WhatsApp messaging
-          </p>
-        </div>
+        <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
+          Recent Activity
+        </h2>
 
         {/* WhatsApp & FaceTime Filter Tabs */}
         <div className="flex items-center p-0.5 rounded-full bg-muted/60 border border-border/50 text-[10px] sm:text-[11px] font-semibold">
