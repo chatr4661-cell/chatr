@@ -22,6 +22,46 @@ messaging.onBackgroundMessage((payload) => {
   const d = payload.data || {};
   const n = payload.notification || {};
 
+  // 1. DEDICATED INCOMING CALL PERSISTENT ALERT (WhatsApp / FaceTime style)
+  if (d.type === 'call' || d.type === 'INCOMING_CALL' || d.call_id || d.callId) {
+    const isVideo = d.is_video === 'true' || d.isVideo === true || d.call_type === 'video' || d.callType === 'video';
+    const callerName = d.caller_name || d.callerName || d.sender_name || 'Someone';
+    const callId = d.call_id || d.callId || d.conversation_id;
+
+    const callTitle = `📞 Incoming ${isVideo ? 'Video' : 'Voice'} Call`;
+    const callBody = `${callerName} is calling you on Chatr+...`;
+
+    const callOptions = {
+      body: callBody,
+      icon: d.caller_avatar || d.sender_avatar || '/icons/chatr-logo-192.png',
+      badge: '/icons/chatr-logo-192.png',
+      tag: `incoming-call-${callId}`,
+      requireInteraction: true, // Keep notification active on screen until answered or declined
+      renotify: true,
+      vibrate: [500, 200, 500, 200, 500, 200, 500, 200, 500], // Continuous ring vibration
+      data: {
+        ...d,
+        type: 'call',
+        call_id: callId,
+        callId: callId,
+        action_url: `/calls?callId=${callId}&autoAccept=true`
+      },
+      actions: [
+        {
+          action: 'accept_call',
+          title: '✅ Answer'
+        },
+        {
+          action: 'decline_call',
+          title: '❌ Decline'
+        }
+      ]
+    };
+
+    return self.registration.showNotification(callTitle, callOptions);
+  }
+
+  // 2. STANDARD CHAT / NOTIFICATION PAYLOAD
   const notificationTitle = n.title || d.title || d.sender_name || 'Chatr+';
   const bodyText = n.body || d.body || d.message || d.content || 'You have a new notification';
 
@@ -52,6 +92,11 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   console.log('🔔 Notification clicked:', event.action);
   event.notification.close();
+
+  // If user declined the call, dismiss and exit immediately
+  if (event.action === 'decline_call') {
+    return;
+  }
   
   const data = event.notification.data || {};
   const conversationId = data.conversationId || data.conversation_id;
@@ -65,8 +110,10 @@ self.addEventListener('notificationclick', (event) => {
     const t = (d.type || d.category || '').toLowerCase();
     switch (t) {
       case 'call':
-      case 'missed':
-      case 'missed_call':
+      case 'incoming_call':
+        if (d.callId || d.call_id) {
+          return `/calls?callId=${d.callId || d.call_id}&autoAccept=true`;
+        }
         return d.caller_id ? `/chat?user=${d.caller_id}` : '/calls';
       case 'message':
       case 'chat':

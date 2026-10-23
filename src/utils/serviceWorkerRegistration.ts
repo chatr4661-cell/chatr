@@ -74,6 +74,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       });
     }, 60000); // Check every minute
 
+    // Auto-update check whenever user brings Chatr+ window to foreground
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        registration.update().catch(() => {});
+      }
+    });
+
     // Listen for messages from service worker (e.g., navigate on notification click)
     navigator.serviceWorker.addEventListener('message', (event) => {
       console.log('📲 SW Message:', event.data);

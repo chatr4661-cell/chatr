@@ -84,6 +84,19 @@ class LiveOTAUpdater {
       setTimeout(() => {
         this.checkForUpdates();
       }, 3000);
+
+      // Listen for app state changes (when user opens or returns to Chatr+ from background)
+      try {
+        const { App } = await import('@capacitor/app');
+        App.addListener('appStateChange', (state) => {
+          if (state.isActive) {
+            console.log('[OTA Engine] App returned to foreground, checking for live bundle updates...');
+            this.checkForUpdates();
+          }
+        });
+      } catch (appErr) {
+        console.warn('[OTA Engine] App state listener not registered:', appErr);
+      }
     } catch (err) {
       console.warn('[OTA Engine] Failed to initialize native CapacitorUpdater plugin:', err);
     }
