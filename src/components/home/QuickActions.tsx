@@ -79,31 +79,31 @@ export const QuickActions = () => {
   const visibleActions = actions.filter(action => isModuleVisible(action.route));
 
   return (
-    <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-3 sm:p-4 shadow-xs">
+    <div className="rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 p-2.5 sm:p-3 shadow-xs">
       <div className={cn(
-        "grid gap-2 sm:gap-3",
+        "grid gap-1.5 sm:gap-2",
         visibleActions.length <= 4 ? "grid-cols-4" : "grid-cols-4 sm:grid-cols-6"
       )}>
         {visibleActions.map((action) => (
           <button
             key={action.label}
             onClick={action.action}
-            className="flex flex-col items-center justify-center gap-1.5 py-1.5 px-1 rounded-2xl hover:bg-muted/50 transition-all duration-200 group active:scale-95"
+            className="flex flex-col items-center justify-center gap-1 py-1 px-0.5 rounded-xl hover:bg-muted/50 transition-all duration-200 group active:scale-95"
           >
             <div className={cn(
-              "w-12 h-12 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm",
+              "w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all duration-200 shadow-xs",
               "bg-gradient-to-br group-hover:scale-105 group-hover:shadow-md",
               action.color,
               action.shadowColor
             )}>
-              <action.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.2} />
+              <action.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" strokeWidth={2.2} />
             </div>
             <div className="text-center">
-              <span className="text-[11px] sm:text-xs font-semibold text-foreground group-hover:text-primary transition-colors block leading-tight">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-foreground group-hover:text-primary transition-colors block leading-tight">
                 {action.label}
               </span>
               {(action as any).sublabel && (
-                <span className="text-[9px] text-muted-foreground block leading-tight mt-0.5">
+                <span className="text-[8px] text-muted-foreground block leading-tight">
                   {(action as any).sublabel}
                 </span>
               )}

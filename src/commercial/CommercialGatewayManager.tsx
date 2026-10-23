@@ -90,9 +90,9 @@ export const CommercialGatewayManager: React.FC = () => {
           /* EXPANDED FLOATING COMMERCIAL CARD - Compact on mobile, rich on desktop */
           <aside
             aria-label="Commercial Ecosystem Advertisement"
-            className={`fixed top-16 sm:top-24 ${
+            className={`fixed bottom-4 sm:bottom-6 ${
               dockSide === 'right' ? 'right-2 sm:right-6' : 'left-2 sm:left-6'
-            } z-40 w-[280px] sm:w-[380px] max-w-[calc(100vw-16px)] rounded-2xl bg-slate-950/95 text-white border border-slate-800 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95`}
+            } z-40 w-[280px] sm:w-[360px] max-w-[calc(100vw-16px)] max-h-[min(520px,calc(100vh-80px))] flex flex-col rounded-2xl bg-slate-950/95 text-white border border-slate-800 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95`}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >
@@ -269,7 +269,7 @@ export const CommercialGatewayManager: React.FC = () => {
         ) : (
           /* COLLAPSED SLEEK FLOATING PILL - Ultra-compact on mobile */
           <div
-            className={`fixed top-16 sm:top-24 ${
+            className={`fixed bottom-4 sm:bottom-6 ${
               dockSide === 'right' ? 'right-2 sm:right-6' : 'left-2 sm:left-6'
             } z-40 animate-in fade-in duration-200`}
           >
@@ -331,7 +331,7 @@ export const CommercialGatewayManager: React.FC = () => {
       ) : (
         /* MINIMIZED FLOATING ICON PILL (If dismissed) */
         <div
-          className={`fixed top-16 sm:top-24 ${
+          className={`fixed bottom-4 sm:bottom-6 ${
             dockSide === 'right' ? 'right-2 sm:right-6' : 'left-2 sm:left-6'
           } z-40`}
         >

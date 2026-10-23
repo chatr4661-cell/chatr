@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Sun, Moon, Sunset, Coffee, Sparkles, ShieldCheck } from 'lucide-react';
+import { Sun, Moon, Sunset, Coffee, Sparkles } from 'lucide-react';
 
 export const PersonalizedGreeting = () => {
   const [userName, setUserName] = useState<string>('');
@@ -69,29 +69,24 @@ export const PersonalizedGreeting = () => {
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs transition-all hover:border-primary/30">
-      <div className={`absolute top-0 right-0 -mr-12 -mt-12 w-40 h-40 bg-gradient-to-br ${greeting.glowColor} rounded-full blur-2xl pointer-events-none opacity-70`} />
+    <div className="relative overflow-hidden rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-xs transition-all hover:border-primary/30">
+      <div className={`absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-gradient-to-br ${greeting.glowColor} rounded-full blur-2xl pointer-events-none opacity-60`} />
       
       <div className="relative flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-background/80 border border-border/50 shadow-xs flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-background/80 border border-border/50 shadow-xs flex items-center justify-center shrink-0">
             {greeting.icon}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
                 {greeting.text}, <span className="bg-gradient-to-r from-primary to-cyan-600 bg-clip-text text-transparent">{userName || 'friend'}</span>!
               </h2>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
               What would you like to do today?
             </p>
           </div>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/15 text-[11px] font-medium text-primary">
-          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-          <span>E2E Encrypted</span>
         </div>
       </div>
     </div>

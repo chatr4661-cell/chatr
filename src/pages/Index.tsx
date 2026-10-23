@@ -760,17 +760,17 @@ const Index = () => {
       <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
       <div className="bg-card/70 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between">
           <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"
+            className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity group"
             onClick={() => navigate('/stealth-mode')}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && navigate('/stealth-mode')}
           >
-            <img src={chatrIconLogo} alt="Chatr+ Logo" className="h-10 w-10 drop-shadow-xs" loading="eager" />
+            <img src={chatrIconLogo} alt="Chatr+ Logo" className="h-9 w-9 drop-shadow-xs" loading="eager" />
             <div>
-              <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
+              <div className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
               </div>
               <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground group-hover:text-primary transition-colors">
@@ -788,22 +788,22 @@ const Index = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <QuickAccessMenu />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/chatr-points')}
-              className="h-9 px-3 gap-1.5 rounded-full bg-gradient-to-br from-amber-500/10 to-yellow-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 transition-all hover:shadow-md"
+              className="h-8 sm:h-8.5 px-2.5 sm:px-3 gap-1.5 rounded-full bg-gradient-to-br from-amber-500/10 to-yellow-500/10 hover:from-amber-500/20 hover:to-yellow-500/20 transition-all hover:shadow-xs"
             >
-              <Coins className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
+              <Coins className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400">
                 {pointsBalance.toLocaleString()}
               </span>
               {currentStreak > 0 && (
                 <div className="flex items-center gap-0.5 ml-0.5">
-                  <Flame className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{currentStreak}</span>
+                  <Flame className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400">{currentStreak}</span>
                 </div>
               )}
             </Button>
@@ -811,9 +811,9 @@ const Index = () => {
               variant="ghost"
               size="sm"
               onClick={handleShareClick}
-              className="rounded-full h-9 px-4 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-500/10 hover:from-orange-500/20 hover:to-red-500/20 text-orange-600 dark:text-orange-400 transition-all gap-1.5"
+              className="rounded-full h-8 sm:h-8.5 px-3 text-xs sm:text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-500/10 hover:from-orange-500/20 hover:to-red-500/20 text-orange-600 dark:text-orange-400 transition-all gap-1.5"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-3.5 h-3.5" />
               <span>Share & Earn</span>
             </Button>
             {isAdmin && (
@@ -821,10 +821,10 @@ const Index = () => {
                 variant="default"
                 size="sm"
                 onClick={() => navigate('/admin/modules')}
-                className="rounded-full h-9 px-3 text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md gap-1.5"
+                className="rounded-full h-8 sm:h-8.5 px-2.5 sm:px-3 text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xs gap-1.5"
                 title="Administrator Module Control Center (9717845477)"
               >
-                <Boxes className="w-4 h-4" />
+                <Boxes className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Module Control</span>
                 <span className="sm:hidden">Modules</span>
               </Button>
@@ -836,7 +836,7 @@ const Index = () => {
                   size="icon"
                   onClick={handleSignOut}
                   aria-label="Sign out"
-                  className="rounded-full h-9 w-9 hover:bg-red-50 transition-colors"
+                  className="rounded-full h-8 w-8 hover:bg-red-50 transition-colors"
                 >
                   <LogOut className="h-4 w-4 text-destructive" />
                 </Button>
@@ -846,21 +846,21 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-5 mt-4 pb-28">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-3 sm:space-y-3.5 mt-2.5 sm:mt-3 pb-8 lg:pb-3">
 
         {/* Personalized Greeting */}
         <PersonalizedGreeting />
 
         {/* Synchronized 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-start">
           
           {/* Left Column: Communication Core (FaceTime & WhatsApp Grade) */}
-          <div className="lg:col-span-7 space-y-5">
+          <div className="lg:col-span-7 space-y-3 sm:space-y-3.5">
             {/* Quick Actions / Communication Dock */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-bold tracking-tight text-foreground">Communication Hub</h2>
-                <span className="text-[11px] font-medium text-muted-foreground">Instant Calling & Chat</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground">Communication Hub</h2>
+                <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">Instant Calling & Chat</span>
               </div>
               <QuickActions />
             </div>
@@ -873,12 +873,12 @@ const Index = () => {
           </div>
 
           {/* Right Column: Superapp Discovery & Ecosystem */}
-          <div className="lg:col-span-5 space-y-5">
+          <div className="lg:col-span-5 space-y-3 sm:space-y-3.5">
             {/* Search Bar - Modern Spotlight */}
-            <div className="rounded-2xl bg-card/85 backdrop-blur-xl border border-border/70 p-1.5 sm:p-2 shadow-xs focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all relative">
+            <div className="rounded-2xl bg-card/85 backdrop-blur-xl border border-border/70 p-1 sm:p-1.5 shadow-xs focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all relative">
               <div className="flex items-center gap-2">
                 <div className="flex-1 relative flex items-center">
-                  <Search className="absolute left-3.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+                  <Search className="absolute left-3 w-3.5 h-3.5 text-muted-foreground/70 pointer-events-none" />
                   <Input 
                     value={searchQuery}
                     onChange={(e) => {
@@ -888,7 +888,7 @@ const Index = () => {
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="Search anything on Chatr (services, contacts, doctors, jobs)..."
-                    className="pl-10 pr-10 h-10 sm:h-11 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/60 shadow-none"
+                    className="pl-9 pr-9 h-8.5 sm:h-9 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 shadow-none"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleSearch();
@@ -899,29 +899,29 @@ const Index = () => {
                     onClick={startVoiceSearch}
                     disabled={isListening}
                     aria-label="Voice search"
-                    className="absolute right-2 p-1.5 rounded-xl hover:bg-muted/70 transition-colors disabled:opacity-50"
+                    className="absolute right-1.5 p-1 rounded-lg hover:bg-muted/70 transition-colors disabled:opacity-50"
                   >
-                    <Mic className={`w-4 h-4 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground/80'}`} />
+                    <Mic className={`w-3.5 h-3.5 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground/80'}`} />
                   </button>
                 </div>
-                <Button onClick={() => handleSearch()} size="sm" className="h-10 px-4 rounded-xl shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0">
-                  <Search className="w-4 h-4 sm:mr-1.5" />
+                <Button onClick={() => handleSearch()} size="sm" className="h-8.5 sm:h-9 px-3 rounded-xl shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shrink-0">
+                  <Search className="w-3.5 h-3.5 sm:mr-1" />
                   <span className="hidden sm:inline">Search</span>
                 </Button>
               </div>
             </div>
 
             {/* Main Category Grid - Elevated App Launcher */}
-            <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-3.5">
-                <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+            <div className="rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 p-2.5 sm:p-3 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5">
                   <span>All Services</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-primary/10 text-primary">
                     {visibleMainHubs.length}
                   </span>
                 </h2>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-4 gap-2.5 sm:gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2">
                 {visibleMainHubs.map((category) => (
                   <button
                     key={category.title}
@@ -932,12 +932,12 @@ const Index = () => {
                         navigate(category.route);
                       }
                     }}
-                    className="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200 active:scale-95 text-center"
+                    className="group flex flex-col items-center gap-1 p-1 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200 active:scale-95 text-center"
                   >
-                    <div className={`w-11 h-11 rounded-2xl ${category.iconColor} flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200`}>
-                      <category.icon className="w-5 h-5 text-white" strokeWidth={2.2} />
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${category.iconColor} flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:shadow-xs transition-all duration-200`}>
+                      <category.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" strokeWidth={2.2} />
                     </div>
-                    <span className="text-[11px] font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
+                    <span className="text-[10px] font-medium text-foreground group-hover:text-primary transition-colors leading-tight line-clamp-1">
                       {category.title}
                     </span>
                   </button>
@@ -946,107 +946,98 @@ const Index = () => {
             </div>
 
             {/* Programs Section - Modern Executive Feature Cards */}
-            <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 onClick={() => navigate('/chatr-growth')}
-                className="group relative overflow-hidden rounded-3xl p-3.5 sm:p-4 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-card border border-orange-500/30 hover:border-orange-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex justify-between items-center gap-3"
+                className="group relative overflow-hidden rounded-2xl p-2.5 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-card border border-orange-500/30 hover:border-orange-500/60 shadow-2xs hover:shadow-xs transition-all duration-200 text-left flex items-center gap-2.5"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                    <Flame className="w-5 h-5" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 uppercase tracking-wider">
-                      Earn ₹50
-                    </span>
-                    <h3 className="text-sm font-bold text-foreground mt-0.5">Champions Program</h3>
-                    <p className="text-[11px] text-muted-foreground">Invite friends & earn recurring network bonuses</p>
-                  </div>
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-2xs shrink-0 group-hover:scale-105 transition-transform">
+                  <Flame className="w-4 h-4" strokeWidth={2} />
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 uppercase tracking-wider">
+                    Earn ₹50
+                  </span>
+                  <h3 className="text-xs font-bold text-foreground mt-0.5 truncate">Champions</h3>
+                  <p className="text-[10px] text-muted-foreground truncate">Invite & earn</p>
+                </div>
               </button>
 
               <button
                 onClick={() => navigate('/ambassador-program')}
-                className="group relative overflow-hidden rounded-3xl p-3.5 sm:p-4 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/10 to-card border border-purple-500/30 hover:border-purple-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex justify-between items-center gap-3"
+                className="group relative overflow-hidden rounded-2xl p-2.5 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/10 to-card border border-purple-500/30 hover:border-purple-500/60 shadow-2xs hover:shadow-xs transition-all duration-200 text-left flex items-center gap-2.5"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                    <Users className="w-5 h-5" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 uppercase tracking-wider">
-                      Partner
-                    </span>
-                    <h3 className="text-sm font-bold text-foreground mt-0.5">Partner Program</h3>
-                    <p className="text-[11px] text-muted-foreground">Join the partner ecosystem and scale your business</p>
-                  </div>
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shadow-2xs shrink-0 group-hover:scale-105 transition-transform">
+                  <Users className="w-4 h-4" strokeWidth={2} />
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+                    Partner
+                  </span>
+                  <h3 className="text-xs font-bold text-foreground mt-0.5 truncate">Partner Network</h3>
+                  <p className="text-[10px] text-muted-foreground truncate">Scale business</p>
+                </div>
               </button>
 
               <button
                 onClick={() => navigate('/doctor-onboarding')}
-                className="group relative overflow-hidden rounded-3xl p-3.5 sm:p-4 bg-gradient-to-br from-blue-500/15 via-teal-500/10 to-card border border-blue-500/30 hover:border-blue-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex justify-between items-center gap-3"
+                className="group relative overflow-hidden rounded-2xl p-2.5 bg-gradient-to-br from-blue-500/15 via-teal-500/10 to-card border border-blue-500/30 hover:border-blue-500/60 shadow-2xs hover:shadow-xs transition-all duration-200 text-left flex items-center gap-2.5"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                    <Stethoscope className="w-5 h-5" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 uppercase tracking-wider">
-                      Verified
-                    </span>
-                    <h3 className="text-sm font-bold text-foreground mt-0.5">Doctor Portal</h3>
-                    <p className="text-[11px] text-muted-foreground">Register practice for instant patient teleconsults</p>
-                  </div>
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-2xs shrink-0 group-hover:scale-105 transition-transform">
+                  <Stethoscope className="w-4 h-4" strokeWidth={2} />
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 uppercase tracking-wider">
+                    Verified
+                  </span>
+                  <h3 className="text-xs font-bold text-foreground mt-0.5 truncate">Doctor Portal</h3>
+                  <p className="text-[10px] text-muted-foreground truncate">Teleconsults</p>
+                </div>
               </button>
             </div>
 
             {/* Ecosystem Section */}
-            <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 shadow-xs">
-              <h2 className="text-sm font-bold tracking-tight text-foreground mb-3 flex items-center gap-2">
+            <div className="rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 p-2.5 sm:p-3 shadow-xs">
+              <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground mb-2 flex items-center gap-1.5">
                 <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Ecosystem & Services</span>
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {isModuleVisible('/food-ordering') && (
                   <button
                     onClick={() => navigate('/food-ordering')}
-                    className="h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
+                    className="h-11 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 flex items-center gap-2 shadow-2xs hover:shadow-xs hover:scale-[1.01] active:scale-[0.98] transition-all"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                      <Utensils className="w-5 h-5 text-white" strokeWidth={2} />
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                      <Utensils className="w-3.5 h-3.5 text-white" strokeWidth={2} />
                     </div>
-                    <div className="text-left">
-                      <span className="text-xs font-bold text-white block">Food Ordering</span>
-                      <span className="text-[10px] text-white/80 block">Quick delivery</span>
+                    <div className="text-left min-w-0">
+                      <span className="text-xs font-bold text-white block truncate">Food</span>
+                      <span className="text-[9px] text-white/80 block truncate">Quick delivery</span>
                     </div>
                   </button>
                 )}
                 <button
                   onClick={() => navigate('/local-deals')}
-                  className="h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
+                  className="h-11 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-2.5 flex items-center gap-2 shadow-2xs hover:shadow-xs hover:scale-[1.01] active:scale-[0.98] transition-all"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                    <Percent className="w-5 h-5 text-white" strokeWidth={2} />
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                    <Percent className="w-3.5 h-3.5 text-white" strokeWidth={2} />
                   </div>
-                  <div className="text-left">
-                    <span className="text-xs font-bold text-white block">Home Services</span>
-                    <span className="text-[10px] text-white/80 block">Verified pros</span>
+                  <div className="text-left min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Home Services</span>
+                    <span className="text-[9px] text-white/80 block truncate">Verified pros</span>
                   </div>
                 </button>
                 <button
                   onClick={() => navigate('/chatr-plus-subscribe')}
-                  className="h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
+                  className="h-11 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-2.5 flex items-center gap-2 shadow-2xs hover:shadow-xs hover:scale-[1.01] active:scale-[0.98] transition-all"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                    <Crown className="w-5 h-5 text-white" strokeWidth={2} />
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                    <Crown className="w-3.5 h-3.5 text-white" strokeWidth={2} />
                   </div>
-                  <div className="text-left">
-                    <span className="text-xs font-bold text-white block">Chatr Premium</span>
-                    <span className="text-[10px] text-white/80 block">Exclusive benefits</span>
+                  <div className="text-left min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">Chatr Premium</span>
+                    <span className="text-[9px] text-white/80 block truncate">Benefits</span>
                   </div>
                 </button>
               </div>
@@ -1054,45 +1045,45 @@ const Index = () => {
 
             {/* Quick Access Section - Only render if any module in this section is published */}
             {(isModuleVisible('/chatr-wallet') || isModuleVisible('/chatr-studio') || isModuleVisible('/ai-assistant') || isModuleVisible('/emergency')) && (
-              <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 shadow-xs">
-                <h2 className="text-sm font-bold tracking-tight text-foreground mb-3">
+              <div className="rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 p-2.5 sm:p-3 shadow-xs">
+                <h2 className="text-xs sm:text-sm font-bold tracking-tight text-foreground mb-2">
                   <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {isModuleVisible('/chatr-wallet') && (
                     <button
                       onClick={() => navigate('/chatr-wallet')}
-                      className="h-13 rounded-2xl bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      className="h-10 rounded-xl bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-2xs hover:shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                      <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
+                      <Wallet className="w-4 h-4 text-white/95" strokeWidth={1.8} />
+                      <span className="text-[9px] text-white font-medium leading-none mt-1">ChatrPay</span>
                     </button>
                   )}
                   {isModuleVisible('/chatr-studio') && (
                     <button
                       onClick={() => navigate('/chatr-studio')}
-                      className="h-13 rounded-2xl bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      className="h-10 rounded-xl bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-2xs hover:shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                      <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
+                      <Palette className="w-4 h-4 text-white/95" strokeWidth={1.8} />
+                      <span className="text-[9px] text-white font-medium leading-none mt-1">Studio</span>
                     </button>
                   )}
                   {isModuleVisible('/ai-assistant') && (
                     <button
                       onClick={() => navigate('/ai-assistant')}
-                      className="h-13 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      className="h-10 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-2xs hover:shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                      <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
+                      <Bot className="w-4 h-4 text-white/95" strokeWidth={1.8} />
+                      <span className="text-[9px] text-white font-medium leading-none mt-1">AI Assistant</span>
                     </button>
                   )}
                   {isModuleVisible('/emergency') && (
                     <button
                       onClick={() => navigate('/emergency-services')}
-                      className="h-13 rounded-2xl bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      className="h-10 rounded-xl bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-2xs hover:shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                      <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
+                      <Siren className="w-4 h-4 text-white/95" strokeWidth={1.8} />
+                      <span className="text-[9px] text-white font-medium leading-none mt-1">Emergency</span>
                     </button>
                   )}
                 </div>

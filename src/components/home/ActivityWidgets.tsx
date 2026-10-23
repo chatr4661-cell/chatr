@@ -99,38 +99,38 @@ export const ActivityWidgets = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
       {visibleWidgets.map((widget) => (
         <button
           key={widget.label}
           onClick={() => navigate(widget.route)}
           className={cn(
-            "group relative flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-card/80 backdrop-blur-md border border-border/60 transition-all duration-200 text-left",
-            "hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+            "group relative flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl bg-card/80 backdrop-blur-md border border-border/60 transition-all duration-200 text-left",
+            "hover:border-primary/40 hover:shadow-xs active:scale-[0.98]"
           )}
         >
           {widget.hasActivity && (
-            <span className="absolute top-2.5 right-2.5 flex h-2 w-2">
+            <span className="absolute top-2 right-2 flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
             </span>
           )}
           
           <div className={cn(
-            "w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-105",
+            "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105",
             `bg-gradient-to-br ${widget.gradient}`
           )}>
-            <widget.icon className="w-5 h-5 text-white" strokeWidth={2} />
+            <widget.icon className="w-4 h-4 text-white" strokeWidth={2} />
           </div>
           
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{widget.label}</p>
-            <p className="text-xs sm:text-sm font-bold text-foreground truncate mt-0.5">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">{widget.label}</p>
+            <p className="text-xs font-bold text-foreground truncate mt-0.5 leading-tight">
               {widget.value}
             </p>
           </div>
           
-          <ChevronRight className="w-4 h-4 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary shrink-0" />
         </button>
       ))}
     </div>

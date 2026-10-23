@@ -308,24 +308,24 @@ export const RecentActivity = () => {
   }
 
   return (
-    <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
+    <div className="rounded-2xl bg-card/75 backdrop-blur-md border border-border/60 p-3 sm:p-3.5 shadow-xs">
       {/* Header with WhatsApp & FaceTime style tab filters */}
-      <div className="flex items-center justify-between gap-2 mb-3.5">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div>
-          <h2 className="text-base font-bold tracking-tight text-foreground">
+          <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
             Recent Activity
           </h2>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground">
             Direct FaceTime audio/video & WhatsApp messaging
           </p>
         </div>
 
         {/* WhatsApp & FaceTime Filter Tabs */}
-        <div className="flex items-center p-0.5 rounded-full bg-muted/60 border border-border/50 text-[11px] font-semibold">
+        <div className="flex items-center p-0.5 rounded-full bg-muted/60 border border-border/50 text-[10px] sm:text-[11px] font-semibold">
           <button
             onClick={() => setFilter('all')}
             className={cn(
-              "px-2.5 py-1 rounded-full transition-all",
+              "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full transition-all",
               filter === 'all'
                 ? "bg-background text-foreground shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -336,7 +336,7 @@ export const RecentActivity = () => {
           <button
             onClick={() => setFilter('chat')}
             className={cn(
-              "px-2.5 py-1 rounded-full transition-all flex items-center gap-1",
+              "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full transition-all flex items-center gap-1",
               filter === 'chat'
                 ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -347,7 +347,7 @@ export const RecentActivity = () => {
           <button
             onClick={() => setFilter('call')}
             className={cn(
-              "px-2.5 py-1 rounded-full transition-all flex items-center gap-1",
+              "px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full transition-all flex items-center gap-1",
               filter === 'call'
                 ? "bg-background text-blue-600 dark:text-blue-400 shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -359,15 +359,15 @@ export const RecentActivity = () => {
       </div>
 
       {filteredActivities.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground">
-          <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-2">
-            <Clock className="w-5 h-5 opacity-60" />
+        <div className="py-4 text-center text-muted-foreground">
+          <div className="w-8 h-8 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-1.5">
+            <Clock className="w-4 h-4 opacity-60" />
           </div>
-          <p className="text-sm font-semibold text-foreground">No recent {filter === 'all' ? 'activity' : filter === 'chat' ? 'chats' : 'calls'}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Start connecting instantly with friends & family</p>
+          <p className="text-xs font-semibold text-foreground">No recent {filter === 'all' ? 'activity' : filter === 'chat' ? 'chats' : 'calls'}</p>
+          <p className="text-[10px] text-muted-foreground">Start connecting instantly with friends & family</p>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1 max-h-[190px] sm:max-h-[210px] overflow-y-auto pr-1">
           {filteredActivities.map((activity) => {
             const isCall = activity.type === 'call';
             const isVideo = isCall && activity.callData?.callType === 'video';
@@ -375,7 +375,7 @@ export const RecentActivity = () => {
             return (
               <div
                 key={activity.id}
-                className="group relative flex items-center justify-between p-2.5 sm:p-3 rounded-2xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200"
+                className="group relative flex items-center justify-between p-2 sm:p-2.5 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200"
               >
                 {/* Main clickable contact / item */}
                 <div 
@@ -384,7 +384,7 @@ export const RecentActivity = () => {
                 >
                   {/* Avatar / Badge */}
                   <div className={cn(
-                    "w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs text-white font-bold text-sm",
+                    "w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs text-white font-bold text-xs sm:text-sm",
                     isCall 
                       ? isVideo 
                         ? "bg-gradient-to-br from-indigo-500 to-purple-600" 
@@ -392,9 +392,9 @@ export const RecentActivity = () => {
                       : "bg-gradient-to-br from-emerald-500 to-teal-600"
                   )}>
                     {isCall ? (
-                      isVideo ? <Video className="w-5 h-5" /> : <Phone className="w-5 h-5" />
+                      isVideo ? <Video className="w-4 h-4" /> : <Phone className="w-4 h-4" />
                     ) : (
-                      activity.title.slice(0, 1).toUpperCase() || <MessageCircle className="w-5 h-5" />
+                      activity.title.slice(0, 1).toUpperCase() || <MessageCircle className="w-4 h-4" />
                     )}
                   </div>
 
