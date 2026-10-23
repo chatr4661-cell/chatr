@@ -3,14 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { 
   MessageCircle, 
   Calendar, 
-  Wallet, 
   ChevronRight,
-  Bell,
-  Sparkles
+  Bell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useInstantCache } from '@/hooks/useInstantCache';
+import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
 
 interface WidgetData {
   unreadChats: number;
@@ -32,17 +31,15 @@ const fetchWidgetData = async (): Promise<WidgetData> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return defaultData;
 
-  // All 3 queries run in PARALLEL
-  const [notifRes, apptRes, walletRes] = await Promise.all([
+  const [notifRes, apptRes] = await Promise.all([
     (async () => { try { const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('read', false); return count || 0; } catch { return 0; } })(),
     (async () => { try { const { count } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('patient_id', user.id).gte('appointment_date', new Date().toISOString()); return count || 0; } catch { return 0; } })(),
-    (async () => { try { const { data } = await supabase.from('chatr_coin_balances').select('total_coins').eq('user_id', user.id).maybeSingle(); return data?.total_coins || 0; } catch { return 0; } })(),
   ]);
 
   return {
     unreadChats: 0,
     upcomingAppointments: apptRes,
-    walletBalance: walletRes,
+    walletBalance: 0,
     healthAlerts: 0,
     pendingNotifications: notifRes
   };
@@ -50,6 +47,7 @@ const fetchWidgetData = async (): Promise<WidgetData> => {
 
 export const ActivityWidgets = () => {
   const navigate = useNavigate();
+  const { isModuleVisible } = useModuleRegistry();
   const { data, loading } = useInstantCache<WidgetData>('activity-widgets', fetchWidgetData, { ttl: 3 * 60 * 1000 });
   
   const widgetData = data || defaultData;
@@ -74,15 +72,6 @@ export const ActivityWidgets = () => {
       hasActivity: widgetData.upcomingAppointments > 0
     },
     {
-      icon: Wallet,
-      label: 'Wallet',
-      value: `${widgetData.walletBalance.toLocaleString()} coins`,
-      gradient: 'from-amber-500 to-orange-500',
-      badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-      route: '/chatr-wallet',
-      hasActivity: widgetData.walletBalance > 0
-    },
-    {
       icon: Bell,
       label: 'Alerts',
       value: widgetData.pendingNotifications > 0 ? `${widgetData.pendingNotifications} new` : 'No alerts',
@@ -93,19 +82,25 @@ export const ActivityWidgets = () => {
     }
   ];
 
+  const visibleWidgets = widgets.filter(w => isModuleVisible(w.route));
+
   if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[1, 2, 3, 4].map(i => (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[1, 2, 3].map(i => (
           <div key={i} className="h-20 rounded-2xl bg-muted/40 animate-pulse border border-border/40" />
         ))}
       </div>
     );
   }
 
+  if (visibleWidgets.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-      {widgets.map((widget) => (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+      {visibleWidgets.map((widget) => (
         <button
           key={widget.label}
           onClick={() => navigate(widget.route)}
