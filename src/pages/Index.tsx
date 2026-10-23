@@ -767,7 +767,7 @@ const Index = () => {
       <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
       <div className="bg-card/70 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"
             onClick={() => navigate('/stealth-mode')}
@@ -853,256 +853,261 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6 mt-4 pb-28">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-5 mt-4 pb-28">
 
         {/* Personalized Greeting */}
         <PersonalizedGreeting />
 
-        {/* Activity Widgets - Dynamic Content */}
-        <ActivityWidgets />
+        {/* Synchronized 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          
+          {/* Left Column: Communication Core (FaceTime & WhatsApp Grade) */}
+          <div className="lg:col-span-7 space-y-5">
+            {/* Quick Actions / Communication Dock */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-bold tracking-tight text-foreground">Communication Hub</h2>
+                <span className="text-[11px] font-medium text-muted-foreground">Instant Calling & Chat</span>
+              </div>
+              <QuickActions />
+            </div>
 
-        {/* Quick Actions Row */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Quick Actions</h2>
-          <QuickActions />
-        </div>
+            {/* Recent Activity (FaceTime Recents & WhatsApp Chats with 1-tap call triggers) */}
+            <RecentActivity />
 
-        {/* Search Bar - Modern Spotlight */}
-        <div className="rounded-2xl bg-card/85 backdrop-blur-xl border border-border/70 p-1.5 sm:p-2 shadow-xs focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all relative">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative flex items-center">
-              <Search className="absolute left-3.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
-              <Input 
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Search anything on Chatr (services, contacts, doctors, jobs)..."
-                className="pl-10 pr-10 h-10 sm:h-11 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/60 shadow-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
-              />
+            {/* Activity Status Metrics */}
+            <ActivityWidgets />
+          </div>
+
+          {/* Right Column: Superapp Discovery & Ecosystem */}
+          <div className="lg:col-span-5 space-y-5">
+            {/* Search Bar - Modern Spotlight */}
+            <div className="rounded-2xl bg-card/85 backdrop-blur-xl border border-border/70 p-1.5 sm:p-2 shadow-xs focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all relative">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative flex items-center">
+                  <Search className="absolute left-3.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
+                  <Input 
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder="Search anything on Chatr (services, contacts, doctors, jobs)..."
+                    className="pl-10 pr-10 h-10 sm:h-11 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/60 shadow-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSearch();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={startVoiceSearch}
+                    disabled={isListening}
+                    aria-label="Voice search"
+                    className="absolute right-2 p-1.5 rounded-xl hover:bg-muted/70 transition-colors disabled:opacity-50"
+                  >
+                    <Mic className={`w-4 h-4 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground/80'}`} />
+                  </button>
+                </div>
+                <Button onClick={() => handleSearch()} size="sm" className="h-10 px-4 rounded-xl shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0">
+                  <Search className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline">Search</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Main Category Grid - Elevated App Launcher */}
+            <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
+              <div className="flex items-center justify-between mb-3.5">
+                <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+                  <span>All Services</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {visibleMainHubs.length}
+                  </span>
+                </h2>
+              </div>
+              <div className="grid grid-cols-4 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                {visibleMainHubs.map((category) => (
+                  <button
+                    key={category.title}
+                    onClick={() => {
+                      if ('external' in category && category.external) {
+                        window.open(category.route, '_blank', 'noopener,noreferrer');
+                      } else {
+                        navigate(category.route);
+                      }
+                    }}
+                    className="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200 active:scale-95 text-center"
+                  >
+                    <div className={`w-11 h-11 rounded-2xl ${category.iconColor} flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200`}>
+                      <category.icon className="w-5 h-5 text-white" strokeWidth={2.2} />
+                    </div>
+                    <span className="text-[11px] font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
+                      {category.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Programs Section - Modern Executive Feature Cards */}
+            <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
               <button
-                onClick={startVoiceSearch}
-                disabled={isListening}
-                aria-label="Voice search"
-                className="absolute right-2 p-1.5 rounded-xl hover:bg-muted/70 transition-colors disabled:opacity-50"
+                onClick={() => navigate('/chatr-growth')}
+                className="group relative overflow-hidden rounded-3xl p-3.5 sm:p-4 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-card border border-orange-500/30 hover:border-orange-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex justify-between items-center gap-3"
               >
-                <Mic className={`w-4 h-4 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground/80'}`} />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                    <Flame className="w-5 h-5" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 uppercase tracking-wider">
+                      Earn ₹50
+                    </span>
+                    <h3 className="text-sm font-bold text-foreground mt-0.5">Champions Program</h3>
+                    <p className="text-[11px] text-muted-foreground">Invite friends & earn recurring network bonuses</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+
+              <button
+                onClick={() => navigate('/ambassador-program')}
+                className="group relative overflow-hidden rounded-3xl p-3.5 sm:p-4 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/10 to-card border border-purple-500/30 hover:border-purple-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex justify-between items-center gap-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                    <Users className="w-5 h-5" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+                      Partner
+                    </span>
+                    <h3 className="text-sm font-bold text-foreground mt-0.5">Partner Program</h3>
+                    <p className="text-[11px] text-muted-foreground">Join the partner ecosystem and scale your business</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+
+              <button
+                onClick={() => navigate('/doctor-onboarding')}
+                className="group relative overflow-hidden rounded-3xl p-3.5 sm:p-4 bg-gradient-to-br from-blue-500/15 via-teal-500/10 to-card border border-blue-500/30 hover:border-blue-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex justify-between items-center gap-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                    <Stethoscope className="w-5 h-5" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 uppercase tracking-wider">
+                      Verified
+                    </span>
+                    <h3 className="text-sm font-bold text-foreground mt-0.5">Doctor Portal</h3>
+                    <p className="text-[11px] text-muted-foreground">Register practice for instant patient teleconsults</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
               </button>
             </div>
-            <Button onClick={() => handleSearch()} size="sm" className="h-10 px-4 rounded-xl shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0">
-              <Search className="w-4 h-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Search</span>
-            </Button>
-          </div>
-        </div>
 
-        {/* Recent Activity */}
-        <div>
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-sm font-bold tracking-tight text-foreground">Recent Activity</h2>
-          </div>
-          <RecentActivity />
-        </div>
-
-        {/* Main Category Grid - Elevated App Launcher */}
-        <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-3.5">
-            <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span>All Services</span>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                {visibleMainHubs.length}
-              </span>
-            </h2>
-          </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 sm:gap-3.5">
-            {visibleMainHubs.map((category) => (
-              <button
-                key={category.title}
-                onClick={() => {
-                  if ('external' in category && category.external) {
-                    window.open(category.route, '_blank', 'noopener,noreferrer');
-                  } else {
-                    navigate(category.route);
-                  }
-                }}
-                className="group flex flex-col items-center gap-2 p-2.5 rounded-2xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200 active:scale-95 text-center"
-              >
-                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${category.iconColor} flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200`}>
-                  <category.icon className="w-5 h-5 text-white" strokeWidth={2.2} />
-                </div>
-                <span className="text-[11px] font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
-                  {category.title}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Programs Section - Modern Executive Feature Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button
-            onClick={() => navigate('/chatr-growth')}
-            className="group relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-card border border-orange-500/30 hover:border-orange-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex sm:flex-col justify-between items-center sm:items-start gap-3"
-          >
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                <Flame className="w-5 h-5" strokeWidth={2} />
-              </div>
-              <div>
-                <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 uppercase tracking-wider">
-                  Earn ₹50
-                </span>
-                <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">Champions</h3>
+            {/* Ecosystem Section */}
+            <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 shadow-xs">
+              <h2 className="text-sm font-bold tracking-tight text-foreground mb-3 flex items-center gap-2">
+                <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Ecosystem & Services</span>
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {isModuleVisible('/food-ordering') && (
+                  <button
+                    onClick={() => navigate('/food-ordering')}
+                    className="h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                      <Utensils className="w-5 h-5 text-white" strokeWidth={2} />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-xs font-bold text-white block">Food Ordering</span>
+                      <span className="text-[10px] text-white/80 block">Quick delivery</span>
+                    </div>
+                  </button>
+                )}
+                <button
+                  onClick={() => navigate('/local-deals')}
+                  className="h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <Percent className="w-5 h-5 text-white" strokeWidth={2} />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-white block">Home Services</span>
+                    <span className="text-[10px] text-white/80 block">Verified pros</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => navigate('/chatr-plus-subscribe')}
+                  className="h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <Crown className="w-5 h-5 text-white" strokeWidth={2} />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-white block">Chatr Premium</span>
+                    <span className="text-[10px] text-white/80 block">Exclusive benefits</span>
+                  </div>
+                </button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Invite friends & earn recurring network bonuses.
-            </p>
-          </button>
 
-          <button
-            onClick={() => navigate('/ambassador-program')}
-            className="group relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/10 to-card border border-purple-500/30 hover:border-purple-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex sm:flex-col justify-between items-center sm:items-start gap-3"
-          >
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                <Users className="w-5 h-5" strokeWidth={2} />
-              </div>
-              <div>
-                <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 uppercase tracking-wider">
-                  Partner
-                </span>
-                <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">Partner Program</h3>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Apply to join the ecosystem and scale your business.
-            </p>
-          </button>
-
-          <button
-            onClick={() => navigate('/doctor-onboarding')}
-            className="group relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-blue-500/15 via-teal-500/10 to-card border border-blue-500/30 hover:border-blue-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex sm:flex-col justify-between items-center sm:items-start gap-3"
-          >
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                <Stethoscope className="w-5 h-5" strokeWidth={2} />
-              </div>
-              <div>
-                <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 uppercase tracking-wider">
-                  Verified
-                </span>
-                <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">Doctor Portal</h3>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Register medical practice for instant teleconsults.
-            </p>
-          </button>
-        </div>
-
-        {/* Ecosystem Section */}
-        <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
-          <h2 className="text-sm font-bold tracking-tight text-foreground mb-3 flex items-center gap-2">
-            <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Ecosystem</span>
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-            {isModuleVisible('/food-ordering') && (
-              <button
-                onClick={() => navigate('/food-ordering')}
-                className="h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
-              >
-                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                  <Utensils className="w-5 h-5 text-white" strokeWidth={2} />
+            {/* Quick Access Section - Only render if any module in this section is published */}
+            {(isModuleVisible('/chatr-wallet') || isModuleVisible('/chatr-studio') || isModuleVisible('/ai-assistant') || isModuleVisible('/emergency')) && (
+              <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 shadow-xs">
+                <h2 className="text-sm font-bold tracking-tight text-foreground mb-3">
+                  <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {isModuleVisible('/chatr-wallet') && (
+                    <button
+                      onClick={() => navigate('/chatr-wallet')}
+                      className="h-13 rounded-2xl bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                      <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
+                    </button>
+                  )}
+                  {isModuleVisible('/chatr-studio') && (
+                    <button
+                      onClick={() => navigate('/chatr-studio')}
+                      className="h-13 rounded-2xl bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                      <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
+                    </button>
+                  )}
+                  {isModuleVisible('/ai-assistant') && (
+                    <button
+                      onClick={() => navigate('/ai-assistant')}
+                      className="h-13 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                      <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
+                    </button>
+                  )}
+                  {isModuleVisible('/emergency') && (
+                    <button
+                      onClick={() => navigate('/emergency-services')}
+                      className="h-13 rounded-2xl bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                      <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
+                    </button>
+                  )}
                 </div>
-                <div className="text-left">
-                  <span className="text-xs font-bold text-white block">Food Ordering</span>
-                  <span className="text-[10px] text-white/80 block">Quick delivery</span>
-                </div>
-              </button>
+              </div>
             )}
-            <button
-              onClick={() => navigate('/local-deals')}
-              className="h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
-            >
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <Percent className="w-5 h-5 text-white" strokeWidth={2} />
-              </div>
-              <div className="text-left">
-                <span className="text-xs font-bold text-white block">Home Services</span>
-                <span className="text-[10px] text-white/80 block">Verified pros</span>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/chatr-plus-subscribe')}
-              className="h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
-            >
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <Crown className="w-5 h-5 text-white" strokeWidth={2} />
-              </div>
-              <div className="text-left">
-                <span className="text-xs font-bold text-white block">Chatr Premium</span>
-                <span className="text-[10px] text-white/80 block">Exclusive benefits</span>
-              </div>
-            </button>
           </div>
         </div>
-
-        {/* Quick Access Section - Only render if any module in this section is published */}
-        {(isModuleVisible('/chatr-wallet') || isModuleVisible('/chatr-studio') || isModuleVisible('/ai-assistant') || isModuleVisible('/emergency')) && (
-          <div className="mt-5 mb-8">
-            <h2 className="text-base font-bold mb-3">
-              <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
-            </h2>
-            <div className="grid grid-cols-4 gap-2">
-              {isModuleVisible('/chatr-wallet') && (
-                <button
-                  onClick={() => navigate('/chatr-wallet')}
-                  className="h-14 rounded-[22px] bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                  <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
-                </button>
-              )}
-              {isModuleVisible('/chatr-studio') && (
-                <button
-                  onClick={() => navigate('/chatr-studio')}
-                  className="h-14 rounded-[22px] bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                  <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
-                </button>
-              )}
-              {isModuleVisible('/ai-assistant') && (
-                <button
-                  onClick={() => navigate('/ai-assistant')}
-                  className="h-14 rounded-[22px] bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                  <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
-                </button>
-              )}
-              {isModuleVisible('/emergency') && (
-                <button
-                  onClick={() => navigate('/emergency-services')}
-                  className="h-14 rounded-[22px] bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                  <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        </div>
+      </div>
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

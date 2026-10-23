@@ -80,16 +80,19 @@ export const QuickActions = () => {
 
   return (
     <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-3 sm:p-4 shadow-xs">
-      <div className="flex items-center justify-around gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className={cn(
+        "grid gap-2 sm:gap-3",
+        visibleActions.length <= 4 ? "grid-cols-4" : "grid-cols-4 sm:grid-cols-6"
+      )}>
         {visibleActions.map((action) => (
           <button
             key={action.label}
             onClick={action.action}
-            className="flex flex-col items-center gap-2 py-1 px-2.5 rounded-2xl hover:bg-muted/40 transition-all duration-200 group active:scale-95 shrink-0"
+            className="flex flex-col items-center justify-center gap-1.5 py-1.5 px-1 rounded-2xl hover:bg-muted/50 transition-all duration-200 group active:scale-95"
           >
             <div className={cn(
-              "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md",
-              "bg-gradient-to-br group-hover:scale-105 group-hover:shadow-lg",
+              "w-12 h-12 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm",
+              "bg-gradient-to-br group-hover:scale-105 group-hover:shadow-md",
               action.color,
               action.shadowColor
             )}>
