@@ -33,3 +33,9 @@ import('./core/services/ServiceAdapters')
 import('./utils/seoAttribution')
   .then(({ captureAcquisition }) => captureAcquisition())
   .catch(() => {/* attribution is best-effort and never user-visible */});
+
+// Live OTA Engine for Native Hybrid Shell (non-blocking)
+import('./services/native/liveOTAUpdater')
+  .then(({ liveOTAUpdater }) => liveOTAUpdater.initialize())
+  .catch((err) => console.error('[main] LiveOTAUpdater init failed:', err));
+

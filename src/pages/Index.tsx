@@ -766,8 +766,8 @@ const Index = () => {
       <div className="min-h-screen bg-transparent pb-0">{/* Removed pb-32 for full screen */}
       <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
-      <div className="bg-transparent backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="bg-card/70 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity group"
             onClick={() => navigate('/stealth-mode')}
@@ -775,7 +775,7 @@ const Index = () => {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && navigate('/stealth-mode')}
           >
-            <img src={chatrIconLogo} alt="Chatr+ Logo" className="h-10 w-10" loading="eager" />
+            <img src={chatrIconLogo} alt="Chatr+ Logo" className="h-10 w-10 drop-shadow-xs" loading="eager" />
             <div>
               <div className="text-xl font-bold bg-gradient-to-r from-primary via-primary to-cyan-500 bg-clip-text text-transparent">
                 Chatr+
@@ -853,7 +853,7 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 space-y-5 mt-4 pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6 mt-4 pb-28">
 
         {/* Personalized Greeting */}
         <PersonalizedGreeting />
@@ -867,11 +867,11 @@ const Index = () => {
           <QuickActions />
         </div>
 
-        {/* Search Bar - Compact */}
-        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-blue-500/10 rounded-2xl border border-primary/20 p-3 relative">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Search Bar - Modern Spotlight */}
+        <div className="rounded-2xl bg-card/85 backdrop-blur-xl border border-border/70 p-1.5 sm:p-2 shadow-xs focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all relative">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative flex items-center">
+              <Search className="absolute left-3.5 w-4 h-4 text-muted-foreground/70 pointer-events-none" />
               <Input 
                 value={searchQuery}
                 onChange={(e) => {
@@ -880,8 +880,8 @@ const Index = () => {
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Search anything on Chatr"
-                className="pl-9 pr-10 h-11 bg-background/80 backdrop-blur text-sm"
+                placeholder="Search anything on Chatr (services, contacts, doctors, jobs)..."
+                className="pl-10 pr-10 h-10 sm:h-11 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm placeholder:text-muted-foreground/60 shadow-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     handleSearch();
@@ -891,27 +891,38 @@ const Index = () => {
               <button
                 onClick={startVoiceSearch}
                 disabled={isListening}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-50"
+                aria-label="Voice search"
+                className="absolute right-2 p-1.5 rounded-xl hover:bg-muted/70 transition-colors disabled:opacity-50"
               >
-                <Mic className={`w-4 h-4 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`} />
+                <Mic className={`w-4 h-4 ${isListening ? 'text-destructive animate-pulse' : 'text-muted-foreground/80'}`} />
               </button>
             </div>
-            <Button onClick={() => handleSearch()} size="sm" className="h-11 px-4">
-              <Search className="w-4 h-4" />
+            <Button onClick={() => handleSearch()} size="sm" className="h-10 px-4 rounded-xl shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0">
+              <Search className="w-4 h-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Search</span>
             </Button>
           </div>
         </div>
 
         {/* Recent Activity */}
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Recent Activity</h2>
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-sm font-bold tracking-tight text-foreground">Recent Activity</h2>
+          </div>
           <RecentActivity />
         </div>
 
-        {/* Main Category Grid */}
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">All Services</h2>
-          <div className="grid grid-cols-4 gap-3">
+        {/* Main Category Grid - Elevated App Launcher */}
+        <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-3.5">
+            <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span>All Services</span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                {visibleMainHubs.length}
+              </span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 sm:gap-3.5">
             {visibleMainHubs.map((category) => (
               <button
                 key={category.title}
@@ -922,12 +933,12 @@ const Index = () => {
                     navigate(category.route);
                   }
                 }}
-                className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
+                className="group flex flex-col items-center gap-2 p-2.5 rounded-2xl hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-200 active:scale-95 text-center"
               >
-                <div className={`w-9 h-9 rounded-lg ${category.iconColor} flex items-center justify-center shadow-md`}>
-                  <category.icon className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${category.iconColor} flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:shadow-md transition-all duration-200`}>
+                  <category.icon className="w-5 h-5 text-white" strokeWidth={2.2} />
                 </div>
-                <span className="text-[10px] font-semibold text-center leading-tight">
+                <span className="text-[11px] font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
                   {category.title}
                 </span>
               </button>
@@ -935,62 +946,112 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Programs Section - Apple-style pills */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Programs Section - Modern Executive Feature Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={() => navigate('/chatr-growth')}
-            className="h-16 rounded-[28px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden"
+            className="group relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-card border border-orange-500/30 hover:border-orange-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex sm:flex-col justify-between items-center sm:items-start gap-3"
           >
-            <span className="absolute top-1 bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Earn ₹</span>
-            <Flame className="w-6 h-6 text-white/90 mt-1" strokeWidth={1.5} />
-            <span className="text-[11px] text-white font-medium mt-0.5">Champions</span>
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                <Flame className="w-5 h-5" strokeWidth={2} />
+              </div>
+              <div>
+                <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 uppercase tracking-wider">
+                  Earn ₹50
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">Champions</h3>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground hidden sm:block">
+              Invite friends & earn recurring network bonuses.
+            </p>
           </button>
+
           <button
             onClick={() => navigate('/ambassador-program')}
-            className="h-16 rounded-[28px] bg-gradient-to-r from-fuchsia-500 to-purple-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden"
+            className="group relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/10 to-card border border-purple-500/30 hover:border-purple-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex sm:flex-col justify-between items-center sm:items-start gap-3"
           >
-            <span className="absolute top-1 bg-purple-700 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Apply</span>
-            <Users className="w-6 h-6 text-white/90 mt-1" strokeWidth={1.5} />
-            <span className="text-[11px] text-white font-medium mt-0.5">Partner</span>
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-5 h-5" strokeWidth={2} />
+              </div>
+              <div>
+                <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+                  Partner
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">Partner Program</h3>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground hidden sm:block">
+              Apply to join the ecosystem and scale your business.
+            </p>
           </button>
+
           <button
             onClick={() => navigate('/doctor-onboarding')}
-            className="h-16 rounded-[28px] bg-gradient-to-r from-blue-400 to-blue-600 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden"
+            className="group relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-blue-500/15 via-teal-500/10 to-card border border-blue-500/30 hover:border-blue-500/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 text-left flex sm:flex-col justify-between items-center sm:items-start gap-3"
           >
-            <span className="absolute top-1 bg-emerald-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold">Join</span>
-            <Stethoscope className="w-6 h-6 text-white/90 mt-1" strokeWidth={1.5} />
-            <span className="text-[11px] text-white font-medium mt-0.5">Doctor Portal</span>
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                <Stethoscope className="w-5 h-5" strokeWidth={2} />
+              </div>
+              <div>
+                <span className="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 uppercase tracking-wider">
+                  Verified
+                </span>
+                <h3 className="text-sm sm:text-base font-bold text-foreground mt-0.5">Doctor Portal</h3>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground hidden sm:block">
+              Register medical practice for instant teleconsults.
+            </p>
           </button>
         </div>
 
-        {/* Ecosystem Section - Apple-style pills */}
-        <div className="mt-5">
-          <h2 className="text-base font-bold mb-3">
-            <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">Ecosystem</span>
+        {/* Ecosystem Section */}
+        <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-4 sm:p-5 shadow-xs">
+          <h2 className="text-sm font-bold tracking-tight text-foreground mb-3 flex items-center gap-2">
+            <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Ecosystem</span>
           </h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             {isModuleVisible('/food-ordering') && (
               <button
                 onClick={() => navigate('/food-ordering')}
-                className="h-14 rounded-[24px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
               >
-                <Utensils className="w-6 h-6 text-white/90" strokeWidth={1.5} />
-                <span className="text-[10px] text-white font-medium mt-0.5">Food Ordering</span>
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Utensils className="w-5 h-5 text-white" strokeWidth={2} />
+                </div>
+                <div className="text-left">
+                  <span className="text-xs font-bold text-white block">Food Ordering</span>
+                  <span className="text-[10px] text-white/80 block">Quick delivery</span>
+                </div>
               </button>
             )}
             <button
               onClick={() => navigate('/local-deals')}
-              className="h-14 rounded-[24px] bg-gradient-to-r from-green-400 to-green-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
             >
-              <Percent className="w-6 h-6 text-white/90" strokeWidth={1.5} />
-              <span className="text-[10px] text-white font-medium mt-0.5">Home Services</span>
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Percent className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-bold text-white block">Home Services</span>
+                <span className="text-[10px] text-white/80 block">Verified pros</span>
+              </div>
             </button>
             <button
               onClick={() => navigate('/chatr-plus-subscribe')}
-              className="h-14 rounded-[24px] bg-gradient-to-r from-fuchsia-500 to-purple-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="h-14 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 px-3.5 flex items-center gap-3 shadow-xs hover:shadow-md hover:scale-[1.01] active:scale-[0.98] transition-all"
             >
-              <Crown className="w-6 h-6 text-white/90" strokeWidth={1.5} />
-              <span className="text-[10px] text-white font-medium mt-0.5">Chatr Premium</span>
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5 text-white" strokeWidth={2} />
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-bold text-white block">Chatr Premium</span>
+                <span className="text-[10px] text-white/80 block">Exclusive benefits</span>
+              </div>
             </button>
           </div>
         </div>

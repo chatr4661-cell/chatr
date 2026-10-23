@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   MessageCircle, 
   Phone, 
+  Video,
   ShoppingBag,
   Calendar,
   ChevronRight,
@@ -86,7 +87,6 @@ export const RecentActivity = () => {
         const calls = callResult.data;
 
         if (conversations && conversations.length > 0) {
-          // Get all conversation IDs, then batch-fetch other participants in ONE query
           const convIds = conversations.map(c => (c.conversations as any).id);
           
           const { data: allParticipants } = await supabase
@@ -97,7 +97,6 @@ export const RecentActivity = () => {
 
           if (cancelled) return;
 
-          // Build a lookup map: convId → other user's name
           const nameMap = new Map<string, string>();
           if (allParticipants) {
             for (const p of allParticipants) {
@@ -116,7 +115,7 @@ export const RecentActivity = () => {
               id: c.id,
               type: 'chat',
               title,
-              subtitle: 'Tap to continue',
+              subtitle: 'Tap to continue chat',
               timestamp: new Date(c.updated_at),
               route: `/chat/${c.id}`
             });
@@ -124,14 +123,12 @@ export const RecentActivity = () => {
         }
 
         if (calls) {
-          // Dedupe consecutive calls with the same other-party (keep most recent)
           const seenKeys = new Set<string>();
           for (const call of calls) {
             const isOutgoing = call.caller_id === user.id;
             const otherUserId = isOutgoing ? call.receiver_id : call.caller_id;
             let otherUserName = isOutgoing ? (call.receiver_name || '') : (call.caller_name || '');
 
-            // Enrich raw phone numbers (digits only / starts with +)
             const looksLikePhone = !otherUserName || /^\+?\d[\d\s\-]{6,}$/.test(otherUserName.trim());
             if (looksLikePhone) {
               const digits = (otherUserName || '').replace(/\D/g, '');
@@ -205,7 +202,6 @@ export const RecentActivity = () => {
         
         let convId = conversationId;
         if (!convId) {
-          // Batch lookup: get all user's conversations, then check for match
           const { data: existingConvs } = await supabase
             .from('conversation_participants')
             .select('conversation_id')
@@ -270,29 +266,41 @@ export const RecentActivity = () => {
     navigate(activity.route);
   };
 
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'chat': return MessageCircle;
-      case 'call': return Phone;
-      case 'order': return ShoppingBag;
-      case 'appointment': return Calendar;
+  const getActivityBadge = (activity: ActivityItem) => {
+    if (activity.type === 'call') {
+      const isVideo = activity.callData?.callType === 'video';
+      return {
+        icon: isVideo ? Video : Phone,
+        gradient: 'from-blue-500 to-indigo-600',
+        badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+      };
     }
-  };
-
-  const getActivityColor = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'chat': return 'bg-green-500/10 text-green-600';
-      case 'call': return 'bg-blue-500/10 text-blue-600';
-      case 'order': return 'bg-orange-500/10 text-orange-600';
-      case 'appointment': return 'bg-purple-500/10 text-purple-600';
+    if (activity.type === 'order') {
+      return {
+        icon: ShoppingBag,
+        gradient: 'from-amber-500 to-orange-600',
+        badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+      };
     }
+    if (activity.type === 'appointment') {
+      return {
+        icon: Calendar,
+        gradient: 'from-purple-500 to-fuchsia-600',
+        badgeBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+      };
+    }
+    return {
+      icon: MessageCircle,
+      gradient: 'from-emerald-500 to-teal-600',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+    };
   };
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-3 space-y-2 shadow-xs">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-14 rounded-xl bg-muted/50 animate-pulse" />
+          <div key={i} className="h-14 rounded-2xl bg-muted/40 animate-pulse" />
         ))}
       </div>
     );
@@ -300,38 +308,49 @@ export const RecentActivity = () => {
 
   if (activities.length === 0) {
     return (
-      <div className="text-center py-6 text-muted-foreground">
-        <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">No recent activity</p>
-        <p className="text-xs">Start chatting or exploring!</p>
+      <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-6 text-center shadow-xs">
+        <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-2.5">
+          <Clock className="w-6 h-6 text-muted-foreground/60" />
+        </div>
+        <p className="text-sm font-semibold text-foreground">No recent activity</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Start a conversation or make a call to connect!</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="rounded-3xl bg-card/75 backdrop-blur-md border border-border/60 p-2 sm:p-2.5 shadow-xs divide-y divide-border/40">
       {activities.map((activity) => {
-        const Icon = getActivityIcon(activity.type);
-        const colorClass = getActivityColor(activity.type);
+        const badge = getActivityBadge(activity);
+        const Icon = badge.icon;
         
         return (
           <button
             key={activity.id}
             onClick={() => handleActivityClick(activity)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl bg-card hover:bg-muted/50 border border-border/50 transition-all active:scale-[0.98]"
+            className="w-full flex items-center gap-3.5 p-3 rounded-2xl hover:bg-muted/50 transition-all duration-200 active:scale-[0.99] group text-left"
           >
-            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center", colorClass)}>
-              <Icon className="w-5 h-5" />
+            <div className={cn(
+              "w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs transition-transform duration-200 group-hover:scale-105",
+              `bg-gradient-to-br ${badge.gradient}`
+            )}>
+              <Icon className="w-5 h-5 text-white" strokeWidth={2.2} />
             </div>
             
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium truncate">{activity.title}</p>
-              <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                {activity.title}
+              </p>
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                {activity.subtitle}
+              </p>
             </div>
             
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span>{formatDistanceToNow(activity.timestamp, { addSuffix: false })}</span>
-              <ChevronRight className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] font-medium text-muted-foreground/80 px-2 py-0.5 rounded-full bg-muted/60">
+                {formatDistanceToNow(activity.timestamp, { addSuffix: false })}
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
             </div>
           </button>
         );

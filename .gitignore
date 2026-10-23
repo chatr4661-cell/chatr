@@ -11,6 +11,7 @@ node_modules
 dist
 dist-seo
 dist-ssr
+dist-ota
 *.local
 *.apk
 public/download/*.apk

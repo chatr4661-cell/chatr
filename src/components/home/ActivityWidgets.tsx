@@ -4,10 +4,9 @@ import {
   MessageCircle, 
   Calendar, 
   Wallet, 
-  Heart,
   ChevronRight,
   Bell,
-  Clock
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -60,9 +59,8 @@ export const ActivityWidgets = () => {
       icon: MessageCircle,
       label: 'Chats',
       value: widgetData.unreadChats > 0 ? `${widgetData.unreadChats} unread` : 'All caught up',
-      color: 'from-green-500 to-emerald-600',
-      bgColor: 'bg-green-500/10',
-      textColor: 'text-green-600 dark:text-green-400',
+      gradient: 'from-emerald-500 to-teal-600',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
       route: '/chat',
       hasActivity: widgetData.unreadChats > 0
     },
@@ -70,9 +68,8 @@ export const ActivityWidgets = () => {
       icon: Calendar,
       label: 'Appointments',
       value: widgetData.upcomingAppointments > 0 ? `${widgetData.upcomingAppointments} upcoming` : 'None scheduled',
-      color: 'from-blue-500 to-indigo-600',
-      bgColor: 'bg-blue-500/10',
-      textColor: 'text-blue-600 dark:text-blue-400',
+      gradient: 'from-blue-500 to-indigo-600',
+      badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
       route: '/care',
       hasActivity: widgetData.upcomingAppointments > 0
     },
@@ -80,9 +77,8 @@ export const ActivityWidgets = () => {
       icon: Wallet,
       label: 'Wallet',
       value: `${widgetData.walletBalance.toLocaleString()} coins`,
-      color: 'from-amber-500 to-orange-600',
-      bgColor: 'bg-amber-500/10',
-      textColor: 'text-amber-600 dark:text-amber-400',
+      gradient: 'from-amber-500 to-orange-500',
+      badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
       route: '/chatr-wallet',
       hasActivity: widgetData.walletBalance > 0
     },
@@ -90,9 +86,8 @@ export const ActivityWidgets = () => {
       icon: Bell,
       label: 'Alerts',
       value: widgetData.pendingNotifications > 0 ? `${widgetData.pendingNotifications} new` : 'No alerts',
-      color: 'from-purple-500 to-pink-600',
-      bgColor: 'bg-purple-500/10',
-      textColor: 'text-purple-600 dark:text-purple-400',
+      gradient: 'from-purple-500 to-fuchsia-600',
+      badgeBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
       route: '/notifications',
       hasActivity: widgetData.pendingNotifications > 0
     }
@@ -100,45 +95,47 @@ export const ActivityWidgets = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-20 rounded-2xl bg-muted/50 animate-pulse" />
+          <div key={i} className="h-20 rounded-2xl bg-muted/40 animate-pulse border border-border/40" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
       {widgets.map((widget) => (
         <button
           key={widget.label}
           onClick={() => navigate(widget.route)}
           className={cn(
-            "relative flex items-center gap-3 p-3 rounded-2xl border transition-all active:scale-[0.98]",
-            widget.bgColor,
-            "border-border/50 hover:border-primary/30 hover:shadow-md"
+            "group relative flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-card/80 backdrop-blur-md border border-border/60 transition-all duration-200 text-left",
+            "hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
           )}
         >
           {widget.hasActivity && (
-            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="absolute top-2.5 right-2.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+            </span>
           )}
           
           <div className={cn(
-            "w-10 h-10 rounded-xl flex items-center justify-center",
-            `bg-gradient-to-br ${widget.color}`
+            "w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-200 group-hover:scale-105",
+            `bg-gradient-to-br ${widget.gradient}`
           )}>
             <widget.icon className="w-5 h-5 text-white" strokeWidth={2} />
           </div>
           
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-[11px] text-muted-foreground font-medium">{widget.label}</p>
-            <p className={cn("text-sm font-semibold truncate", widget.textColor)}>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{widget.label}</p>
+            <p className="text-xs sm:text-sm font-bold text-foreground truncate mt-0.5">
               {widget.value}
             </p>
           </div>
           
-          <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
         </button>
       ))}
     </div>

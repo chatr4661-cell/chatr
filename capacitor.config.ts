@@ -69,6 +69,11 @@ const config: CapacitorConfig = {
     },
     BackgroundTask: {
       enableLogs: true
+    },
+    CapacitorUpdater: {
+      autoUpdate: true,
+      channel: 'production',
+      resetWhenUpdate: false
     }
   },
   // iOS specific configuration for edge-to-edge
