@@ -912,35 +912,26 @@ const Index = () => {
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground mb-2">All Services</h2>
           <div className="grid grid-cols-4 gap-3">
-            {visibleMainHubs.map((category, index) => {
-              const mod = modules.find(m => m.route === category.route);
-              const isNonPublished = mod && mod.lifecycleState !== 'published';
-              return (
-                <button
-                  key={category.title}
-                  onClick={() => {
-                    if ('external' in category && category.external) {
-                      window.open(category.route, '_blank', 'noopener,noreferrer');
-                    } else {
-                      navigate(category.route);
-                    }
-                  }}
-                  className="group relative flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
-                >
-                  {isAdmin && isNonPublished && (
-                    <span className="absolute top-1 right-1 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-amber-500/20 text-amber-500 border border-amber-500/40">
-                      {mod.lifecycleState}
-                    </span>
-                  )}
-                  <div className={`w-9 h-9 rounded-lg ${category.iconColor} flex items-center justify-center shadow-md`}>
-                    <category.icon className="w-4 h-4 text-white" strokeWidth={2.5} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-center leading-tight">
-                    {category.title}
-                  </span>
-                </button>
-              );
-            })}
+            {visibleMainHubs.map((category) => (
+              <button
+                key={category.title}
+                onClick={() => {
+                  if ('external' in category && category.external) {
+                    window.open(category.route, '_blank', 'noopener,noreferrer');
+                  } else {
+                    navigate(category.route);
+                  }
+                }}
+                className="group flex flex-col items-center gap-2 p-2.5 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all active:scale-95"
+              >
+                <div className={`w-9 h-9 rounded-lg ${category.iconColor} flex items-center justify-center shadow-md`}>
+                  <category.icon className="w-4 h-4 text-white" strokeWidth={2.5} />
+                </div>
+                <span className="text-[10px] font-semibold text-center leading-tight">
+                  {category.title}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -981,13 +972,8 @@ const Index = () => {
             {isModuleVisible('/food-ordering') && (
               <button
                 onClick={() => navigate('/food-ordering')}
-                className="relative h-14 rounded-[24px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="h-14 rounded-[24px] bg-gradient-to-r from-orange-400 to-orange-500 px-3 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                {isAdmin && modules.find(m => m.route === '/food-ordering')?.lifecycleState !== 'published' && (
-                  <span className="absolute top-1 right-2 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-black/50 text-amber-300">
-                    {modules.find(m => m.route === '/food-ordering')?.lifecycleState || 'hidden'}
-                  </span>
-                )}
                 <Utensils className="w-6 h-6 text-white/90" strokeWidth={1.5} />
                 <span className="text-[10px] text-white font-medium mt-0.5">Food Ordering</span>
               </button>
@@ -1009,71 +995,53 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Quick Access Section - Apple-style pills */}
-        <div className="mt-5 mb-8">
-          <h2 className="text-base font-bold mb-3">
-            <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
-          </h2>
-          <div className="grid grid-cols-4 gap-2">
-            {isModuleVisible('/chatr-wallet') && (
-              <button
-                onClick={() => navigate('/chatr-wallet')}
-                className="relative h-14 rounded-[22px] bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                {isAdmin && modules.find(m => m.route === '/chatr-wallet')?.lifecycleState !== 'published' && (
-                  <span className="absolute top-1 right-2 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-black/50 text-amber-300">
-                    {modules.find(m => m.route === '/chatr-wallet')?.lifecycleState || 'hidden'}
-                  </span>
-                )}
-                <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
-              </button>
-            )}
-            {isModuleVisible('/chatr-studio') && (
-              <button
-                onClick={() => navigate('/chatr-studio')}
-                className="relative h-14 rounded-[22px] bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                {isAdmin && modules.find(m => m.route === '/chatr-studio')?.lifecycleState !== 'published' && (
-                  <span className="absolute top-1 right-2 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-black/50 text-amber-300">
-                    {modules.find(m => m.route === '/chatr-studio')?.lifecycleState || 'hidden'}
-                  </span>
-                )}
-                <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
-              </button>
-            )}
-            {isModuleVisible('/ai-assistant') && (
-              <button
-                onClick={() => navigate('/ai-assistant')}
-                className="relative h-14 rounded-[22px] bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                {isAdmin && modules.find(m => m.route === '/ai-assistant')?.lifecycleState !== 'published' && (
-                  <span className="absolute top-1 right-2 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-black/50 text-amber-300">
-                    {modules.find(m => m.route === '/ai-assistant')?.lifecycleState || 'hidden'}
-                  </span>
-                )}
-                <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
-              </button>
-            )}
-            {(isModuleVisible('/emergency') || isModuleVisible('/emergency-services')) && (
-              <button
-                onClick={() => navigate('/emergency-services')}
-                className="relative h-14 rounded-[22px] bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                {isAdmin && modules.find(m => m.route === '/emergency')?.lifecycleState !== 'published' && (
-                  <span className="absolute top-1 right-2 text-[7px] px-1 rounded font-bold uppercase tracking-wider bg-black/50 text-amber-300">
-                    {modules.find(m => m.route === '/emergency')?.lifecycleState || 'hidden'}
-                  </span>
-                )}
-                <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
-                <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
-              </button>
-            )}
+        {/* Quick Access Section - Only render if any module in this section is published */}
+        {(isModuleVisible('/chatr-wallet') || isModuleVisible('/chatr-studio') || isModuleVisible('/ai-assistant') || isModuleVisible('/emergency')) && (
+          <div className="mt-5 mb-8">
+            <h2 className="text-base font-bold mb-3">
+              <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">Quick Access</span>
+            </h2>
+            <div className="grid grid-cols-4 gap-2">
+              {isModuleVisible('/chatr-wallet') && (
+                <button
+                  onClick={() => navigate('/chatr-wallet')}
+                  className="h-14 rounded-[22px] bg-gradient-to-r from-teal-400 to-teal-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <Wallet className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                  <span className="text-[9px] text-white font-medium mt-0.5">ChatrPay</span>
+                </button>
+              )}
+              {isModuleVisible('/chatr-studio') && (
+                <button
+                  onClick={() => navigate('/chatr-studio')}
+                  className="h-14 rounded-[22px] bg-gradient-to-r from-purple-400 to-purple-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <Palette className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                  <span className="text-[9px] text-white font-medium mt-0.5">Studio</span>
+                </button>
+              )}
+              {isModuleVisible('/ai-assistant') && (
+                <button
+                  onClick={() => navigate('/ai-assistant')}
+                  className="h-14 rounded-[22px] bg-gradient-to-r from-cyan-400 to-cyan-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <Bot className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                  <span className="text-[9px] text-white font-medium mt-0.5">AI Assistant</span>
+                </button>
+              )}
+              {isModuleVisible('/emergency') && (
+                <button
+                  onClick={() => navigate('/emergency-services')}
+                  className="h-14 rounded-[22px] bg-gradient-to-r from-red-400 to-red-500 px-2 flex flex-col items-center justify-center shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <Siren className="w-5 h-5 text-white/90" strokeWidth={1.5} />
+                  <span className="text-[9px] text-white font-medium mt-0.5">Emergency</span>
+                </button>
+              )}
+            </div>
           </div>
+        )}
         </div>
-      </div>
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

@@ -10,26 +10,31 @@ import {
   Coins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
 
 export const QuickActions = () => {
   const navigate = useNavigate();
+  const { isModuleVisible } = useModuleRegistry();
 
   const actions = [
     {
       icon: MessageCircle,
       label: 'New Chat',
+      route: '/chat',
       color: 'from-green-500 to-emerald-600',
       action: () => navigate('/chat')
     },
     {
       icon: Phone,
       label: 'Call',
+      route: '/calls',
       color: 'from-blue-500 to-indigo-600',
       action: () => navigate('/calls')
     },
     {
       icon: Coins,
       label: 'Earn',
+      route: '/earn',
       color: 'from-yellow-500 to-amber-600',
       action: () => navigate('/earn')
     },
@@ -37,32 +42,38 @@ export const QuickActions = () => {
       icon: Store,
       label: 'Dhandha',
       sublabel: 'Business',
+      route: '/dhandha',
       color: 'from-amber-500 to-orange-600',
       action: () => navigate('/dhandha')
     },
     {
       icon: Stethoscope,
       label: 'Doctor',
+      route: '/local-healthcare',
       color: 'from-red-500 to-rose-600',
       action: () => navigate('/local-healthcare')
     },
     {
       icon: Utensils,
       label: 'Food',
+      route: '/food-ordering',
       color: 'from-orange-500 to-amber-600',
       action: () => navigate('/food-ordering')
     },
     {
       icon: Search,
       label: 'Search',
+      route: '/chatr-world',
       color: 'from-purple-500 to-pink-600',
       action: () => navigate('/chatr-world')
     }
   ];
 
+  const visibleActions = actions.filter(action => isModuleVisible(action.route));
+
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-      {actions.map((action) => (
+      {visibleActions.map((action) => (
         <button
           key={action.label}
           onClick={action.action}

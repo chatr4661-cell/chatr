@@ -10,6 +10,18 @@ import {
 import { runModulePublishPreflight } from './preflightChecks';
 import type { ModuleDefinition, ModuleLifecycleState, ModuleAuditEntry, PublishPreflightResult } from './types';
 
+const ROUTE_ALIASES: Record<string, string> = {
+  '/emergency-services': '/emergency',
+  '/wallet': '/chatr-wallet',
+  '/chatrpay': '/chatr-wallet',
+  '/studio': '/chatr-studio',
+  '/chatr-intelligence': '/chat-ai',
+  '/chatr-store': '/native-apps',
+  '/apps': '/native-apps',
+  '/vendor': '/dhandha',
+  '/seller': '/dhandha',
+};
+
 export function useModuleRegistry() {
   const { isAdmin, loading: roleLoading } = useUserRole();
   const [modules, setModules] = useState<ModuleDefinition[]>(DEFAULT_MODULE_REGISTRY);
@@ -54,33 +66,29 @@ export function useModuleRegistry() {
   }, [loadData]);
 
   /**
-   * Evaluates if a given route or module ID is visible to the current visitor.
-   * - If module is published: visible to all users.
-   * - If module is development: visible ONLY to admin.
-   * - If module is testing: visible to admin or tester.
-   * - If module is hidden or disabled: hidden from public.
-   * - If not a registered module: defaults to visible (core fallback).
+   * Evaluates if a given route or module ID is visible on consumer dashboard surfaces.
+   * - If module is published: visible on dashboard.
+   * - If module is hidden, development, testing, or disabled: removed from dashboard, kept in Admin.
+   * - If not a registered module: defaults to visible (core app fallback).
    */
   const isModuleVisible = useCallback(
     (routeOrId: string): boolean => {
-      // Find matching module by id or route
       const cleanPath = routeOrId.split('?')[0].replace(/\/+$/, '') || '/';
-      const mod = modules.find(m => m.id === routeOrId || m.route === cleanPath || m.route === routeOrId)
-        || DEFAULT_MODULE_REGISTRY.find(m => m.id === routeOrId || m.route === cleanPath || m.route === routeOrId);
+      const canonicalRoute = ROUTE_ALIASES[cleanPath] || cleanPath;
+
+      const mod = modules.find(m => m.id === routeOrId || m.route === cleanPath || m.route === canonicalRoute)
+        || DEFAULT_MODULE_REGISTRY.find(m => m.id === routeOrId || m.route === cleanPath || m.route === canonicalRoute);
 
       if (!mod) {
         // Unmanaged routes remain visible by default so core pages work
         return true;
       }
 
-      if (mod.lifecycleState === 'published') {
-        return true;
-      }
-
-      // Modules in development, testing, hidden, or disabled are visible ONLY to administrator (9717845477)
-      return Boolean(isAdmin);
+      // Consumer dashboard surfaces only show published modules.
+      // Hidden, dev, testing, or disabled modules are managed inside Admin Module Control Center.
+      return mod.lifecycleState === 'published';
     },
-    [modules, isAdmin]
+    [modules]
   );
 
   /**
