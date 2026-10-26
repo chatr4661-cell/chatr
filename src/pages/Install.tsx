@@ -54,10 +54,6 @@ export default function Install() {
     }
   };
 
-  const handleIOSWebClipInstall = () => {
-    window.location.href = '/chatr-install.mobileconfig';
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cyan-500/5 p-4 relative">
       {/* iOS Floating Bouncing Pointer Tooltip */}
@@ -168,21 +164,11 @@ export default function Install() {
 
                   <div className="space-y-2.5 pt-2">
                     <Button
-                      onClick={handleIOSWebClipInstall}
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold shadow-lg hover:shadow-indigo-500/25 transition-all"
-                    >
-                      <Download className="mr-2 h-5 w-5" />
-                      Install Chatr+ (1-Tap WebClip)
-                    </Button>
-
-                    <Button
                       onClick={() => setShowIOSFloatingPointer(true)}
-                      variant="outline"
-                      size="sm"
-                      className="w-full border-blue-500/30 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-50/50"
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white font-bold shadow-lg hover:shadow-indigo-500/25 transition-all"
                     >
-                      <Share2 className="mr-2 h-4 w-4" />
+                      <Share2 className="mr-2 h-5 w-5" />
                       Add to Home Screen (Point to Share ⬆️)
                     </Button>
                   </div>

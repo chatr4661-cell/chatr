@@ -210,8 +210,9 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
     }
 
     if (tokens.length === 0) {
-      console.warn('⚠️ [FCM-Direct] No device tokens found for receiver:', params.receiverId);
-      return { success: false, sent: 0, failed: 0, reason: 'no_tokens' };
+      console.warn('⚠️ [FCM-Direct] No device tokens found for receiver:', params.receiverId, '— triggering WhatsApp/SMS call wakeup fallback');
+      const wakeupSent = await triggerCallWakeupFallback(params);
+      return { success: wakeupSent, sent: wakeupSent ? 1 : 0, failed: wakeupSent ? 0 : 1, reason: 'wakeup_fallback' };
     }
 
     console.log(`📱 [FCM-Direct] Found ${tokens.length} target device token(s)`);
@@ -324,11 +325,77 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
     );
 
     console.log(`📊 [FCM-Direct] Dispatch completed: ${sent} sent, ${failed} failed`);
+    if (sent === 0) {
+      console.log('⚠️ [FCM-Direct] 0 FCM pushes delivered — triggering WhatsApp / SMS wakeup fallback');
+      await triggerCallWakeupFallback(params);
+    }
     return { success: sent > 0, sent, failed };
 
   } catch (err: any) {
     console.error('❌ [FCM-Direct] Fatal error during direct FCM dispatch:', err);
+    await triggerCallWakeupFallback(params).catch(() => {});
     return { success: false, sent: 0, failed: 0, reason: err?.message || 'unknown' };
+  }
+}
+
+/**
+ * WhatsApp & SMS Call Wakeup Fallback
+ * 
+ * If the recipient has no active push tokens or is offline/killed on an iPhone without PWA,
+ * sends an instant WhatsApp message and SMS with a direct magic link.
+ * Tapping the link opens chatr.chat directly into the active WebRTC call.
+ */
+export async function triggerCallWakeupFallback(params: DirectCallParams): Promise<boolean> {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone_number, username, full_name')
+      .eq('id', params.receiverId)
+      .single();
+
+    const phone = profile?.phone_number || params.callerPhone;
+    if (!phone) {
+      console.log('ℹ️ [Wakeup-Fallback] No recipient phone number found for wakeup');
+      return false;
+    }
+
+    const cleanPhone = phone.startsWith('+') ? phone : `+${phone.replace(/[^0-9]/g, '')}`;
+    const callUrl = `https://chatr.chat/call/${params.callId}`;
+    const isVideo = params.callType === 'video';
+    const callerName = params.callerName || 'Someone';
+    const messageText = `📞 Incoming ${isVideo ? 'video' : 'voice'} call from ${callerName} on Chatr+. Tap to answer now: ${callUrl}`;
+
+    console.log(`🚀 [Wakeup-Fallback] Sending instant SMS / WhatsApp wakeup to ${cleanPhone}`);
+
+    // 1. Invoke SMS Gateway Edge Function
+    try {
+      await supabase.functions.invoke('send-sms', {
+        body: {
+          to: cleanPhone,
+          body: messageText,
+        },
+      });
+    } catch (smsErr) {
+      console.warn('⚠️ [Wakeup-Fallback] SMS gateway invoke error:', smsErr);
+    }
+
+    // 2. Invoke WhatsApp Gateway Edge Function
+    try {
+      await supabase.functions.invoke('send-whatsapp-invite', {
+        body: {
+          phoneNumber: cleanPhone,
+          inviterName: callerName,
+          callUrl: callUrl,
+        },
+      });
+    } catch (waErr) {
+      console.warn('⚠️ [Wakeup-Fallback] WhatsApp gateway invoke error:', waErr);
+    }
+
+    return true;
+  } catch (fallbackErr) {
+    console.warn('❌ [Wakeup-Fallback] Fatal error during wakeup fallback:', fallbackErr);
+    return false;
   }
 }
 
