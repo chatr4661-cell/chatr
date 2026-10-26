@@ -208,7 +208,7 @@ export default function Download() {
                 <div className="p-3 rounded-xl bg-muted/40 border border-border/50 text-xs space-y-1.5 text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Package Size:</span>
-                    <strong className="text-foreground">154.4 MB</strong>
+                    <strong className="text-foreground">174.8 MB</strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Target OS:</span>
