@@ -367,29 +367,55 @@ export async function triggerCallWakeupFallback(params: DirectCallParams): Promi
 
     console.log(`🚀 [Wakeup-Fallback] Sending instant SMS / WhatsApp wakeup to ${cleanPhone}`);
 
-    // 1. Invoke SMS Gateway Edge Function
+    // 1. Enqueue to scheduled_notifications table (guaranteed server delivery via Postgres)
     try {
-      await supabase.functions.invoke('send-sms', {
-        body: {
-          to: cleanPhone,
-          body: messageText,
+      await supabase.from('scheduled_notifications').insert({
+        user_id: params.receiverId,
+        title: `Incoming ${isVideo ? 'Video' : 'Voice'} Call`,
+        message: messageText,
+        type: 'call_wakeup_fallback',
+        scheduled_at: new Date().toISOString(),
+        status: 'pending',
+        data: {
+          caller_name: callerName,
+          caller_phone: params.callerPhone,
+          receiver_phone: cleanPhone,
+          call_id: params.callId,
+          call_type: params.callType,
+          call_url: callUrl,
         },
       });
-    } catch (smsErr) {
-      console.warn('⚠️ [Wakeup-Fallback] SMS gateway invoke error:', smsErr);
+    } catch (queueErr) {
+      console.warn('⚠️ [Wakeup-Fallback] DB queue write warning:', queueErr);
     }
 
-    // 2. Invoke WhatsApp Gateway Edge Function
-    try {
-      await supabase.functions.invoke('send-whatsapp-invite', {
-        body: {
-          phoneNumber: cleanPhone,
-          inviterName: callerName,
-          callUrl: callUrl,
-        },
-      });
-    } catch (waErr) {
-      console.warn('⚠️ [Wakeup-Fallback] WhatsApp gateway invoke error:', waErr);
+    // 2. Invoke Edge Functions in production (skip on localhost to prevent browser CORS preflight blocks)
+    const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (!isLocalhost) {
+      try {
+        await supabase.functions.invoke('send-sms', {
+          body: {
+            to: cleanPhone,
+            body: messageText,
+          },
+        });
+      } catch (smsErr) {
+        console.warn('⚠️ [Wakeup-Fallback] SMS gateway invoke error:', smsErr);
+      }
+
+      try {
+        await supabase.functions.invoke('send-whatsapp-invite', {
+          body: {
+            phoneNumber: cleanPhone,
+            inviterName: callerName,
+            callUrl: callUrl,
+          },
+        });
+      } catch (waErr) {
+        console.warn('⚠️ [Wakeup-Fallback] WhatsApp gateway invoke error:', waErr);
+      }
+    } else {
+      console.log('ℹ️ [Wakeup-Fallback] Localhost detected — call wakeup queued to scheduled_notifications');
     }
 
     return true;

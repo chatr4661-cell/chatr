@@ -6,31 +6,78 @@ import { AdvancedPhoneDialer } from "@/components/dialer/AdvancedPhoneDialer";
 import { clearPreCallMediaStream, setPreCallMediaStream } from "@/utils/preCallMedia";
 import { useNativeHaptics } from "@/hooks/useNativeHaptics";
 
+const getStoredUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const isExplicit = localStorage.getItem('chatr_explicit_signout') === '1' || sessionStorage.getItem('chatr_explicit_signout') === '1';
+    if (isExplicit) return null;
+
+    const vault = localStorage.getItem('chatr_permanent_session_vault');
+    if (vault) {
+      try {
+        const parsed = JSON.parse(vault);
+        if (parsed?.user?.id) return parsed.user.id;
+      } catch {}
+    }
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          try {
+            const parsed = JSON.parse(val);
+            if (parsed?.user?.id) return parsed.user.id;
+          } catch {}
+        }
+      }
+    }
+  } catch {}
+  return null;
+};
+
 export default function Calls() {
   const navigate = useNavigate();
   const haptics = useNativeHaptics();
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => getStoredUserId());
 
   useEffect(() => {
     checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) {
+        setCurrentUserId(session.user.id);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkAuth = async () => {
     // 1. Check local session first (works seamlessly offline or during network drops)
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    if (session?.user?.id) {
       setCurrentUserId(session.user.id);
       return;
     }
 
     // 2. Secondary check via getUser()
     const { data: userData } = await supabase.auth.getUser();
-    if (userData?.user) {
+    if (userData?.user?.id) {
       setCurrentUserId(userData.user.id);
       return;
     }
 
-    // 3. Only redirect to /auth if user explicitly signed out or has no stored credentials
+    // 3. Check durable session vault / local tokens
+    const storedId = getStoredUserId();
+    if (storedId) {
+      setCurrentUserId(storedId);
+      return;
+    }
+
+    // 4. Only redirect to /auth if user explicitly signed out or has no stored credentials
     const isExplicit = localStorage.getItem('chatr_explicit_signout') === '1' || sessionStorage.getItem('chatr_explicit_signout') === '1';
     const hasTokens = Object.keys(localStorage).some(k => (k.startsWith('sb-') || k.includes('auth-token') || k === 'chatr_permanent_session_vault') && !!localStorage.getItem(k));
 
@@ -92,7 +139,14 @@ export default function Calls() {
   };
 
   const handleCall = async (contactId: string, contactName: string, callType: 'voice' | 'video', callId: string) => {
-    if (!currentUserId) {
+    let activeUserId = currentUserId;
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id || getStoredUserId();
+      if (activeUserId) setCurrentUserId(activeUserId);
+    }
+
+    if (!activeUserId) {
       clearPreCallMediaStream(callId);
       toast.error('Please sign in to make calls');
       return;
@@ -114,7 +168,7 @@ export default function Calls() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('username, avatar_url')
-        .eq('id', currentUserId)
+        .eq('id', activeUserId)
         .single();
 
       let conversationId: string | null = null;
@@ -122,7 +176,7 @@ export default function Calls() {
       const { data: myParticipantRows, error: myPartErr } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
-        .eq('user_id', currentUserId);
+        .eq('user_id', activeUserId);
 
       if (myPartErr) {
         console.error('Failed to load conversation participants:', myPartErr);
@@ -153,7 +207,7 @@ export default function Calls() {
       if (!conversationId) {
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
-          .insert({ created_by: currentUserId, is_group: false })
+          .insert({ created_by: activeUserId, is_group: false })
           .select('id')
           .single();
 
@@ -167,7 +221,7 @@ export default function Calls() {
         const { error: participantsError } = await supabase
           .from('conversation_participants')
           .insert([
-            { conversation_id: newConv.id, user_id: currentUserId },
+            { conversation_id: newConv.id, user_id: activeUserId },
             { conversation_id: newConv.id, user_id: contactId },
           ]);
 
@@ -186,7 +240,7 @@ export default function Calls() {
         .insert({
           id: callId,
           conversation_id: conversationId!,
-          caller_id: currentUserId,
+          caller_id: activeUserId,
           caller_name: profile?.username || 'Unknown',
           caller_avatar: profile?.avatar_url,
           receiver_id: contactId,
@@ -213,7 +267,7 @@ export default function Calls() {
           body: {
             type: 'call',
             receiverId: contactId,
-            callerId: currentUserId,
+            callerId: activeUserId,
             callerName: profile?.username || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
             callId: callData.id,
@@ -226,7 +280,7 @@ export default function Calls() {
           const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
           await dispatchDirectFCMCall({
             receiverId: contactId,
-            callerId: currentUserId,
+            callerId: activeUserId,
             callerName: profile?.username || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
             callId: callData.id,
@@ -242,7 +296,7 @@ export default function Calls() {
           const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
           await dispatchDirectFCMCall({
             receiverId: contactId,
-            callerId: currentUserId,
+            callerId: activeUserId,
             callerName: profile?.username || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
             callId: callData.id,
@@ -261,15 +315,6 @@ export default function Calls() {
       toast.error('Failed to start call');
     }
   };
-
-  if (!currentUserId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#030818] text-white safe-area-pt">
-        <div className="w-12 h-12 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-        <p className="mt-4 text-sm text-blue-200/60">Securing dialer mesh...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-screen bg-[#030818] text-white safe-area-pt safe-area-pb overflow-hidden chatr-responsive-bottom-pad">

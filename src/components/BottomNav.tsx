@@ -102,7 +102,13 @@ export const BottomNav = () => {
     };
   }, []);
 
-  // Not required on desktop web
+  const handleNavClick = useCallback(() => {
+    try {
+      haptics.light();
+    } catch (_) {}
+  }, [haptics]);
+
+  // Not required on desktop web (wide screen and not standalone app)
   if (!isRequiredPlatform) return null;
 
   // Hide on auth, onboarding, admin, active in-call screens, or active chat thread
@@ -110,12 +116,6 @@ export const BottomNav = () => {
   const isChatDetailRoute = location.pathname.startsWith('/chat/') && location.pathname !== '/chat';
   const shouldHide = isDuplicate || isChatActive || isChatDetailRoute || hiddenPaths.some((p) => location.pathname.startsWith(p));
   if (shouldHide) return null;
-
-  const handleNavClick = useCallback(() => {
-    try {
-      haptics.light();
-    } catch (_) {}
-  }, [haptics]);
 
   return (
     <nav
