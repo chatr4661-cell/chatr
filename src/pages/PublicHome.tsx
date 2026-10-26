@@ -137,17 +137,19 @@ const PublicHome: React.FC = () => {
   }, []);
 
   const handleInstallAndroid = useCallback(async () => {
-    // 1. Direct download APK
-    downloadAndroidAPK();
-    // 2. Also attempt instant WebAPK install prompt if browser supports it
+    // 1. First attempt instant native WebAPK install prompt (Google Play Service engine)
     try {
       const res = await triggerOneTapInstall();
       if (res.type === 'prompt' && res.success) {
         setShowInstallBanner(false);
+        return;
       }
     } catch {
-      // ignore
+      // fall through to APK download
     }
+
+    // 2. Fallback: Direct download of signed production APK (clean privacy profile, no Play Protect alert)
+    downloadAndroidAPK();
   }, []);
 
   const handleInstallIOS = useCallback(() => {
