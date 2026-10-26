@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Chatr+</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+		<string>healthkit</string>
+		<string>bluetooth-le</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+
+	<!-- ============================================================ -->
+	<!-- BACKGROUND MODES - PREVENTS CALL DROPS ON SCREEN LOCK         -->
+	<!-- ============================================================ -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>voip</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- ============================================================ -->
+	<!-- HARDWARE PERMISSIONS (MICROPHONE, CAMERA, BLUETOOTH)          -->
+	<!-- ============================================================ -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Chatr+ requires microphone access to make and receive crystal-clear voice and video calls even when locked.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Chatr+ requires camera access to make video calls, capture media, and scan QR codes.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Chatr+ uses Bluetooth to discover and connect with nearby devices without internet.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Chatr+ uses Bluetooth to connect with nearby Chatr users.</string>
+
+	<!-- ============================================================ -->
+	<!-- CONTACTS & HEALTH INTEGRATION                                -->
+	<!-- ============================================================ -->
+	<key>NSContactsUsageDescription</key>
+	<string>Chatr+ connects to your address book so you can immediately call and message friends and contacts.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Chatr+ reads your daily step count, heart rate, and sleep data to calculate your Chatr Health Passport score.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Chatr+ updates your activity metrics with Apple Health.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Chatr+ uses motion sensors to track daily steps, walking nudges, and physical activity.</string>
+
+	<!-- App Store Export Compliance -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
+</plist>

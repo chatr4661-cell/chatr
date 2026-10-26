@@ -175,6 +175,12 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/pages/ChatrHome.tsx',
   'src/pages/Notifications.tsx',
   'src/pages/vendor/VendorLogin.tsx',
+  // Native Calling & Lock Screen Background Survival
+  'src/hooks/useNativeCallBridge.tsx',
+  'ios/App/App/Info.plist',
+  'ios/App/App/Info.plist.example',
+  // Frictionless 1-Tap App Installation
+  'src/pages/Install.tsx',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {

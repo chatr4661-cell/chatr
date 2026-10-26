@@ -54,6 +54,10 @@ export const useNativeCallBridge = () => {
         } else {
           console.log('✅ [NativeCallBridge] Call status: active');
         }
+
+        if (callId && typeof window !== 'undefined') {
+          window.location.href = `/call/${callId}`;
+        }
       } else if (action === 'reject') {
         await supabase
           .from('calls')

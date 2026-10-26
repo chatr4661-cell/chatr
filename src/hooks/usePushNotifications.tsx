@@ -161,9 +161,13 @@ export const usePushNotifications = (userId?: string) => {
             window.location.href = data.click_action;
           } else if (data?.conversationId) {
             window.location.href = `/chat/${data.conversationId}`;
-          } else if (data?.notificationType === 'call') {
-            // Handle incoming call navigation
-            window.location.href = '/call-history';
+          } else if (data?.notificationType === 'call' || data?.type === 'call') {
+            const targetCallId = data.call_id || data.callId || data.conversation_id;
+            if (targetCallId) {
+              window.location.href = `/call/${targetCallId}`;
+            } else {
+              window.location.href = '/calls';
+            }
           } else {
             // Default: go to notifications page
             window.location.href = '/notifications';

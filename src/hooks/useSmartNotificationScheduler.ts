@@ -1,4 +1,6 @@
 import { useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -34,8 +36,8 @@ const STORAGE_KEYS = {
 };
 
 /**
- * Triggers a native system notification via the active Service Worker
- * AND an in-app visual toast if the window is currently open.
+ * Triggers a native system notification via @capacitor/local-notifications (on mobile)
+ * or active Service Worker (on desktop/web PWA), AND an in-app visual toast if the window is open.
  */
 export async function triggerNativePushNotification(options: {
   title: string;
@@ -49,12 +51,43 @@ export async function triggerNativePushNotification(options: {
     title,
     body,
     tag = 'chatr-smart-alert',
-    actionUrl = '/home',
+    actionUrl = '/',
     delayMs = 0,
     category = 'water',
   } = options;
 
   if (typeof window === 'undefined') return false;
+
+  // 1. If running on native Android / iOS, schedule directly through OS AlarmManager/UNUserNotificationCenter
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const perm = await LocalNotifications.checkPermissions();
+      if (perm.display !== 'granted') {
+        await LocalNotifications.requestPermissions();
+      }
+
+      const numericId = Math.abs(tag.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0)) % 2147483647;
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: numericId || (Date.now() % 2147483647),
+            title,
+            body,
+            schedule: delayMs > 0 ? { at: new Date(Date.now() + delayMs), allowWhileIdle: true } : undefined,
+            sound: 'notification.mp3',
+            extra: { actionUrl, category, tag },
+            channelId: category === 'call' ? 'calls' : 'messages',
+            smallIcon: 'ic_chatr_logo',
+            iconColor: '#6200ee',
+          },
+        ],
+      });
+      return true;
+    } catch (nativeErr) {
+      console.warn('Native LocalNotifications schedule error, falling back to web SW:', nativeErr);
+    }
+  }
 
   // 1. If delay is requested and window is active, schedule an in-app trigger
   if (delayMs > 0) {
@@ -350,7 +383,125 @@ export function useSmartNotificationScheduler(userId?: string) {
     }
   }, [userId]);
 
-  // Run on mount and every 15 minutes
+  // Register persistent native alarms via AlarmManager (Android) & UNUserNotificationCenter (iOS)
+  useEffect(() => {
+    if (!userId || !Capacitor.isNativePlatform()) return;
+
+    const setupNativeAlarms = async () => {
+      try {
+        const perm = await LocalNotifications.checkPermissions();
+        if (perm.display !== 'granted') {
+          await LocalNotifications.requestPermissions();
+        }
+
+        const ALARMS_VERSION_KEY = 'chatr_native_wellness_alarms_v2';
+        if (localStorage.getItem(ALARMS_VERSION_KEY)) return;
+
+        // Ensure Android notification channels exist
+        if (Capacitor.getPlatform() === 'android') {
+          await LocalNotifications.createChannel({
+            id: 'messages',
+            name: 'Messages & Wellness',
+            description: 'Chatr+ reminders and notifications',
+            importance: 4,
+            sound: 'notification.mp3',
+            vibration: true,
+            visibility: 1,
+          });
+        }
+
+        // Schedule recurring daily alarms that survive force-close / killed state
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 9001,
+              title: '🚶 Chatr+ Morning Movement Break',
+              body: 'Stand up and step outside! A 5-minute walk resets mental fatigue and fuels your day.',
+              schedule: { on: { hour: 8, minute: 0 }, allowWhileIdle: true },
+              extra: { actionUrl: '/', category: 'walk' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+            {
+              id: 9002,
+              title: '💧 Hydration Check-In',
+              body: 'Drink a glass of water! Consistent hydration powers your brain and focus.',
+              schedule: { on: { hour: 10, minute: 30 }, allowWhileIdle: true },
+              extra: { actionUrl: '/', category: 'water' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+            {
+              id: 9003,
+              title: '🥗 Nourishing Lunch & Screen Rest',
+              body: 'Step away from your screen, nourish your body, and take a 15-minute pause.',
+              schedule: { on: { hour: 12, minute: 45 }, allowWhileIdle: true },
+              extra: { actionUrl: '/', category: 'food' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+            {
+              id: 9004,
+              title: '📵 20-20-20 Eye Break & Digital Detox',
+              body: 'Look at an object 20 feet away for 20 seconds. Give your eyes and mind a rest.',
+              schedule: { on: { hour: 15, minute: 0 }, allowWhileIdle: true },
+              extra: { actionUrl: '/', category: 'detox' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+            {
+              id: 9005,
+              title: '🚶 Afternoon Refresh & Steps Goal',
+              body: 'Time for an afternoon walk! A quick walk boosts metabolism and clears brain fog.',
+              schedule: { on: { hour: 17, minute: 0 }, allowWhileIdle: true },
+              extra: { actionUrl: '/', category: 'walk' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+            {
+              id: 9006,
+              title: '🧠 Mindful Breath & Mental Reset',
+              body: 'Unclamp your jaw, drop your shoulders, and take 3 deep, grounding breaths.',
+              schedule: { on: { hour: 19, minute: 30 }, allowWhileIdle: true },
+              extra: { actionUrl: '/mental-health', category: 'mental' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+            {
+              id: 9007,
+              title: '😴 Sleep Wind-Down & Night Mode',
+              body: 'Place your phone across the room tonight. Give your mind uninterrupted recovery.',
+              schedule: { on: { hour: 22, minute: 30 }, allowWhileIdle: true },
+              extra: { actionUrl: '/', category: 'sleep' },
+              channelId: 'messages',
+              sound: 'notification.mp3',
+            },
+          ],
+        });
+
+        localStorage.setItem(ALARMS_VERSION_KEY, 'true');
+        console.log('✅ Persistent native wellness alarms registered with OS AlarmManager');
+      } catch (err) {
+        console.warn('Could not register native wellness alarms:', err);
+      }
+    };
+
+    setupNativeAlarms();
+
+    // Listen for notification taps to route cleanly
+    const listenerPromise = LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+      const url = action.notification.extra?.actionUrl;
+      if (url && typeof window !== 'undefined') {
+        window.location.href = url;
+      }
+    });
+
+    return () => {
+      listenerPromise.then((handle) => handle.remove()).catch(() => {});
+    };
+  }, [userId]);
+
+  // Run on mount and periodically while app is open / active
   useEffect(() => {
     if (!userId) return;
 

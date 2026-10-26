@@ -119,6 +119,17 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
     };
   }, []);
 
+  // Notify Capgo OTA live updater that bundle initialized cleanly (prevents rollback)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      import('@capgo/capacitor-updater')
+        .then(({ CapacitorUpdater }) => {
+          CapacitorUpdater.notifyAppReady().catch(() => {});
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   // Track standalone display mode on body for responsive layout styling
   useEffect(() => {
     if (typeof window === 'undefined') return;

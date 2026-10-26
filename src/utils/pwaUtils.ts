@@ -66,6 +66,14 @@ if (typeof window !== 'undefined') {
     deferredPrompt = e;
     (window as any).deferredPrompt = e;
     console.log('💾 Install prompt ready');
+    window.dispatchEvent(new CustomEvent('chatr:installpromptready'));
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    (window as any).deferredPrompt = null;
+    console.log('🎉 Chatr+ installed');
+    window.dispatchEvent(new CustomEvent('chatr:appinstalled'));
   });
 }
 
@@ -93,6 +101,51 @@ export const showInstallPrompt = async (): Promise<boolean> => {
 
 export const canInstallPWA = (): boolean => {
   return typeof window !== 'undefined' && (!!(window as any).deferredPrompt || !!deferredPrompt);
+};
+
+/**
+ * Universal 1-Tap Native Install Trigger
+ * - On Android / Desktop: Pops native browser WebAPK dialog immediately, or triggers direct APK download
+ * - Handles in-app browsers (Instagram, WhatsApp) by breaking out to Chrome
+ */
+export const triggerOneTapInstall = async (): Promise<{ success: boolean; type: 'prompt' | 'apk' | 'ios' | 'fallback' }> => {
+  if (typeof window === 'undefined') return { success: false, type: 'fallback' };
+
+  const prompt = (window as any).deferredPrompt || deferredPrompt;
+  if (prompt) {
+    try {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      deferredPrompt = null;
+      (window as any).deferredPrompt = null;
+      return { success: outcome === 'accepted', type: 'prompt' };
+    } catch (e) {
+      console.warn('Install prompt error:', e);
+    }
+  }
+
+  const ua = navigator.userAgent.toLowerCase();
+  const isAndroid = /android/i.test(ua);
+  const isApple = /iphone|ipad|ipod/.test(ua);
+
+  // In-app browser detection (WhatsApp, Instagram, FB)
+  if (isAndroid) {
+    const isInApp = /fban|fbav|instagram|whatsapp/.test(ua);
+    if (isInApp) {
+      window.location.href = `intent://${window.location.host}${window.location.pathname}#Intent;scheme=https;package=com.android.chrome;end`;
+      return { success: true, type: 'apk' };
+    }
+
+    // Direct APK download fallback on Android
+    window.location.href = '/releases/chatr-plus-latest.apk';
+    return { success: true, type: 'apk' };
+  }
+
+  if (isApple) {
+    return { success: false, type: 'ios' };
+  }
+
+  return { success: false, type: 'fallback' };
 };
 
 // Cache management
