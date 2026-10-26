@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { triggerOneTapInstall, isPWA, canInstallPWA } from '@/utils/pwaUtils';
+import { triggerOneTapInstall, isPWA, canInstallPWA, downloadAndroidAPK } from '@/utils/pwaUtils';
 import {
   Activity,
   ArrowRight,
@@ -137,17 +137,16 @@ const PublicHome: React.FC = () => {
   }, []);
 
   const handleInstallAndroid = useCallback(async () => {
+    // 1. Direct download APK
+    downloadAndroidAPK();
+    // 2. Also attempt instant WebAPK install prompt if browser supports it
     try {
       const res = await triggerOneTapInstall();
       if (res.type === 'prompt' && res.success) {
         setShowInstallBanner(false);
-      } else {
-        setShowAndroidFloatingPointer(true);
-        setTimeout(() => setShowAndroidFloatingPointer(false), 9000);
       }
     } catch {
-      setShowAndroidFloatingPointer(true);
-      setTimeout(() => setShowAndroidFloatingPointer(false), 9000);
+      // ignore
     }
   }, []);
 
@@ -254,7 +253,7 @@ const PublicHome: React.FC = () => {
           
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-bold tracking-tight text-[#0F172A]">chatr</span>
+            <span className="text-2xl font-bold tracking-tight text-[#0F172A]">chatr<span className="text-[#00D084] font-black">+</span></span>
             <div className="w-6 h-6 rounded-lg bg-[#00D084] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <MessageSquare className="w-3.5 h-3.5 fill-current" />
             </div>
@@ -397,7 +396,7 @@ const PublicHome: React.FC = () => {
               to="/auth"
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#093E32] hover:bg-[#072F26] text-white text-sm font-semibold shadow-sm hover:shadow transition-all"
             >
-              <span>Get Chatr</span>
+              <span>Get Chatr+</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -408,7 +407,7 @@ const PublicHome: React.FC = () => {
               to="/auth"
               className="text-xs font-semibold px-3.5 py-1.5 rounded-full bg-[#093E32] text-white"
             >
-              Get Chatr
+              Get Chatr+
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -586,42 +585,44 @@ const PublicHome: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 w-full max-w-xl">
                 <Link
                   to="/auth"
-                  className="inline-flex items-center gap-2.5 px-6 sm:px-7 py-3.5 rounded-full bg-[#093E32] hover:bg-[#072F26] text-white text-sm sm:text-base font-semibold shadow-md hover:shadow-lg transition-all transform active:scale-[0.99]"
+                  className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-7 py-3.5 rounded-full bg-[#093E32] hover:bg-[#072F26] text-white text-sm sm:text-base font-semibold shadow-md hover:shadow-lg transition-all transform active:scale-[0.99] w-full sm:w-auto"
                 >
                   <Phone className="w-4 h-4 fill-current" />
                   <span>Get started free</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
-                <button
-                  type="button"
-                  onClick={handleInstallAndroid}
-                  className="inline-flex items-center gap-2.5 px-5 sm:px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-sm sm:text-base font-medium shadow-xs hover:border-gray-300 transition-all cursor-pointer active:scale-[0.99]"
-                  title="Install or Download Android App"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M3.6 1.8l9.6 9.6-9.6 9.6c-.4-.4-.6-1-.6-1.7V3.5c0-.7.2-1.3.6-1.7z" />
-                    <path fill="#34A853" d="M16.5 14.7l-3.3-3.3-9.6 9.6c.3.2.7.3 1.2.3.8 0 1.6-.4 2.2-.8l9.5-5.8z" />
-                    <path fill="#FBBC05" d="M19.7 11.2l-3.2-1.9-3.3 2.1 3.3 3.3 3.2-1.9c.7-.4 1.1-1 1.1-1.6s-.4-1.2-1.1-1.6z" />
-                    <path fill="#EA4335" d="M3.6 1.8l9.6 9.6 3.3-2.1-9.5-5.8C6.4 3.1 5.6 2.7 4.8 2.7c-.5 0-.9.1-1.2.3z" />
-                  </svg>
-                  <span>Download for Android</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={handleInstallAndroid}
+                    className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-xs sm:text-sm font-semibold shadow-xs hover:border-gray-300 transition-all cursor-pointer active:scale-[0.98] w-full"
+                    title="Download Native Android APK & Web App"
+                  >
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M3.6 1.8l9.6 9.6-9.6 9.6c-.4-.4-.6-1-.6-1.7V3.5c0-.7.2-1.3.6-1.7z" />
+                      <path fill="#34A853" d="M16.5 14.7l-3.3-3.3-9.6 9.6c.3.2.7.3 1.2.3.8 0 1.6-.4 2.2-.8l9.5-5.8z" />
+                      <path fill="#FBBC05" d="M19.7 11.2l-3.2-1.9-3.3 2.1 3.3 3.3 3.2-1.9c.7-.4 1.1-1 1.1-1.6s-.4-1.2-1.1-1.6z" />
+                      <path fill="#EA4335" d="M3.6 1.8l9.6 9.6 3.3-2.1-9.5-5.8C6.4 3.1 5.6 2.7 4.8 2.7c-.5 0-.9.1-1.2.3z" />
+                    </svg>
+                    <span className="truncate">Download Android</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleInstallIOS}
-                  className="inline-flex items-center gap-2.5 px-5 sm:px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-sm sm:text-base font-medium shadow-xs hover:border-gray-300 transition-all cursor-pointer active:scale-[0.99]"
-                  title="Install Chatr for iPhone"
-                >
-                  <svg className="w-4 h-4 shrink-0 fill-current text-gray-900" viewBox="0 0 170 170">
-                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.94-12-14.58-6.19-9.5-11.05-20.73-14.58-33.68-3.53-12.96-5.3-25.2-5.3-36.72 0-14.34 3.75-26.33 11.24-35.96 7.49-9.63 16.89-14.57 28.21-14.81 4.58 0 9.87 1.25 15.86 3.74 6 2.49 9.94 3.8 11.83 3.94 2.87-.23 7.02-1.63 12.44-4.21 5.43-2.58 10.27-3.76 14.53-3.53 10.88.58 19.86 4.6 26.94 12.06-9.69 5.86-14.43 14.07-14.21 24.63.22 8.35 3.4 15.35 9.53 21 6.13 5.65 13.51 8.87 22.14 9.66-2.02 6.06-4.39 12.21-7.11 18.45zM119.22 33.15c0-7.3 2.66-14.15 7.97-20.55 5.32-6.4 11.81-10.42 19.49-12.07.21 1.06.32 2.06.32 3 0 7.33-2.73 14.28-8.2 20.85-5.46 6.57-12.03 10.43-19.7 11.59-.11-1.04-.18-1.98-.18-2.82z"/>
-                  </svg>
-                  <span>Install for iPhone</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleInstallIOS}
+                    className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-xs sm:text-sm font-semibold shadow-xs hover:border-gray-300 transition-all cursor-pointer active:scale-[0.98] w-full"
+                    title="Install Chatr+ for iPhone"
+                  >
+                    <svg className="w-4 h-4 shrink-0 fill-current text-gray-900" viewBox="0 0 170 170">
+                      <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.94-12-14.58-6.19-9.5-11.05-20.73-14.58-33.68-3.53-12.96-5.3-25.2-5.3-36.72 0-14.34 3.75-26.33 11.24-35.96 7.49-9.63 16.89-14.57 28.21-14.81 4.58 0 9.87 1.25 15.86 3.74 6 2.49 9.94 3.8 11.83 3.94 2.87-.23 7.02-1.63 12.44-4.21 5.43-2.58 10.27-3.76 14.53-3.53 10.88.58 19.86 4.6 26.94 12.06-9.69 5.86-14.43 14.07-14.21 24.63.22 8.35 3.4 15.35 9.53 21 6.13 5.65 13.51 8.87 22.14 9.66-2.02 6.06-4.39 12.21-7.11 18.45zM119.22 33.15c0-7.3 2.66-14.15 7.97-20.55 5.32-6.4 11.81-10.42 19.49-12.07.21 1.06.32 2.06.32 3 0 7.33-2.73 14.28-8.2 20.85-5.46 6.57-12.03 10.43-19.7 11.59-.11-1.04-.18-1.98-.18-2.82z"/>
+                    </svg>
+                    <span className="truncate">Install for iPhone</span>
+                  </button>
+                </div>
               </div>
 
               {/* Sign up microtext */}
@@ -2368,40 +2369,42 @@ const PublicHome: React.FC = () => {
               ))}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center sm:justify-start gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center sm:justify-start gap-3 max-w-xl">
               <Link
                 to="/auth"
-                className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[#093E32] hover:bg-[#072F26] text-white text-sm font-semibold shadow-md transition-all"
+                className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-full bg-[#093E32] hover:bg-[#072F26] text-white text-sm font-semibold shadow-md transition-all w-full sm:w-auto"
               >
                 <Smartphone className="w-4 h-4" />
                 <span>Continue with your phone number</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
-              <button
-                type="button"
-                onClick={handleInstallAndroid}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-sm font-medium shadow-xs cursor-pointer active:scale-[0.99]"
-              >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M3.6 1.8l9.6 9.6-9.6 9.6c-.4-.4-.6-1-.6-1.7V3.5c0-.7.2-1.3.6-1.7z" />
-                  <path fill="#34A853" d="M16.5 14.7l-3.3-3.3-9.6 9.6c.3.2.7.3 1.2.3.8 0 1.6-.4 2.2-.8l9.5-5.8z" />
-                  <path fill="#FBBC05" d="M19.7 11.2l-3.2-1.9-3.3 2.1 3.3 3.3 3.2-1.9c.7-.4 1.1-1 1.1-1.6s-.4-1.2-1.1-1.6z" />
-                  <path fill="#EA4335" d="M3.6 1.8l9.6 9.6 3.3-2.1-9.5-5.8C6.4 3.1 5.6 2.7 4.8 2.7c-.5 0-.9.1-1.2.3z" />
-                </svg>
-                <span>Download for Android</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
+                <button
+                  type="button"
+                  onClick={handleInstallAndroid}
+                  className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-xs sm:text-sm font-semibold shadow-xs cursor-pointer active:scale-[0.98] w-full"
+                >
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M3.6 1.8l9.6 9.6-9.6 9.6c-.4-.4-.6-1-.6-1.7V3.5c0-.7.2-1.3.6-1.7z" />
+                    <path fill="#34A853" d="M16.5 14.7l-3.3-3.3-9.6 9.6c.3.2.7.3 1.2.3.8 0 1.6-.4 2.2-.8l9.5-5.8z" />
+                    <path fill="#FBBC05" d="M19.7 11.2l-3.2-1.9-3.3 2.1 3.3 3.3 3.2-1.9c.7-.4 1.1-1 1.1-1.6s-.4-1.2-1.1-1.6z" />
+                    <path fill="#EA4335" d="M3.6 1.8l9.6 9.6 3.3-2.1-9.5-5.8C6.4 3.1 5.6 2.7 4.8 2.7c-.5 0-.9.1-1.2.3z" />
+                  </svg>
+                  <span>Download Android</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={handleInstallIOS}
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-sm font-medium shadow-xs cursor-pointer active:scale-[0.99]"
-              >
-                <svg className="w-4 h-4 shrink-0 fill-current text-gray-900" viewBox="0 0 170 170">
-                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.94-12-14.58-6.19-9.5-11.05-20.73-14.58-33.68-3.53-12.96-5.3-25.2-5.3-36.72 0-14.34 3.75-26.33 11.24-35.96 7.49-9.63 16.89-14.57 28.21-14.81 4.58 0 9.87 1.25 15.86 3.74 6 2.49 9.94 3.8 11.83 3.94 2.87-.23 7.02-1.63 12.44-4.21 5.43-2.58 10.27-3.76 14.53-3.53 10.88.58 19.86 4.6 26.94 12.06-9.69 5.86-14.43 14.07-14.21 24.63.22 8.35 3.4 15.35 9.53 21 6.13 5.65 13.51 8.87 22.14 9.66-2.02 6.06-4.39 12.21-7.11 18.45zM119.22 33.15c0-7.3 2.66-14.15 7.97-20.55 5.32-6.4 11.81-10.42 19.49-12.07.21 1.06.32 2.06.32 3 0 7.33-2.73 14.28-8.2 20.85-5.46 6.57-12.03 10.43-19.7 11.59-.11-1.04-.18-1.98-.18-2.82z"/>
-                </svg>
-                <span>Install for iPhone</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={handleInstallIOS}
+                  className="flex items-center justify-center gap-2 px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-xs sm:text-sm font-semibold shadow-xs cursor-pointer active:scale-[0.98] w-full"
+                >
+                  <svg className="w-4 h-4 shrink-0 fill-current text-gray-900" viewBox="0 0 170 170">
+                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.94-12-14.58-6.19-9.5-11.05-20.73-14.58-33.68-3.53-12.96-5.3-25.2-5.3-36.72 0-14.34 3.75-26.33 11.24-35.96 7.49-9.63 16.89-14.57 28.21-14.81 4.58 0 9.87 1.25 15.86 3.74 6 2.49 9.94 3.8 11.83 3.94 2.87-.23 7.02-1.63 12.44-4.21 5.43-2.58 10.27-3.76 14.53-3.53 10.88.58 19.86 4.6 26.94 12.06-9.69 5.86-14.43 14.07-14.21 24.63.22 8.35 3.4 15.35 9.53 21 6.13 5.65 13.51 8.87 22.14 9.66-2.02 6.06-4.39 12.21-7.11 18.45zM119.22 33.15c0-7.3 2.66-14.15 7.97-20.55 5.32-6.4 11.81-10.42 19.49-12.07.21 1.06.32 2.06.32 3 0 7.33-2.73 14.28-8.2 20.85-5.46 6.57-12.03 10.43-19.7 11.59-.11-1.04-.18-1.98-.18-2.82z"/>
+                  </svg>
+                  <span>Install for iPhone</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -2417,7 +2420,7 @@ const PublicHome: React.FC = () => {
           <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold tracking-tight text-[#0F172A]">chatr</span>
+                <span className="text-xl font-bold tracking-tight text-[#0F172A]">chatr<span className="text-[#00D084] font-black">+</span></span>
                 <div className="w-5 h-5 rounded-md bg-[#00D084] flex items-center justify-center text-white">
                   <MessageSquare className="w-3.5 h-3.5 fill-current" />
                 </div>
@@ -2426,7 +2429,7 @@ const PublicHome: React.FC = () => {
             </div>
 
             <Link to="/auth" className="text-xs font-bold text-[#093E32] hover:underline flex items-center gap-1">
-              Sign In to Chatr <ArrowRight className="w-3 h-3" />
+              Sign In to Chatr+ <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
 

@@ -161,6 +161,18 @@ export const triggerOneTapInstall = async (): Promise<{ success: boolean; type: 
   return { success: false, type: 'fallback' };
 };
 
+export const APK_DOWNLOAD_URL = 'https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk';
+
+export const downloadAndroidAPK = () => {
+  if (typeof window === 'undefined') return;
+  const link = document.createElement('a');
+  link.href = APK_DOWNLOAD_URL;
+  link.setAttribute('download', 'chatr-plus.apk');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 // Cache management
 export const clearCache = async () => {
   if ('caches' in window) {

@@ -10,6 +10,26 @@
       "has": [{ "type": "host", "value": "www.chatr.chat" }],
       "destination": "https://chatr.chat/:path*",
       "permanent": true
+    },
+    {
+      "source": "/releases/chatr-plus-latest.apk",
+      "destination": "https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk",
+      "permanent": false
+    },
+    {
+      "source": "/chatr-plus.apk",
+      "destination": "https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk",
+      "permanent": false
+    },
+    {
+      "source": "/chatr.apk",
+      "destination": "https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk",
+      "permanent": false
+    },
+    {
+      "source": "/download/chatr.apk",
+      "destination": "https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk",
+      "permanent": false
     }
   ],
 
