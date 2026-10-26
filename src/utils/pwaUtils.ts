@@ -108,10 +108,24 @@ export const canInstallPWA = (): boolean => {
  * - On Android / Desktop: Pops native browser WebAPK dialog immediately, or triggers direct APK download
  * - Handles in-app browsers (Instagram, WhatsApp) by breaking out to Chrome
  */
-export const triggerOneTapInstall = async (): Promise<{ success: boolean; type: 'prompt' | 'apk' | 'ios' | 'fallback' }> => {
+export const triggerOneTapInstall = async (): Promise<{ success: boolean; type: 'prompt' | 'ios' | 'fallback' }> => {
   if (typeof window === 'undefined') return { success: false, type: 'fallback' };
 
-  const prompt = (window as any).deferredPrompt || deferredPrompt;
+  let prompt = (window as any).deferredPrompt || deferredPrompt;
+
+  // If prompt is not ready immediately, wait briefly in case Chrome is still finalizing manifest/SW
+  if (!prompt) {
+    prompt = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), 1200);
+      const onReady = () => {
+        clearTimeout(timer);
+        window.removeEventListener('chatr:installpromptready', onReady);
+        resolve((window as any).deferredPrompt || deferredPrompt);
+      };
+      window.addEventListener('chatr:installpromptready', onReady, { once: true });
+    });
+  }
+
   if (prompt) {
     try {
       prompt.prompt();
@@ -133,12 +147,11 @@ export const triggerOneTapInstall = async (): Promise<{ success: boolean; type: 
     const isInApp = /fban|fbav|instagram|whatsapp/.test(ua);
     if (isInApp) {
       window.location.href = `intent://${window.location.host}${window.location.pathname}#Intent;scheme=https;package=com.android.chrome;end`;
-      return { success: true, type: 'apk' };
+      return { success: true, type: 'prompt' };
     }
 
-    // Direct APK download fallback on Android
-    window.location.href = '/releases/chatr-plus-latest.apk';
-    return { success: true, type: 'apk' };
+    // Never redirect to uncommitted/404 APK URLs; return fallback so UI shows Chrome menu guide
+    return { success: false, type: 'fallback' };
   }
 
   if (isApple) {

@@ -203,19 +203,9 @@ export default function Install() {
                       {installing
                         ? 'Initiating Install...'
                         : isAndroid
-                        ? 'Install Chatr+ (1-Tap WebAPK / APK)'
+                        ? 'Install Chatr+ (1-Tap WebAPK)'
                         : 'Install Chatr+ App (1-Click)'}
                     </Button>
-
-                    {isAndroid && (
-                      <a
-                        href="/releases/chatr-plus-latest.apk"
-                        download="ChatrPlus.apk"
-                        className="inline-flex items-center justify-center w-full py-2 text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline"
-                      >
-                        📥 Direct Download APK File (Offline Installer)
-                      </a>
-                    )}
                   </div>
                 </CardContent>
               </Card>

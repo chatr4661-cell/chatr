@@ -84,6 +84,7 @@ const PublicHome: React.FC = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [showIOSFloatingPointer, setShowIOSFloatingPointer] = useState(false);
+  const [showAndroidFloatingPointer, setShowAndroidFloatingPointer] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -122,6 +123,7 @@ const PublicHome: React.FC = () => {
       setIsStandalone(true);
       setShowInstallBanner(false);
       setShowIOSFloatingPointer(false);
+      setShowAndroidFloatingPointer(false);
     };
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('chatr:appinstalled', handleAppInstalled);
@@ -139,13 +141,15 @@ const PublicHome: React.FC = () => {
       const res = await triggerOneTapInstall();
       if (res.type === 'prompt' && res.success) {
         setShowInstallBanner(false);
-      } else if (!res.success && res.type === 'fallback') {
-        navigate('/download');
+      } else {
+        setShowAndroidFloatingPointer(true);
+        setTimeout(() => setShowAndroidFloatingPointer(false), 9000);
       }
     } catch {
-      navigate('/download');
+      setShowAndroidFloatingPointer(true);
+      setTimeout(() => setShowAndroidFloatingPointer(false), 9000);
     }
-  }, [navigate]);
+  }, []);
 
   const handleInstallIOS = useCallback(() => {
     if (isIOS) {
@@ -2536,6 +2540,35 @@ const PublicHome: React.FC = () => {
             </button>
           </div>
           <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-slate-900 mx-auto -mt-0.5 filter drop-shadow-md"></div>
+        </div>
+      )}
+
+      {/* Android Floating Pointer Tooltip pointing to Chrome menu */}
+      {showAndroidFloatingPointer && (
+        <div className="fixed top-3 right-3 z-[10000] w-[92%] max-w-sm animate-in fade-in slide-in-from-top duration-300">
+          <div className="bg-slate-900/95 text-white p-3.5 rounded-2xl shadow-2xl border border-emerald-500/40 backdrop-blur-xl flex items-center justify-between gap-3 ring-4 ring-emerald-500/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-500/20 text-[#00D084] shrink-0">
+                <ChevronDown className="h-5 w-5 animate-bounce" />
+              </div>
+              <div className="text-xs leading-tight">
+                <p className="font-bold text-white text-sm">
+                  Tap <span className="text-[#00D084] font-extrabold">[⋮] Menu</span> above
+                </p>
+                <p className="text-slate-300 mt-0.5">
+                  then tap <strong className="text-white">"Install app"</strong> or <strong className="text-white">"Add to Home screen"</strong>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAndroidFloatingPointer(false)}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 shrink-0 transition-colors cursor-pointer"
+              aria-label="Dismiss pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-slate-900 ml-auto mr-5 -mt-0.5 filter drop-shadow-md"></div>
         </div>
       )}
 
