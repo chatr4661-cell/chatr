@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { triggerOneTapInstall, isPWA, canInstallPWA } from '@/utils/pwaUtils';
 import {
   Activity,
   ArrowRight,
@@ -76,6 +77,84 @@ const PublicHome: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+1');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  // PWA Installation & Platform Detection
+  const [isStandalone, setIsStandalone] = useState(() => isPWA());
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showIOSFloatingPointer, setShowIOSFloatingPointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const standalone = isPWA();
+    setIsStandalone(standalone);
+
+    const ua = navigator.userAgent.toLowerCase();
+    const android = /android/i.test(ua);
+    const ios = /iphone|ipad|ipod/i.test(ua);
+    setIsAndroid(android);
+    setIsIOS(ios);
+
+    if (standalone) {
+      setShowInstallBanner(false);
+      return;
+    }
+
+    const dismissed = sessionStorage.getItem('chatr_install_banner_dismissed') === '1';
+    if (!dismissed) {
+      if (android || ios || window.innerWidth < 768) {
+        setShowInstallBanner(true);
+      }
+    }
+
+    const handlePromptReady = () => {
+      if (!isPWA() && !sessionStorage.getItem('chatr_install_banner_dismissed')) {
+        setShowInstallBanner(true);
+      }
+    };
+
+    window.addEventListener('chatr:installpromptready', handlePromptReady);
+    window.addEventListener('beforeinstallprompt', handlePromptReady);
+
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      setShowInstallBanner(false);
+      setShowIOSFloatingPointer(false);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('chatr:appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('chatr:installpromptready', handlePromptReady);
+      window.removeEventListener('beforeinstallprompt', handlePromptReady);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('chatr:appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallAndroid = useCallback(async () => {
+    try {
+      const res = await triggerOneTapInstall();
+      if (res.type === 'prompt' && res.success) {
+        setShowInstallBanner(false);
+      } else if (!res.success && res.type === 'fallback') {
+        navigate('/download');
+      }
+    } catch {
+      navigate('/download');
+    }
+  }, [navigate]);
+
+  const handleInstallIOS = useCallback(() => {
+    if (isIOS) {
+      setShowIOSFloatingPointer(true);
+      setTimeout(() => setShowIOSFloatingPointer(false), 9000);
+    } else {
+      navigate('/install');
+    }
+  }, [isIOS, navigate]);
 
   // Interactive Health & Shield States (matching uploaded screens)
   const [autoProfileAlerts, setAutoProfileAlerts] = useState(true);
@@ -503,7 +582,7 @@ const PublicHome: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
                   to="/auth"
                   className="inline-flex items-center gap-2.5 px-6 sm:px-7 py-3.5 rounded-full bg-[#093E32] hover:bg-[#072F26] text-white text-sm sm:text-base font-semibold shadow-md hover:shadow-lg transition-all transform active:scale-[0.99]"
@@ -513,9 +592,11 @@ const PublicHome: React.FC = () => {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
-                <Link
-                  to="/download"
-                  className="inline-flex items-center gap-2.5 px-5 sm:px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-sm sm:text-base font-medium shadow-xs hover:border-gray-300 transition-all"
+                <button
+                  type="button"
+                  onClick={handleInstallAndroid}
+                  className="inline-flex items-center gap-2.5 px-5 sm:px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-sm sm:text-base font-medium shadow-xs hover:border-gray-300 transition-all cursor-pointer active:scale-[0.99]"
+                  title="Install or Download Android App"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M3.6 1.8l9.6 9.6-9.6 9.6c-.4-.4-.6-1-.6-1.7V3.5c0-.7.2-1.3.6-1.7z" />
@@ -524,7 +605,19 @@ const PublicHome: React.FC = () => {
                     <path fill="#EA4335" d="M3.6 1.8l9.6 9.6 3.3-2.1-9.5-5.8C6.4 3.1 5.6 2.7 4.8 2.7c-.5 0-.9.1-1.2.3z" />
                   </svg>
                   <span>Download for Android</span>
-                </Link>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleInstallIOS}
+                  className="inline-flex items-center gap-2.5 px-5 sm:px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-[#0F172A] border border-gray-200 text-sm sm:text-base font-medium shadow-xs hover:border-gray-300 transition-all cursor-pointer active:scale-[0.99]"
+                  title="Install Chatr for iPhone"
+                >
+                  <svg className="w-4 h-4 shrink-0 fill-current text-gray-900" viewBox="0 0 170 170">
+                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.94-12-14.58-6.19-9.5-11.05-20.73-14.58-33.68-3.53-12.96-5.3-25.2-5.3-36.72 0-14.34 3.75-26.33 11.24-35.96 7.49-9.63 16.89-14.57 28.21-14.81 4.58 0 9.87 1.25 15.86 3.74 6 2.49 9.94 3.8 11.83 3.94 2.87-.23 7.02-1.63 12.44-4.21 5.43-2.58 10.27-3.76 14.53-3.53 10.88.58 19.86 4.6 26.94 12.06-9.69 5.86-14.43 14.07-14.21 24.63.22 8.35 3.4 15.35 9.53 21 6.13 5.65 13.51 8.87 22.14 9.66-2.02 6.06-4.39 12.21-7.11 18.45zM119.22 33.15c0-7.3 2.66-14.15 7.97-20.55 5.32-6.4 11.81-10.42 19.49-12.07.21 1.06.32 2.06.32 3 0 7.33-2.73 14.28-8.2 20.85-5.46 6.57-12.03 10.43-19.7 11.59-.11-1.04-.18-1.98-.18-2.82z"/>
+                  </svg>
+                  <span>Install for iPhone</span>
+                </button>
               </div>
 
               {/* Sign up microtext */}
@@ -2281,13 +2374,30 @@ const PublicHome: React.FC = () => {
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
-              <Link
-                to="/download"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-sm font-medium shadow-xs"
+              <button
+                type="button"
+                onClick={handleInstallAndroid}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-sm font-medium shadow-xs cursor-pointer active:scale-[0.99]"
               >
-                <Download className="w-4 h-4 text-[#00D084]" />
-                <span>Download Chatr for Android</span>
-              </Link>
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M3.6 1.8l9.6 9.6-9.6 9.6c-.4-.4-.6-1-.6-1.7V3.5c0-.7.2-1.3.6-1.7z" />
+                  <path fill="#34A853" d="M16.5 14.7l-3.3-3.3-9.6 9.6c.3.2.7.3 1.2.3.8 0 1.6-.4 2.2-.8l9.5-5.8z" />
+                  <path fill="#FBBC05" d="M19.7 11.2l-3.2-1.9-3.3 2.1 3.3 3.3 3.2-1.9c.7-.4 1.1-1 1.1-1.6s-.4-1.2-1.1-1.6z" />
+                  <path fill="#EA4335" d="M3.6 1.8l9.6 9.6 3.3-2.1-9.5-5.8C6.4 3.1 5.6 2.7 4.8 2.7c-.5 0-.9.1-1.2.3z" />
+                </svg>
+                <span>Download for Android</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleInstallIOS}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 text-sm font-medium shadow-xs cursor-pointer active:scale-[0.99]"
+              >
+                <svg className="w-4 h-4 shrink-0 fill-current text-gray-900" viewBox="0 0 170 170">
+                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.94-12-14.58-6.19-9.5-11.05-20.73-14.58-33.68-3.53-12.96-5.3-25.2-5.3-36.72 0-14.34 3.75-26.33 11.24-35.96 7.49-9.63 16.89-14.57 28.21-14.81 4.58 0 9.87 1.25 15.86 3.74 6 2.49 9.94 3.8 11.83 3.94 2.87-.23 7.02-1.63 12.44-4.21 5.43-2.58 10.27-3.76 14.53-3.53 10.88.58 19.86 4.6 26.94 12.06-9.69 5.86-14.43 14.07-14.21 24.63.22 8.35 3.4 15.35 9.53 21 6.13 5.65 13.51 8.87 22.14 9.66-2.02 6.06-4.39 12.21-7.11 18.45zM119.22 33.15c0-7.3 2.66-14.15 7.97-20.55 5.32-6.4 11.81-10.42 19.49-12.07.21 1.06.32 2.06.32 3 0 7.33-2.73 14.28-8.2 20.85-5.46 6.57-12.03 10.43-19.7 11.59-.11-1.04-.18-1.98-.18-2.82z"/>
+                </svg>
+                <span>Install for iPhone</span>
+              </button>
             </div>
           </div>
 
@@ -2358,6 +2468,76 @@ const PublicHome: React.FC = () => {
 
         </div>
       </footer>
+
+      {/* Mobile Smart Install Banner for Android & iOS Phone Users */}
+      {showInstallBanner && !isStandalone && (
+        <aside aria-label="Install Chatr App" className="fixed bottom-3 left-3 right-3 z-[999] max-w-md mx-auto animate-in slide-in-from-bottom duration-300">
+          <div className="bg-[#093E32] text-white p-3 sm:p-3.5 rounded-2xl shadow-2xl border border-emerald-400/30 flex items-center justify-between gap-3 backdrop-blur-xl ring-2 ring-emerald-500/20">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img src="/chatr-logo.png" alt="Chatr App" className="w-10 h-10 rounded-xl shrink-0 shadow-sm object-cover bg-white p-1" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-sm text-white truncate">Chatr+ App</span>
+                  <span className="text-[10px] font-semibold bg-[#00D084]/25 text-[#00D084] px-1.5 py-0.5 rounded-full">Free</span>
+                </div>
+                <p className="text-[11px] text-emerald-100/80 truncate">
+                  {isIOS ? 'Install on iPhone for instant calls' : 'Install Android App for instant calls'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={isIOS ? handleInstallIOS : handleInstallAndroid}
+                className="px-3.5 py-1.5 rounded-full bg-[#00D084] hover:bg-[#00B975] text-[#093E32] font-bold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Install</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInstallBanner(false);
+                  sessionStorage.setItem('chatr_install_banner_dismissed', '1');
+                }}
+                className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Dismiss install banner"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* iOS Floating Bouncing Pointer Tooltip */}
+      {showIOSFloatingPointer && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[10000] w-[92%] max-w-sm animate-in fade-in slide-in-from-bottom duration-300">
+          <div className="bg-slate-900/95 text-white p-3.5 rounded-2xl shadow-2xl border border-blue-500/40 backdrop-blur-xl flex items-center justify-between gap-3 ring-4 ring-blue-500/20">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-blue-500/20 text-cyan-400 shrink-0">
+                <ChevronDown className="h-5 w-5 animate-bounce rotate-180" />
+              </div>
+              <div className="text-xs leading-tight">
+                <p className="font-bold text-white text-sm">
+                  Tap <span className="text-cyan-400 font-extrabold">[⬆️ Share]</span> below
+                </p>
+                <p className="text-slate-300 mt-0.5">
+                  then tap <strong className="text-white">"Add to Home Screen"</strong>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowIOSFloatingPointer(false)}
+              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 shrink-0 transition-colors"
+              aria-label="Dismiss pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-slate-900 mx-auto -mt-0.5 filter drop-shadow-md"></div>
+        </div>
+      )}
 
     </div>
   );
