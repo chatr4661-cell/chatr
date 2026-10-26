@@ -14,6 +14,10 @@ import { useAppleNativeFeatures } from '@/hooks/useAppleNativeFeatures';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalyticsProvider } from './AnalyticsProvider';
 import { ChatrOSProvider } from './ChatrOSProvider';
+import { MandatoryAppGate } from './MandatoryAppGate';
+import { CallAlertPermissionBanner } from './calling/CallAlertPermissionBanner';
+import { useSmartNotificationScheduler } from '@/hooks/useSmartNotificationScheduler';
+import { BottomNav } from './BottomNav';
 
 interface NativeAppContextType {
   isNative: boolean;
@@ -77,6 +81,9 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
   // Push notifications
   usePushNotifications(userId);
   
+  // Smart automatic notifications (water, food, doctor appointments, lifestyle)
+  useSmartNotificationScheduler(userId);
+  
   // Battery optimization (critical for background reliability)
   useBatteryOptimization();
   
@@ -112,6 +119,28 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
     };
   }, []);
 
+  // Track standalone display mode on body for responsive layout styling
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkStandalone = () => {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+        (window.navigator as any).standalone === true ||
+        navigator.userAgent.includes('Electron') ||
+        document.documentElement.classList.contains('native-app');
+      if (isStandalone) {
+        document.body.dataset.standaloneApp = 'true';
+      } else {
+        delete document.body.dataset.standaloneApp;
+      }
+    };
+    checkStandalone();
+    const mql = window.matchMedia('(display-mode: standalone)');
+    mql.addEventListener?.('change', checkStandalone);
+    return () => mql.removeEventListener?.('change', checkStandalone);
+  }, []);
+
   const value: NativeAppContextType = React.useMemo(() => ({
     isNative,
     isOnline,
@@ -123,7 +152,10 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
     <ChatrOSProvider>
       <NativeAppContext.Provider value={value}>
         <AnalyticsProvider userId={userId}>
+          <CallAlertPermissionBanner userId={userId} />
+          <MandatoryAppGate />
           {children}
+          <BottomNav />
         </AnalyticsProvider>
       </NativeAppContext.Provider>
     </ChatrOSProvider>

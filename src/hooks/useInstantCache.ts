@@ -34,22 +34,21 @@ function readCache<T>(key: string, ttl: number): T | null {
 
 function writeCache<T>(key: string, data: T): void {
   try {
-    const entry: CacheEntry<T> = { d: data, t: Date.now() };
-    localStorage.setItem(`ic_${key}`, JSON.stringify(entry));
+    const serialized = JSON.stringify({ d: data, t: Date.now() });
+    // Safety guard: Never store entries larger than 80KB in localStorage
+    if (serialized.length > 80_000) {
+      return;
+    }
+    localStorage.setItem(`ic_${key}`, serialized);
   } catch {
-    // Storage full — evict oldest ic_ keys
+    // Storage full — purge all older ic_ keys to preserve quota for auth and critical data
     try {
       const keys: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k?.startsWith('ic_')) keys.push(k);
       }
-      if (keys.length > 0) {
-        // Remove first 3 oldest
-        keys.slice(0, 3).forEach(k => localStorage.removeItem(k));
-        const entry: CacheEntry<T> = { d: data, t: Date.now() };
-        localStorage.setItem(`ic_${key}`, JSON.stringify(entry));
-      }
+      keys.forEach(k => localStorage.removeItem(k));
     } catch {}
   }
 }

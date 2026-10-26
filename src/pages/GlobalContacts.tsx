@@ -115,7 +115,7 @@ export default function GlobalContacts() {
       // Send FCM push notification to receiver
       try {
         console.log('📲 Sending FCM call notification to:', contact.id);
-        await supabase.functions.invoke('fcm-notify', {
+        const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: contact.id,
@@ -127,9 +127,36 @@ export default function GlobalContacts() {
             callType: callType
           }
         });
-        console.log('✅ FCM call notification sent');
+        if (fcmError || !fcmData?.success) {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: contact.id,
+            callerId: user?.id || '',
+            callerName: profile?.username || user?.email || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
+            callId: callData.id,
+            callType: callType,
+          });
+        } else {
+          console.log('✅ FCM call notification sent');
+        }
       } catch (fcmError) {
-        console.warn('⚠️ FCM notification failed:', fcmError);
+        console.warn('⚠️ FCM notification failed, running direct fallback:', fcmError);
+        try {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: contact.id,
+            callerId: user?.id || '',
+            callerName: profile?.username || user?.email || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
+            callId: callData.id,
+            callType: callType,
+          });
+        } catch (directErr) {
+          console.error('Direct FCM call error:', directErr);
+        }
       }
 
       // GlobalCallListener will show the call UI automatically

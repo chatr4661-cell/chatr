@@ -212,7 +212,7 @@ export default function ChatrGames() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button 
-                  onClick={() => navigate('/home')} 
+                  onClick={() => navigate('/')} 
                   className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-full bg-white/5 active:bg-white/10 flex items-center justify-center touch-manipulation"
                 >
                   <ArrowLeft className="w-4 h-4 text-white/70" />

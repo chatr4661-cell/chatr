@@ -49,7 +49,7 @@ const AIBrowserView = () => {
   const closeTab = (tabId: string) => {
     const newTabs = tabs.filter((t) => t.id !== tabId);
     if (newTabs.length === 0) {
-      navigate('/home');
+      navigate('/');
       return;
     }
     setTabs(newTabs);
@@ -140,7 +140,7 @@ const AIBrowserView = () => {
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => navigate('/home')}
+            onClick={() => navigate('/')}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

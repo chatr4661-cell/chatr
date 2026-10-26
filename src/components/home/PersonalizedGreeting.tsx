@@ -3,7 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sun, Moon, Sunset, Coffee, Sparkles } from 'lucide-react';
 
 export const PersonalizedGreeting = () => {
-  const [userName, setUserName] = useState<string>('');
+  const [userName, setUserName] = useState<string>(() => {
+    try {
+      return localStorage.getItem('cached_user_name') || '';
+    } catch {
+      return '';
+    }
+  });
   const [greeting, setGreeting] = useState<{ text: string; icon: React.ReactNode; glowColor: string }>({
     text: 'Welcome',
     icon: <Sun className="w-5 h-5 text-amber-500" />,
@@ -24,6 +30,9 @@ export const PersonalizedGreeting = () => {
       if (profile) {
         const firstName = profile.full_name?.split(' ')[0] || profile.username || 'there';
         setUserName(firstName);
+        try {
+          localStorage.setItem('cached_user_name', firstName);
+        } catch {}
       }
     };
 

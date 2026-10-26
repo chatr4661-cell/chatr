@@ -1,25 +1,49 @@
-// Import Firebase scripts
-importScripts('https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-compat.js');
+// Import Firebase scripts safely
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-compat.js');
+} catch (e) {
+  console.warn('Firebase scripts import warning:', e);
+}
 
-// Initialize Firebase in service worker
-firebase.initializeApp({
-  apiKey: "AIzaSyDUUbQlOmkHsrEyMw9AmQBXbjNx11iM7w4",
-  authDomain: "chatr-91067.firebaseapp.com",
-  projectId: "chatr-91067",
-  storageBucket: "chatr-91067.firebasestorage.app",
-  messagingSenderId: "839345688435",
-  appId: "1:839345688435:android:17283f3299c22c1c233f06"
+// Instant Service Worker activation
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-const messaging = firebase.messaging();
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
 
-// Handle background messages (when app is closed or in background)
-messaging.onBackgroundMessage((payload) => {
-  console.log('📬 Background message received:', payload);
+// Initialize Firebase in service worker
+let messaging = null;
+try {
+  if (typeof firebase !== 'undefined') {
+    firebase.initializeApp({
+      apiKey: "AIzaSyAN2OYbpesZFUOAfUt_wycLJOYRvJt9PNA",
+      authDomain: "chatr-91067.firebaseapp.com",
+      projectId: "chatr-91067",
+      storageBucket: "chatr-91067.firebasestorage.app",
+      messagingSenderId: "839345688435",
+      appId: "1:839345688435:web:3c41f47446e6efc0233f06"
+    });
+    messaging = firebase.messaging();
+  }
+} catch (e) {
+  console.warn('Firebase SW initialization warning:', e);
+}
 
-  // Backend sends DATA-ONLY messages, so read from data first, then notification block.
-  const d = payload.data || {};
+// Unified push notification dispatcher
+function dispatchNotification(payload) {
+  let d = payload.data || {};
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch (e) {}
+  }
+  if (!d.type && !d.call_id && !d.callId) {
+    if (payload.call_id || payload.callId || payload.type) {
+      d = payload;
+    }
+  }
   const n = payload.notification || {};
 
   // 1. DEDICATED INCOMING CALL PERSISTENT ALERT (WhatsApp / FaceTime style)
@@ -33,11 +57,13 @@ messaging.onBackgroundMessage((payload) => {
 
     const callOptions = {
       body: callBody,
-      icon: d.caller_avatar || d.sender_avatar || '/icons/chatr-logo-192.png',
-      badge: '/icons/chatr-logo-192.png',
+      icon: d.caller_avatar || d.sender_avatar || '/chatr-logo.png',
+      badge: '/chatr-logo.png',
       tag: `incoming-call-${callId}`,
       requireInteraction: true, // Keep notification active on screen until answered or declined
       renotify: true,
+      silent: false,
+      sound: '/ringtone.mp3',
       vibrate: [500, 200, 500, 200, 500, 200, 500, 200, 500], // Continuous ring vibration
       data: {
         ...d,
@@ -67,8 +93,8 @@ messaging.onBackgroundMessage((payload) => {
 
   const notificationOptions = {
     body: bodyText,
-    icon: d.sender_avatar || '/icons/chatr-logo-192.png',
-    badge: '/icons/chatr-logo-192.png',
+    icon: d.sender_avatar || '/chatr-logo.png',
+    badge: '/chatr-logo.png',
     image: d.image || undefined,
     tag: d.conversation_id || d.tag || 'chatr-message',
     renotify: true,
@@ -88,7 +114,87 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
+}
+
+// Handle background messages via Firebase SDK
+if (messaging) {
+  messaging.onBackgroundMessage((payload) => {
+    console.log('📬 Background message received (Firebase SDK):', payload);
+    return dispatchNotification(payload);
+  });
+}
+
+// Fallback: standard Web Push 'push' event listener
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    try {
+      payload = { data: { message: event.data.text() } };
+    } catch (err) {}
+  }
+
+  const d = payload.data || {};
+  const tag = (d.call_id || d.callId) ? `incoming-call-${d.call_id || d.callId}` : (d.conversation_id || null);
+
+  event.waitUntil(
+    self.registration.getNotifications(tag ? { tag } : undefined).then((existing) => {
+      // Avoid duplicate display if already shown within the last 3 seconds
+      if (existing && existing.length > 0) {
+        return;
+      }
+      return dispatchNotification(payload);
+    })
+  );
 });
+
+// Schedule incoming call test from the Service Worker daemon thread (persists even if window is closed)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SCHEDULE_TEST_CALL') {
+    const delay = event.data.delayMs || 5000;
+    const callData = event.data.callData || {};
+    console.log(`⏱️ [SW] Background test incoming call scheduled in ${delay}ms`);
+
+    const promise = new Promise((resolve) => {
+      setTimeout(async () => {
+        try {
+          const isCall = callData.type === 'call' || (!callData.title && !callData.body);
+          if (isCall) {
+            await dispatchNotification({
+              data: {
+                type: 'call',
+                call_id: callData.callId || ('test-' + Date.now()),
+                caller_name: callData.callerName || 'Chatr Test (Closed App)',
+                is_video: 'true',
+                ...callData
+              }
+            });
+          } else {
+            await dispatchNotification({
+              data: {
+                title: callData.title || 'Chatr+ Notification',
+                body: callData.body || 'You have an update from Chatr+',
+                action_url: callData.action_url || '/notifications',
+                ...callData
+              }
+            });
+          }
+          console.log('✅ [SW] Background test notification dispatched successfully');
+        } catch (err) {
+          console.error('❌ [SW] Failed to dispatch test notification:', err);
+        } finally {
+          resolve();
+        }
+      }, delay);
+    });
+
+    if (event.waitUntil) {
+      event.waitUntil(promise);
+    }
+  }
+});
+
 self.addEventListener('notificationclick', (event) => {
   console.log('🔔 Notification clicked:', event.action);
   event.notification.close();
@@ -152,6 +258,9 @@ self.addEventListener('notificationclick', (event) => {
           const client = clientList[i];
           if ('focus' in client) {
             client.focus();
+            if ('navigate' in client) {
+              client.navigate(urlToOpen).catch(() => {});
+            }
             client.postMessage({
               type: 'NAVIGATE_TO_NOTIFICATION',
               url: urlToOpen,

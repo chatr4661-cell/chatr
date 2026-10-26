@@ -98,8 +98,8 @@ const SubdomainRedirect = () => {
       return false;
     }
   }, []);
-  const [session, setSession] = React.useState<'loading' | 'in' | 'out'>(
-    hasStoredSession ? 'loading' : 'out',
+  const [session, setSession] = React.useState<'in' | 'out'>(
+    hasStoredSession ? 'in' : 'out',
   );
 
   React.useEffect(() => {
@@ -117,8 +117,6 @@ const SubdomainRedirect = () => {
       active = false;
     };
   }, []);
-
-  if (session === 'loading') return <PageLoader />;
 
   // 1. Seller Subdomain: seller.chatr.chat
   if (isSellerSubdomain()) {
@@ -164,6 +162,36 @@ const SubdomainRedirect = () => {
       <LazyPages.PublicHome />
     </Suspense>
   );
+};
+
+// Component to ensure /home and /chatr-home always open chatr.chat
+const HomeRedirect = () => {
+  React.useEffect(() => {
+    const hostname = window.location.hostname;
+    // If on a subdomain in production (e.g. app.chatr.chat, seller.chatr.chat, web.chatr.chat), open chatr.chat:
+    if (
+      hostname &&
+      !['localhost', '127.0.0.1'].includes(hostname) &&
+      hostname.endsWith('chatr.chat') &&
+      hostname !== 'chatr.chat' &&
+      hostname !== 'www.chatr.chat'
+    ) {
+      window.location.replace('https://chatr.chat/');
+    }
+  }, []);
+
+  const hostname = window.location.hostname;
+  if (
+    hostname &&
+    !['localhost', '127.0.0.1'].includes(hostname) &&
+    hostname.endsWith('chatr.chat') &&
+    hostname !== 'chatr.chat' &&
+    hostname !== 'www.chatr.chat'
+  ) {
+    return <PageLoader />;
+  }
+
+  return <Navigate to="/" replace />;
 };
 
 // Wrapper for lazy routes with Suspense
@@ -239,6 +267,8 @@ const App = () => {
             <Route path="/install" element={<LazyRoute component={LazyPages.Install} />} />
             <Route path="/onboarding" element={<LazyRoute component={LazyPages.Onboarding} />} />
             <Route path="/about" element={<LazyRoute component={LazyPages.About} />} />
+            <Route path="/shield-sync" element={<LazyRoute component={LazyPages.ShieldSync} />} />
+            <Route path="/shield/sync" element={<LazyRoute component={LazyPages.ShieldSync} />} />
             <Route path="/chatr/whatsapp-candidate-screening" element={<LazyRoute component={LazyPages.WhatsAppCandidateScreening} />} />
             <Route path="/chatr/universal-inbox-ai" element={<LazyRoute component={LazyPages.UniversalInboxAi} />} />
             <Route path="/chatr/ai-messaging-assistant" element={<LazyRoute component={LazyPages.AiMessagingAssistant} />} />
@@ -418,11 +448,11 @@ const App = () => {
             <Route path="/geofence-history" element={<LazyRoute component={LazyPages.GeofenceHistory} />} />
             
             {/* Public browser - no auth required */}
-            <Route path="/home" element={<LazyRoute component={Home} />} />
+            <Route path="/home" element={<HomeRedirect />} />
             <Route path="/geo" element={<LazyRoute component={LazyPages.GeoDiscovery} />} />
             <Route path="/search" element={<LazyRoute component={LazyPages.UniversalSearch} />} />
             <Route path="/universal-search" element={<LazyRoute component={LazyPages.UniversalSearch} />} />
-            <Route path="/chatr-home" element={<LazyRoute component={LazyPages.ChatrHome} />} />
+            <Route path="/chatr-home" element={<HomeRedirect />} />
             <Route path="/chatr-results" element={<LazyRoute component={LazyPages.ChatrResults} />} />
             <Route path="/ai-browser-home" element={<LazyRoute component={LazyPages.AIBrowserHome} />} />
             <Route path="/ai-search" element={<LazyRoute component={LazyPages.AIBrowserHome} />} />
@@ -442,6 +472,7 @@ const App = () => {
             <Route path="/notifications/templates" element={<Navigate to="/notifications" replace />} />
             <Route path="/settings" element={<ProtectedLazyRoute component={LazyPages.Settings} />} />
             <Route path="/settings/voice" element={<ProtectedLazyRoute component={LazyPages.VoiceSettings} />} />
+            <Route path="/privacy-settings" element={<ProtectedLazyRoute component={LazyPages.Privacy} />} />
             <Route path="/device-management" element={<ProtectedLazyRoute component={LazyPages.DeviceManagement} />} />
 
             <Route path="/bluetooth-test" element={<LazyRoute component={LazyPages.BluetoothTest} />} />
@@ -556,6 +587,7 @@ const App = () => {
             <Route path="/apply" element={<ProtectedLazyRoute component={LazyPages.Apply} />} />
             <Route path="/apply/manage/:jobId" element={<ProtectedLazyRoute component={LazyPages.ApplyManage} />} />
             <Route path="/ecosystem" element={<ProtectedLazyRoute component={LazyPages.EcosystemHub} />} />
+            <Route path="/services" element={<ProtectedLazyRoute component={LazyPages.EcosystemHub} />} />
             <Route path="/community/:id" element={<ProtectedLazyRoute component={LazyPages.CommunityDetail} />} />
             
             {/* Mini Apps */}

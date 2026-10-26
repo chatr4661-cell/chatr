@@ -154,6 +154,8 @@ export const VALID_ROUTES = [
   '/geofence-history',
   '/qr-payment',
   '/qr-login',
+  '/shield-sync',
+  '/shield/sync',
   '/download',
   '/install',
   '/onboarding',

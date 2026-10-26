@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AdvancedPhoneDialer } from "@/components/dialer/AdvancedPhoneDialer";
-import { BottomNav } from "@/components/BottomNav";
 import { clearPreCallMediaStream, setPreCallMediaStream } from "@/utils/preCallMedia";
 import { useNativeHaptics } from "@/hooks/useNativeHaptics";
 
@@ -17,12 +16,28 @@ export default function Calls() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // 1. Check local session first (works seamlessly offline or during network drops)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setCurrentUserId(session.user.id);
+      return;
+    }
+
+    // 2. Secondary check via getUser()
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      setCurrentUserId(userData.user.id);
+      return;
+    }
+
+    // 3. Only redirect to /auth if user explicitly signed out or has no stored credentials
+    const isExplicit = localStorage.getItem('chatr_explicit_signout') === '1' || sessionStorage.getItem('chatr_explicit_signout') === '1';
+    const hasTokens = Object.keys(localStorage).some(k => (k.startsWith('sb-') || k.includes('auth-token') || k === 'chatr_permanent_session_vault') && !!localStorage.getItem(k));
+
+    if (isExplicit || !hasTokens) {
       navigate('/auth');
       return;
     }
-    setCurrentUserId(user.id);
   };
 
   const generateCallId = () => {
@@ -194,7 +209,7 @@ export default function Calls() {
 
       try {
         console.log('📲 Sending FCM call notification to:', contactId);
-        await supabase.functions.invoke('fcm-notify', {
+        const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: contactId,
@@ -205,9 +220,38 @@ export default function Calls() {
             callType: callType
           }
         });
-        console.log('✅ FCM call notification sent');
+        const isUndelivered = fcmError || !fcmData?.success;
+        if (isUndelivered) {
+          console.warn('⚠️ [Calls] Edge function undelivered, running direct FCM dispatch:', fcmError || fcmData);
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: contactId,
+            callerId: currentUserId,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: callData.id,
+            callType: callType,
+            conversationId: conversationId || '',
+          });
+        } else {
+          console.log('✅ FCM call notification sent');
+        }
       } catch (fcmError) {
-        console.warn('⚠️ FCM notification failed:', fcmError);
+        console.warn('⚠️ FCM notification failed, attempting direct dispatch fallback:', fcmError);
+        try {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: contactId,
+            callerId: currentUserId,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: callData.id,
+            callType: callType,
+            conversationId: conversationId || '',
+          });
+        } catch (directErr) {
+          console.error('❌ Direct FCM dispatch failed:', directErr);
+        }
       }
 
     } catch (error) {
@@ -220,18 +264,18 @@ export default function Calls() {
 
   if (!currentUserId) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-background safe-area-pt">
-        {/* Apple-style loading shimmer */}
-        <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
-        <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
+      <div className="flex flex-col items-center justify-center h-screen bg-[#030818] text-white safe-area-pt">
+        <div className="w-12 h-12 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+        <p className="mt-4 text-sm text-blue-200/60">Securing dialer mesh...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background safe-area-pt safe-area-pb">
-      <AdvancedPhoneDialer onCall={requestPermissionsAndCall} />
-      <BottomNav />
+    <div className="flex flex-col h-screen bg-[#030818] text-white safe-area-pt safe-area-pb overflow-hidden chatr-responsive-bottom-pad">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        <AdvancedPhoneDialer onCall={requestPermissionsAndCall} />
+      </div>
     </div>
   );
 }

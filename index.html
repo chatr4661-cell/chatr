@@ -38,6 +38,41 @@
         // Proactively unregister retired app-shell workers on boot
         cleanLegacySWAndCaches();
 
+        // Proactive storage quota hygiene: ensure localStorage never chokes on auth tokens
+        (function() {
+          try {
+            var probe = '__quota_probe__';
+            var isFull = false;
+            try {
+              localStorage.setItem(probe, probe);
+              localStorage.removeItem(probe);
+            } catch (probeErr) {
+              isFull = true;
+            }
+
+            if (isFull || localStorage.length > 25) {
+              var toRemove = [];
+              var nonEssential = ['ic_', 'chatr_brain_', 'chatrBrain_', 'airrunner_', 'recent_locations', 'recent_searches', 'chatr_search_suggestions', 'mood_entries', 'streaks', 'chatr_recent_activity', 'chatr_offline_'];
+              for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (!k) continue;
+                if (k.indexOf('auth-token') !== -1 || k.indexOf('sb-') !== -1 || k.indexOf('supabase') !== -1 || k.indexOf('firebase') !== -1) {
+                  continue;
+                }
+                for (var j = 0; j < nonEssential.length; j++) {
+                  if (k.indexOf(nonEssential[j]) === 0) {
+                    toRemove.push(k);
+                    break;
+                  }
+                }
+              }
+              for (var m = 0; m < toRemove.length; m++) {
+                try { localStorage.removeItem(toRemove[m]); } catch (e) {}
+              }
+            }
+          } catch (e) {}
+        })();
+
         function triggerSelfHeal(reason) {
           var flag = 'chatr_heal_ts';
           var last = Number(sessionStorage.getItem(flag) || 0);
@@ -116,13 +151,13 @@
     <meta name="author" content="TalentXcel Services Pvt. Ltd.">
     
     <!-- Favicon & Icons -->
-    <link rel="icon" href="https://chatr.chat/favicon.png" type="image/png">
-    <link rel="apple-touch-icon" href="https://chatr.chat/assets/chatrplus-logo512.png">
+    <link rel="icon" href="/chatr-logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/icon-512x512.png">
     <link rel="manifest" href="/manifest.json">
     
     <!-- Theme Colors -->
-    <meta name="theme-color" content="#0066FF">
-    <meta name="msapplication-TileColor" content="#0066FF">
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="msapplication-TileColor" content="#0ea5e9">
     
     <!-- iOS PWA Support -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -292,29 +327,33 @@
     <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
     
     <script>
-      // Handle install prompt
-      let deferredPrompt;
+      // Handle install prompt globally
+      window.deferredPrompt = null;
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        deferredPrompt = e;
+        window.deferredPrompt = e;
         console.log('PWA Install prompt ready');
+        window.dispatchEvent(new CustomEvent('chatr:installpromptready', { detail: e }));
         
-        // Optionally show install button
+        // Expose helper on window
         window.showInstallPrompt = () => {
-          if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choice) => {
+          if (window.deferredPrompt) {
+            window.deferredPrompt.prompt();
+            return window.deferredPrompt.userChoice.then((choice) => {
               console.log('User choice:', choice.outcome);
-              deferredPrompt = null;
+              window.deferredPrompt = null;
+              return choice.outcome === 'accepted';
             });
           }
+          return Promise.resolve(false);
         };
       });
       
       // Handle app installed
       window.addEventListener('appinstalled', () => {
         console.log('PWA installed successfully');
-        deferredPrompt = null;
+        window.deferredPrompt = null;
+        window.dispatchEvent(new Event('chatr:appinstalled'));
       });
     </script>
   </body>

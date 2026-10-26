@@ -27,7 +27,7 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
 
   const handleSignIn = () => {
     // Store the current path to redirect back after login
-    sessionStorage.setItem('auth_redirect', '/home');
+    sessionStorage.setItem('auth_redirect', '/');
     navigate('/auth');
   };
 

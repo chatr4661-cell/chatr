@@ -23,11 +23,38 @@ export const onAuthStateChange = (
 ) => supabase.auth.onAuthStateChange((event, session) => cb(event, session as any));
 
 export const setSessionFromTokens = async (accessToken: string, refreshToken: string) => {
-  const { error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-  if (error) throw error;
+  try {
+    localStorage.removeItem('chatr_explicit_signout');
+    sessionStorage.removeItem('chatr_explicit_signout');
+  } catch {}
+  try {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) throw error;
+  } catch (err: any) {
+    const isQuota =
+      err?.name === 'QuotaExceededError' ||
+      err?.code === 22 ||
+      (typeof err?.message === 'string' && err.message.toLowerCase().includes('quota'));
+
+    if (isQuota) {
+      console.warn('[SessionManager] Quota exceeded on setSession. Purging non-essential storage and retrying...');
+      const { evictNonEssentialStorage } = await import('@/integrations/supabase/safeAuthStorage');
+      evictNonEssentialStorage(500_000);
+
+      const { error: retryError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (retryError) {
+        console.warn('[SessionManager] Retry setSession warning:', retryError);
+      }
+      return;
+    }
+    throw err;
+  }
 };
 
 /**
@@ -143,6 +170,7 @@ export const signOut = async (): Promise<void> => {
   await deactivateCurrentDevice();
 
   try {
+    localStorage.setItem('chatr_explicit_signout', '1');
     sessionStorage.setItem('chatr_explicit_signout', '1');
   } catch {}
 
@@ -150,6 +178,8 @@ export const signOut = async (): Promise<void> => {
     const { instantCache } = await import('@/hooks/useInstantCache');
     instantCache.clearAll();
     localStorage.removeItem('chatr_recent_activity');
+    localStorage.removeItem('chatr_permanent_session_vault');
+    localStorage.removeItem('chatr_permanent_session_key');
   } catch {}
 
   await supabase.auth.signOut();

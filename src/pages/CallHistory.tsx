@@ -230,7 +230,7 @@ export default function CallHistory() {
       }
 
       try {
-        await supabase.functions.invoke('fcm-notify', {
+        const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: contactId,
@@ -241,8 +241,32 @@ export default function CallHistory() {
             callType: callType
           }
         });
+        if (fcmError || !fcmData?.success) {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: contactId,
+            callerId: user.id,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: callData.id,
+            callType: callType,
+          });
+        }
       } catch (fcmError) {
-        console.warn('FCM notification failed:', fcmError);
+        console.warn('FCM notification failed, running direct fallback:', fcmError);
+        try {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: contactId,
+            callerId: user.id,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callId: callData.id,
+            callType: callType,
+          });
+        } catch (directErr) {
+          console.error('Direct FCM call error:', directErr);
+        }
       }
 
       setShowNewCall(false);

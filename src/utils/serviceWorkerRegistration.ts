@@ -92,6 +92,15 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       }
       // Smart-routed notification click from firebase-messaging-sw.js
       if (d.type === 'NAVIGATE_TO_NOTIFICATION' && d.url) {
+        if (d.data?.callId || d.data?.call_id || (d.url && d.url.includes('/calls'))) {
+          window.dispatchEvent(new CustomEvent('chatr:trigger-incoming-call', {
+            detail: {
+              callId: d.data?.callId || d.data?.call_id,
+              callerName: d.data?.callerName || d.data?.caller_name || 'Incoming Caller',
+              call_type: d.data?.is_video === 'true' || d.data?.call_type === 'video' ? 'video' : 'voice',
+            }
+          }));
+        }
         window.location.href = d.url;
         return;
       }

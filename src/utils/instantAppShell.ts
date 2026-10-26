@@ -24,9 +24,9 @@ export const preloadCriticalResources = () => {
 // Prefetch likely next pages based on current route
 export const prefetchNextRoutes = (currentPath: string) => {
   const routeMap: Record<string, string[]> = {
-    '/': ['/chat', '/auth', '/home'],
-    '/auth': ['/home', '/chat', '/onboarding'],
-    '/home': ['/chat', '/calls', '/profile', '/health', '/dhandha'],
+    '/': ['/chat', '/auth', '/calls'],
+    '/auth': ['/', '/chat', '/onboarding'],
+    '/home': ['/'],
     '/chat': ['/calls', '/profile', '/contacts'],
     '/calls': ['/chat', '/contacts'],
   };

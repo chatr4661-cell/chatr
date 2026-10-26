@@ -64,6 +64,23 @@ const services = [
 export default function ChatrHome() {
   const navigate = useNavigate();
   const haptics = useNativeHaptics();
+
+  // Ensure /chatr-home always opens chatr.chat
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    if (
+      hostname &&
+      !['localhost', '127.0.0.1'].includes(hostname) &&
+      hostname.endsWith('chatr.chat') &&
+      hostname !== 'chatr.chat' &&
+      hostname !== 'www.chatr.chat'
+    ) {
+      window.location.replace('https://chatr.chat/');
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [userName, setUserName] = useState('');

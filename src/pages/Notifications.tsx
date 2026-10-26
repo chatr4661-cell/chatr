@@ -361,7 +361,7 @@ export default function Notifications() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 haptics.light();
-                                navigate(n.metadata?.route || '/home');
+                                navigate(n.metadata?.route || '/');
                               }}
                               className="text-xs font-medium text-primary hover:underline"
                             >

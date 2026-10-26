@@ -24,11 +24,27 @@ export const db = getFirestore(app);
 
 // Messaging with support check
 let messaging: any = null;
-isSupported().then((supported) => {
-  if (supported) {
-    messaging = getMessaging(app);
+let messagingPromise: Promise<any> | null = null;
+
+export const getMessagingInstance = async () => {
+  if (typeof window === 'undefined') return null;
+  if (!messagingPromise) {
+    messagingPromise = isSupported().then((supported) => {
+      if (supported) {
+        messaging = getMessaging(app);
+        return messaging;
+      }
+      return null;
+    }).catch((err) => {
+      console.warn('Firebase Messaging not supported:', err);
+      return null;
+    });
   }
-});
+  return messagingPromise;
+};
+
+// Start initialization immediately in background
+getMessagingInstance();
 
 export { messaging };
 

@@ -115,20 +115,20 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background chatr-responsive-bottom-pad">
       {/* Profile Header - Mobile Optimized */}
       <div className="bg-background border-b border-border pt-safe">
         <div className="px-4 py-6 text-center">
           <Avatar className="h-20 w-20 mx-auto mb-3 border-2 border-border">
             <AvatarImage src={profile?.avatar_url} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-              {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+              {(profile?.full_name || profile?.username || user?.phone || user?.email || 'U')[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
           
           <div className="flex items-center justify-center gap-1 mb-1">
             <h1 className="text-xl font-bold">
-              {profile?.username || 'Anonymous User'}
+              {profile?.full_name || profile?.username || user?.phone || user?.email || 'Chatr User'}
             </h1>
             {/* Verified Badges */}
             {badges.map((badge) => (
@@ -144,9 +144,9 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground font-mono mb-1">@{profile.primary_handle}</p>
           )}
           
-          {profile?.status && (
-            <p className="text-sm text-muted-foreground mb-3">{profile.status}</p>
-          )}
+          <p className="text-sm text-muted-foreground mb-3">
+            {profile?.status || 'Hey there! I am using Chatr'}
+          </p>
           
           <AppleButton 
             onClick={() => setIsEditDialogOpen(true)}
@@ -287,7 +287,7 @@ const Profile = () => {
               </button>
 
               <button 
-                onClick={() => navigate('/privacy')}
+                onClick={() => navigate('/privacy-settings')}
                 className="w-full flex items-center gap-3 p-3 active:bg-accent/50 transition-colors"
               >
                 <Shield className="h-5 w-5 text-muted-foreground flex-shrink-0" />
@@ -328,11 +328,40 @@ const Profile = () => {
           <TabsContent value="social">
             <div className="space-y-4">
               <AppleCard className="p-4">
-                <h3 className="font-medium mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Mutual Friends
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium flex items-center gap-2 text-sm">
+                    <User className="w-4 h-4 text-primary" />
+                    Network & Connections
+                  </h3>
+                  <button
+                    onClick={() => navigate('/discover')}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Find People →
+                  </button>
+                </div>
                 {user?.id && <MutualFriendsDisplay userId={user.id} maxDisplay={5} />}
+                <p className="text-xs text-muted-foreground mb-3">
+                  Connect with contacts and colleagues across Chatr to grow your network.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                  <AppleButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate('/contacts')}
+                    className="text-xs"
+                  >
+                    Contacts
+                  </AppleButton>
+                  <AppleButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate('/discover')}
+                    className="text-xs"
+                  >
+                    Discover
+                  </AppleButton>
+                </div>
               </AppleCard>
             </div>
           </TabsContent>

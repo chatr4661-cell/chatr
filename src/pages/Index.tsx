@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { signOut } from '@/auth/SessionManager';
 import chatrBrandLogo from '@/assets/chatr-brand-logo.png';
 import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ import { PersonalizedGreeting } from '@/components/home/PersonalizedGreeting';
 import { ActivityWidgets } from '@/components/home/ActivityWidgets';
 import { QuickActions } from '@/components/home/QuickActions';
 import { RecentActivity } from '@/components/home/RecentActivity';
+import { NativeCallingSyncBar } from '@/components/calling/NativeCallingSyncBar';
 import { useStealthMode, StealthModeType } from '@/hooks/useStealthMode';
 import logo from '@/assets/chatr-logo.png';
 import { QuickAccessMenu } from '@/components/QuickAccessMenu';
@@ -58,7 +60,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
 import { SEOHead } from '@/components/SEOHead';
-import { BottomNav } from '@/components/BottomNav';
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
@@ -66,10 +67,43 @@ import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [user, setUser] = React.useState<any>(null);
-  const [pointsBalance, setPointsBalance] = React.useState<number>(0);
-  const [currentStreak, setCurrentStreak] = React.useState<number>(0);
-  const [mounted, setMounted] = React.useState(false);
+  const [user, setUser] = React.useState<any>(() => {
+    try {
+      const authKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (authKey) {
+        const raw = localStorage.getItem(authKey);
+        if (raw) return JSON.parse(raw)?.user || null;
+      }
+    } catch {}
+    return null;
+  });
+  const [pointsBalance, setPointsBalance] = React.useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('ic_index-points');
+      if (raw) {
+        const { d } = JSON.parse(raw);
+        if (typeof d?.balance === 'number') return d.balance;
+      }
+    } catch {}
+    return 100;
+  });
+  const [currentStreak, setCurrentStreak] = React.useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('ic_index-points');
+      if (raw) {
+        const { d } = JSON.parse(raw);
+        if (typeof d?.streak === 'number') return d.streak;
+      }
+    } catch {}
+    return 0;
+  });
+  const [mounted, setMounted] = React.useState(() => {
+    try {
+      return Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    } catch {
+      return false;
+    }
+  });
   const [showShareDialog, setShowShareDialog] = React.useState(false);
   const [referralCode, setReferralCode] = React.useState<string>('');
   const [qrCodeUrl, setQrCodeUrl] = React.useState<string>('');
@@ -445,7 +479,7 @@ const Index = () => {
 
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate('/auth');
   };
 
@@ -756,10 +790,10 @@ const Index = () => {
           }
         }}
       />
-      <div className="min-h-screen bg-transparent pb-0">{/* Removed pb-32 for full screen */}
+      <div className="min-h-screen bg-transparent chatr-responsive-bottom-pad">
       <h1 className="sr-only">Chatr+ — India's AI Superapp for Chat, Healthcare, Jobs and Local Services</h1>
       {/* Enhanced Header */}
-      <div className="bg-card/70 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300">
+      <div className="bg-card/70 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 transition-all duration-300 safe-area-pt">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between">
           <div 
             className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity group"
@@ -847,6 +881,8 @@ const Index = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-3 sm:space-y-3.5 mt-2.5 sm:mt-3 pb-8 lg:pb-3">
+        {/* Native Calling Activation & Test Bar */}
+        <NativeCallingSyncBar userId={user?.id} />
 
         {/* Personalized Greeting */}
         <PersonalizedGreeting />
@@ -1168,9 +1204,6 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Bottom Navigation for Native Apps */}
-      <BottomNav />
     </div>
     </>
   );

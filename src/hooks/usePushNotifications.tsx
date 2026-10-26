@@ -3,14 +3,17 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications, Channel } from '@capacitor/push-notifications';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useFirebaseMessaging } from './useFirebaseMessaging';
 
 export const usePushNotifications = (userId?: string) => {
+  // On web / desktop browsers, automatically initialize and register Web Push
+  useFirebaseMessaging(userId);
+
   useEffect(() => {
     if (!userId) return;
 
     // Only set up push notifications on native platforms
     if (!Capacitor.isNativePlatform()) {
-      console.log('Push notifications only available on native platforms');
       return;
     }
 
@@ -99,6 +102,36 @@ export const usePushNotifications = (userId?: string) => {
               console.error('❌ Error saving device token:', error);
             } else {
               console.log('✅ Device token saved successfully');
+            }
+
+            // Mirror token to profiles.privacy_settings
+            try {
+              const { data: currentProfile } = await supabase
+                .from('profiles')
+                .select('privacy_settings')
+                .eq('id', userId)
+                .single();
+
+              const currentSettings = (currentProfile?.privacy_settings || {}) as Record<string, any>;
+              const existingTokens: string[] = Array.isArray(currentSettings.device_tokens)
+                ? currentSettings.device_tokens
+                : (currentSettings.fcm_token ? [currentSettings.fcm_token] : []);
+
+              const updatedTokens = Array.from(new Set([token.value, ...existingTokens])).slice(0, 5);
+
+              await supabase
+                .from('profiles')
+                .update({
+                  privacy_settings: {
+                    ...currentSettings,
+                    fcm_token: token.value,
+                    device_tokens: updatedTokens,
+                    last_token_update: new Date().toISOString()
+                  }
+                })
+                .eq('id', userId);
+            } catch (profileErr) {
+              console.warn('Could not mirror native token to profile:', profileErr);
             }
           } catch (error) {
             console.error('❌ Error saving device token:', error);

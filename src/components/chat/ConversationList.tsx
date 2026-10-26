@@ -224,7 +224,7 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
       }
       
       try {
-        await supabase.functions.invoke('fcm-notify', {
+        const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: conversation.other_user?.id,
@@ -236,8 +236,34 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
             callType: callType
           }
         });
+        if (fcmError || !fcmData?.success) {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: conversation.other_user?.id,
+            callerId: userId,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
+            callId: data.id,
+            callType: callType,
+          });
+        }
       } catch (fcmError) {
-        console.warn('FCM notification failed:', fcmError);
+        console.warn('FCM notification failed, running direct fallback:', fcmError);
+        try {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: conversation.other_user?.id,
+            callerId: userId,
+            callerName: profile?.username || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
+            callId: data.id,
+            callType: callType,
+          });
+        } catch (directErr) {
+          console.error('Direct FCM call error:', directErr);
+        }
       }
     } catch (error: any) {
       console.error('Error starting call:', error);

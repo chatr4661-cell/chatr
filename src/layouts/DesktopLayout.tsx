@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import chatrLogo from '@/assets/chatr-icon-logo.png';
+import { signOut } from '@/auth/SessionManager';
 import ChatrWeb from '@/pages/ChatrWeb';
 
 const navItems = [
@@ -89,7 +90,7 @@ const DesktopLayout: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate('/web');
   };
 

@@ -486,15 +486,22 @@ class MemoryLayerService {
 
   private saveToStorage(): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.SHARED, JSON.stringify(this.sharedMemory));
-      localStorage.setItem(STORAGE_KEYS.USER + this.userId, JSON.stringify(this.userPreferences));
-      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(this.taskMemory));
+      const safeStore = (k: string, v: string) => {
+        if (v.length > 50_000) return; // Cap memory blobs at 50KB
+        try {
+          localStorage.setItem(k, v);
+        } catch {}
+      };
+
+      safeStore(STORAGE_KEYS.SHARED, JSON.stringify(this.sharedMemory));
+      safeStore(STORAGE_KEYS.USER + this.userId, JSON.stringify(this.userPreferences));
+      safeStore(STORAGE_KEYS.TASKS, JSON.stringify(this.taskMemory));
 
       this.agentMemory.forEach((memories, agent) => {
-        localStorage.setItem(STORAGE_KEYS.AGENT + agent, JSON.stringify(memories));
+        safeStore(STORAGE_KEYS.AGENT + agent, JSON.stringify(memories));
       });
     } catch (error) {
-      console.error('[MemoryLayer] Error saving to storage:', error);
+      console.warn('[MemoryLayer] Error saving to storage:', error);
     }
   }
 

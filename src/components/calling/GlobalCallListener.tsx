@@ -157,12 +157,32 @@ export function GlobalCallListener() {
       }
     };
     
+    // Handle in-app / push-triggered incoming call screen display
+    const handleTriggerIncomingCall = (event: CustomEvent) => {
+      const detail = event.detail || {};
+      console.log('📞 [GlobalCallListener] Received in-app trigger-incoming-call:', detail);
+      if (activeCallRef.current) {
+        console.log('📱 Already in active call, ignoring incoming trigger');
+        return;
+      }
+      setIncomingCall({
+        id: detail.id || detail.callId || ('call-' + Date.now()),
+        caller_id: detail.caller_id || detail.callerId || 'test-caller',
+        callerName: detail.callerName || detail.caller_name || 'Incoming Caller',
+        callerAvatar: detail.callerAvatar || detail.caller_avatar || '/chatr-logo.png',
+        call_type: detail.call_type || detail.callType || 'video',
+        status: 'ringing',
+      });
+    };
+
     window.addEventListener('nativeCallAction', handleNativeCallAction as EventListener);
     window.addEventListener('chatr:native_call_accepted', handleNativeCallAccepted as EventListener);
+    window.addEventListener('chatr:trigger-incoming-call', handleTriggerIncomingCall as EventListener);
     
     return () => {
       window.removeEventListener('nativeCallAction', handleNativeCallAction as EventListener);
       window.removeEventListener('chatr:native_call_accepted', handleNativeCallAccepted as EventListener);
+      window.removeEventListener('chatr:trigger-incoming-call', handleTriggerIncomingCall as EventListener);
     };
   }, []);
   

@@ -11,13 +11,13 @@ const env = (import.meta as any).env ?? {};
 
 /** Canonical production Firebase project shared by all CHATR clients. */
 export const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY ?? 'AIzaSyDUUbQlOmkHsrEyMw9AmQBXbjNx11iM7w4',
+  apiKey: env.VITE_FIREBASE_API_KEY ?? 'AIzaSyAN2OYbpesZFUOAfUt_wycLJOYRvJt9PNA',
   authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ?? 'chatr-91067.firebaseapp.com',
   projectId: env.VITE_FIREBASE_PROJECT_ID ?? 'chatr-91067',
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET ?? 'chatr-91067.firebasestorage.app',
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '839345688435',
-  appId: env.VITE_FIREBASE_APP_ID ?? '1:839345688435:web:17283f3299c22c1c233f06',
-  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID ?? 'G-XXXXXXXXXX',
+  appId: env.VITE_FIREBASE_APP_ID ?? '1:839345688435:web:3c41f47446e6efc0233f06',
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID ?? 'G-KJ84MD7W99',
 };
 
 /** Backend (session exchange + profiles + roles) shared by all clients. */

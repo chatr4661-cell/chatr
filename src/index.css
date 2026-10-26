@@ -231,19 +231,46 @@
   }
   
   /* Safe area utility classes */
-  .safe-area-top {
-    padding-top: var(--safe-area-top);
+  .safe-area-pt,
+  .safe-area-top,
+  .pt-safe {
+    padding-top: max(var(--safe-area-top, 0px), env(safe-area-inset-top, 0px));
   }
   
-  .safe-area-bottom {
-    padding-bottom: var(--safe-area-bottom);
+  .safe-area-pb,
+  .safe-area-bottom,
+  .pb-safe {
+    padding-bottom: max(var(--safe-area-bottom, 0px), env(safe-area-inset-bottom, 0px));
+  }
+
+  .safe-area-pl,
+  .safe-area-left,
+  .pl-safe {
+    padding-left: max(var(--safe-area-left, 0px), env(safe-area-inset-left, 0px));
+  }
+
+  .safe-area-pr,
+  .safe-area-right,
+  .pr-safe {
+    padding-right: max(var(--safe-area-right, 0px), env(safe-area-inset-right, 0px));
   }
   
   .safe-area-all {
-    padding-top: var(--safe-area-top);
-    padding-bottom: var(--safe-area-bottom);
-    padding-left: var(--safe-area-left);
-    padding-right: var(--safe-area-right);
+    padding-top: max(var(--safe-area-top, 0px), env(safe-area-inset-top, 0px));
+    padding-bottom: max(var(--safe-area-bottom, 0px), env(safe-area-inset-bottom, 0px));
+    padding-left: max(var(--safe-area-left, 0px), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--safe-area-right, 0px), env(safe-area-inset-right, 0px));
+  }
+
+  /* Responsive bottom padding: clears bottom nav on mobile/desktop app, compact on desktop web */
+  .chatr-responsive-bottom-pad {
+    padding-bottom: max(6.5rem, calc(4.75rem + env(safe-area-inset-bottom, 0px)));
+  }
+
+  @media (min-width: 768px) {
+    body:not([data-standalone-app="true"]) .chatr-responsive-bottom-pad {
+      padding-bottom: 2.25rem !important;
+    }
   }
   
   /* Full screen content (ignores safe areas) */

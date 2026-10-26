@@ -16,7 +16,6 @@ import chatrIconLogo from '@/assets/chatr-icon-logo.png';
 import { AppleCard, AppleGroupedList, AppleListItem } from '@/components/ui/AppleCard';
 import { AppleSearchBar } from '@/components/ui/AppleInput';
 import { AppleButton, AppleIconButton } from '@/components/ui/AppleButton';
-import { BottomNav } from '@/components/BottomNav';
 import { useModuleRegistry } from '@/services/moduleRegistry/useModuleRegistry';
 
 // Inline haptic hook to avoid import delay
@@ -79,6 +78,22 @@ const Home = memo(() => {
   const navigate = useNavigate();
   const haptics = useNativeHaptics();
   const greeting = useMemo(getGreeting, []);
+
+  // Ensure /home always opens chatr.chat
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    if (
+      hostname &&
+      !['localhost', '127.0.0.1'].includes(hostname) &&
+      hostname.endsWith('chatr.chat') &&
+      hostname !== 'chatr.chat' &&
+      hostname !== 'www.chatr.chat'
+    ) {
+      window.location.replace('https://chatr.chat/');
+    } else {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
   
   // Initialize with cached data for instant render
   const cachedData = useMemo(getCachedData, []);
@@ -273,10 +288,10 @@ const Home = memo(() => {
         keywords="chatr, superapp, india, AI, healthcare, jobs, messaging"
       />
       
-      <div className="min-h-[100dvh] bg-background pb-24 apple-screen">
+      <div className="min-h-[100dvh] bg-background chatr-responsive-bottom-pad apple-screen">
         {/* Header - Apple-style */}
         <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 safe-area-pt">
-          <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="max-w-xl md:max-w-2xl lg:max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={chatrIconLogo} alt="CHATR" className="w-10 h-10" />
               <div>
@@ -314,7 +329,7 @@ const Home = memo(() => {
           </div>
         </header>
 
-        <div className="max-w-lg mx-auto px-4 space-y-5 mt-4">
+        <div className="max-w-xl md:max-w-2xl lg:max-w-4xl mx-auto px-4 sm:px-6 space-y-5 mt-4">
           {/* Activity Widgets - Only for authenticated users */}
           {isAuthenticated && (
             <div className="grid grid-cols-3 gap-3">
@@ -427,7 +442,7 @@ const Home = memo(() => {
           {/* All Services Grid */}
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3 apple-section-header">All Services</h2>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-3">
               {visibleMainServices.map((service) => {
                 const mod = modules.find(m => m.route === service.route);
                 const isNonPublished = mod && mod.lifecycleState !== 'published';
@@ -494,9 +509,6 @@ const Home = memo(() => {
             </AppleCard>
           )}
         </div>
-
-        {/* Bottom Navigation */}
-        <BottomNav />
       </div>
     </>
   );

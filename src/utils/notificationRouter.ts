@@ -58,7 +58,7 @@ export function resolveNotificationRoute(n: NotificationLike): string {
     case 'wellness':
     case 'lifestyle':
     case 'nudge':
-      return meta.route || '/home';
+      return meta.route || '/';
 
     case 'payment':
     case 'wallet':
@@ -74,7 +74,7 @@ export function resolveNotificationRoute(n: NotificationLike): string {
 
     case 'digest':
     case 'digest_update':
-      return meta.route || '/home';
+      return meta.route || '/';
 
     default:
       return meta.route || '/notifications';

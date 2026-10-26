@@ -25,6 +25,8 @@ interface CallNotificationPayload {
   callType: 'audio' | 'video';
 }
 
+import { dispatchDirectFCMCall, dispatchDirectFCMMessage } from '@/services/fcmDirectDispatcher';
+
 /**
  * Send push notification for a new message
  * This ensures the recipient gets notified even if the app is closed/killed
@@ -41,15 +43,21 @@ export const sendMessageNotification = async (payload: MessageNotificationPayloa
     });
 
     if (error) {
-      console.warn('⚠️ FCM message notification failed:', error);
-      return false;
+      console.warn('⚠️ FCM message notification failed, executing direct dispatch fallback:', error);
+      const direct = await dispatchDirectFCMMessage(payload);
+      return direct.success;
     }
 
     console.log('✅ Message push notification sent:', data);
     return true;
   } catch (error) {
-    console.warn('⚠️ FCM message notification error:', error);
-    return false;
+    console.warn('⚠️ FCM message notification error, executing direct dispatch fallback:', error);
+    try {
+      const direct = await dispatchDirectFCMMessage(payload);
+      return direct.success;
+    } catch (e) {
+      return false;
+    }
   }
 };
 
@@ -68,16 +76,22 @@ export const sendCallNotification = async (payload: CallNotificationPayload): Pr
       }
     });
 
-    if (error) {
-      console.warn('⚠️ FCM call notification failed:', error);
-      return false;
+    if (error || data?.validation?.status !== 'delivered') {
+      console.warn('⚠️ FCM call notification via edge function undelivered, executing direct FCM dispatch:', error);
+      const direct = await dispatchDirectFCMCall(payload);
+      return direct.success;
     }
 
     console.log('✅ Call push notification sent:', data);
     return true;
   } catch (error) {
-    console.warn('⚠️ FCM call notification error:', error);
-    return false;
+    console.warn('⚠️ FCM call notification error, executing direct dispatch fallback:', error);
+    try {
+      const direct = await dispatchDirectFCMCall(payload);
+      return direct.success;
+    } catch (e) {
+      return false;
+    }
   }
 };
 

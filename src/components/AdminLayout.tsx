@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { signOut } from "@/auth/SessionManager";
 import { 
   LayoutDashboard, 
   Users, 
@@ -65,7 +66,7 @@ function AdminSidebar() {
   const collapsed = state === "collapsed";
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     toast.success("Logged out successfully");
     navigate("/auth");
   };

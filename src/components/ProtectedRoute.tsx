@@ -8,8 +8,10 @@ interface ProtectedRouteProps {
 
 const hasLocalSession = () => {
   try {
+    const isExplicit = localStorage.getItem('chatr_explicit_signout') === '1' || sessionStorage.getItem('chatr_explicit_signout') === '1';
+    if (isExplicit) return false;
     return Object.keys(localStorage).some(
-      (k) => k.startsWith('sb-') && k.endsWith('-auth-token') && !!localStorage.getItem(k)
+      (k) => (k.startsWith('sb-') || k.includes('auth-token') || k === 'chatr_permanent_session_vault') && !!localStorage.getItem(k)
     );
   } catch {
     return false;
@@ -25,14 +27,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   React.useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      if (session) {
+        setIsAuthenticated(true);
+      } else {
+        const isExplicit = localStorage.getItem('chatr_explicit_signout') === '1' || sessionStorage.getItem('chatr_explicit_signout') === '1';
+        setIsAuthenticated(!isExplicit && hasLocalSession());
+      }
     };
 
     checkAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
+      if (session) {
+        setIsAuthenticated(true);
+      } else {
+        const isExplicit = localStorage.getItem('chatr_explicit_signout') === '1' || sessionStorage.getItem('chatr_explicit_signout') === '1';
+        if (isExplicit || !hasLocalSession()) {
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      }
     });
 
     return () => {

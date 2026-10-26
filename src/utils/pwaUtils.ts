@@ -60,30 +60,39 @@ export const showNotification = (title: string, options?: NotificationOptions) =
 // Install prompt handler
 let deferredPrompt: any = null;
 
-export const setupInstallPrompt = () => {
+if (typeof window !== 'undefined') {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
+    (window as any).deferredPrompt = e;
     console.log('💾 Install prompt ready');
   });
+}
+
+export const setupInstallPrompt = () => {
+  // Backwards compatibility shim
 };
 
 export const showInstallPrompt = async (): Promise<boolean> => {
-  if (!deferredPrompt) {
+  const prompt = (typeof window !== 'undefined' && (window as any).deferredPrompt) || deferredPrompt;
+  if (!prompt) {
     console.log('Install prompt not available');
     return false;
   }
   
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
+  prompt.prompt();
+  const { outcome } = await prompt.userChoice;
   console.log(`User response to install prompt: ${outcome}`);
   
+  if (typeof window !== 'undefined') {
+    (window as any).deferredPrompt = null;
+  }
   deferredPrompt = null;
   return outcome === 'accepted';
 };
 
 export const canInstallPWA = (): boolean => {
-  return deferredPrompt !== null;
+  return typeof window !== 'undefined' && (!!(window as any).deferredPrompt || !!deferredPrompt);
 };
 
 // Cache management

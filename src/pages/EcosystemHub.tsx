@@ -100,8 +100,8 @@ export default function EcosystemHub() {
   return (
     <>
       <SEOHead title="Ecosystem · Chatr+" description="Your complete Chatr+ ecosystem — chats, calls, health, jobs, food, marketplace and more." />
-      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background pb-20">
-        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background chatr-responsive-bottom-pad">
+        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 safe-area-pt">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-4 h-4" />

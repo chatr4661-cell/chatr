@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Image as ImageIcon, Grid, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Image as ImageIcon, Grid, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { usePhotoAlbums } from '@/hooks/usePhotoAlbums';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface PhotoAlbumsGridProps {
@@ -20,11 +21,13 @@ export const PhotoAlbumsGrid = ({
   editable = false,
   className
 }: PhotoAlbumsGridProps) => {
-  const { albums, loading, fetchAlbums, createAlbum, deleteAlbum } = usePhotoAlbums();
+  const { albums, loading, fetchAlbums, createAlbum, deleteAlbum, addPhotosToAlbum } = usePhotoAlbums();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState('');
   const [newAlbumPublic, setNewAlbumPublic] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetchAlbums(userId);
@@ -36,6 +39,36 @@ export const PhotoAlbumsGrid = ({
     setNewAlbumName('');
     setNewAlbumPublic(false);
     setIsCreateOpen(false);
+  };
+
+  const handleUploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !selectedAlbum) return;
+    setUploading(true);
+    try {
+      const uploadedUrls: { url: string }[] = [];
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const filePath = `album_${selectedAlbum}/${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+        const { data, error } = await supabase.storage
+          .from('chat-media')
+          .upload(filePath, file);
+        if (!error && data) {
+          const { data: pubData } = supabase.storage
+            .from('chat-media')
+            .getPublicUrl(filePath);
+          uploadedUrls.push({ url: pubData.publicUrl });
+        }
+      }
+      if (uploadedUrls.length > 0) {
+        await addPhotosToAlbum(selectedAlbum, uploadedUrls);
+      }
+    } catch (err) {
+      console.error('Error uploading photos:', err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
@@ -152,8 +185,34 @@ export const PhotoAlbumsGrid = ({
             if (!album) return null;
             return (
               <>
-                <DialogHeader>
+                <DialogHeader className="flex flex-row items-center justify-between pr-6">
                   <DialogTitle>{album.name}</DialogTitle>
+                  {editable && (
+                    <>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleUploadPhotos}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 h-8 text-xs"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        {uploading ? 'Uploading...' : 'Add Photos'}
+                      </Button>
+                    </>
+                  )}
                 </DialogHeader>
                 <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto">
                   {album.photos.map(photo => (

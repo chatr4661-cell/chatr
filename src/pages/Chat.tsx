@@ -147,6 +147,22 @@ const ChatEnhancedContent = () => {
 
     loadConversationUser();
   }, [urlConversationId, activeConversationId, user?.id]);
+
+  // Synchronize active chat state to global UI and BottomNav
+  React.useEffect(() => {
+    if (activeConversationId) {
+      document.body.dataset.chatActive = 'true';
+      window.dispatchEvent(new CustomEvent('chat-active-change', { detail: { active: true } }));
+    } else {
+      delete document.body.dataset.chatActive;
+      window.dispatchEvent(new CustomEvent('chat-active-change', { detail: { active: false } }));
+    }
+    return () => {
+      delete document.body.dataset.chatActive;
+      window.dispatchEvent(new CustomEvent('chat-active-change', { detail: { active: false } }));
+    };
+  }, [activeConversationId]);
+
   const [loading, setLoading] = React.useState(true);
   const [showClusterCreator, setShowClusterCreator] = React.useState(false);
   const [showPulseCreator, setShowPulseCreator] = React.useState(false);
@@ -819,13 +835,40 @@ const ChatEnhancedContent = () => {
             callType: callType
           }
         });
-        if (fcmError) {
-          console.error('❌ [Chat] FCM invoke error:', fcmError);
+        const isUndelivered = fcmError || !fcmData?.success || fcmData?.validation?.status === 'no_tokens' || fcmData?.validation?.status === 'all_failed';
+        if (isUndelivered) {
+          console.warn('⚠️ [Chat] FCM edge function undelivered, executing direct FCM v1 dispatch fallback:', fcmError || fcmData);
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: otherUser.id,
+            callerId: user!.id,
+            callerName: profile?.username || user!.email || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
+            callId: data.id,
+            callType: callType,
+            conversationId: conversationId || '',
+          });
         } else {
           console.log('✅ [Chat] FCM sent:', fcmData?.validation?.status || 'ok');
         }
       } catch (fcmError) {
-        console.error('❌ [Chat] FCM invoke exception (DB trigger is backup):', fcmError);
+        console.warn('⚠️ [Chat] FCM invoke exception, executing direct fallback:', fcmError);
+        try {
+          const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
+          await dispatchDirectFCMCall({
+            receiverId: otherUser.id,
+            callerId: user!.id,
+            callerName: profile?.username || user!.email || 'Unknown',
+            callerAvatar: profile?.avatar_url || '',
+            callerPhone: profile?.phone_number || '',
+            callId: data.id,
+            callType: callType,
+            conversationId: conversationId || '',
+          });
+        } catch (e) {
+          console.error('❌ [Chat] Direct fallback exception:', e);
+        }
       }
       
       // GlobalCallListener will show the call UI automatically
@@ -907,7 +950,7 @@ const ChatEnhancedContent = () => {
     <>
       {/* NOTE: Call notifications handled by GlobalCallListener in App.tsx */}
 
-      <div className="flex flex-col h-screen bg-background pb-24">
+      <div className={cn("flex flex-col h-[100dvh] bg-background safe-area-pt", activeConversationId ? "pb-0" : "pb-24")}>
       <NetworkStatus />
       
       {activeConversationId ? (
