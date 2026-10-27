@@ -7,6 +7,14 @@ const NotFound = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    document.title = "404 Page Not Found · Chatr";
+    let meta = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'robots';
+      document.head.appendChild(meta);
+    }
+    meta.content = 'noindex, nofollow';
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
 

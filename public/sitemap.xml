@@ -61,11 +61,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://chatr.chat/local-jobs</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://chatr.chat/marketplace</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

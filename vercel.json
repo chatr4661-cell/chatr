@@ -141,12 +141,6 @@
       ]
     },
     {
-      "source": "/local-jobs",
-      "headers": [
-        { "key": "Link", "value": "<https://chatr.chat/local-jobs>; rel=\"canonical\"" }
-      ]
-    },
-    {
       "source": "/terms",
       "headers": [
         { "key": "Link", "value": "<https://chatr.chat/terms>; rel=\"canonical\"" }

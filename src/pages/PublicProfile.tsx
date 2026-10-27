@@ -234,6 +234,10 @@ const PublicProfile = () => {
   if (!profile) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <head>
+          <title>Profile Not Found · Chatr</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </head>
         <h2 className="text-xl font-bold mb-2">Profile Not Found</h2>
         <p className="text-muted-foreground text-sm mb-4">@{normalizedHandle || handle} doesn't exist on CHATR</p>
         <Button onClick={() => navigate('/')}>Go Home</Button>

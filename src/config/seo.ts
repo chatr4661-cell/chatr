@@ -184,14 +184,6 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
     priority: 0.8,
   },
   {
-    path: '/local-jobs',
-    title: 'Local Jobs on Chatr+ — Work near you',
-    description:
-      'Find nearby roles across retail, delivery, healthcare support, field work and services, with applications handled inside Chatr+.',
-    changefreq: 'daily',
-    priority: 0.7,
-  },
-  {
     path: '/marketplace',
     title: 'Chatr+ Marketplace — Buy from local sellers',
     description:

@@ -226,6 +226,15 @@ export const generateRobotsTxt = (): string => {
     if (p === '/business') {
       return ['Disallow: /business$'];
     }
+    if (p === '/calls') {
+      return ['Disallow: /calls/', 'Disallow: /calls$'];
+    }
+    if (p === '/seller') {
+      return ['Disallow: /seller/', 'Disallow: /seller$'];
+    }
+    if (p === '/provider') {
+      return ['Disallow: /provider/', 'Disallow: /provider$'];
+    }
     return [`Disallow: ${p}`];
   };
 

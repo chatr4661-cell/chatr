@@ -45,7 +45,7 @@ export const SEO_DOMAINS: SeoDomain[] = [
   {
     id: 'app.chatr.chat',
     origin: 'https://app.chatr.chat',
-    owned: true,
+    owned: false,
     gscProperty: 'https://app.chatr.chat/',
     purpose: 'Official Android APK download and native app acquisition portal.',
     clusters: ['app-download', 'android-apk', 'mobile-messaging', 'super-app'],
@@ -53,7 +53,7 @@ export const SEO_DOMAINS: SeoDomain[] = [
   {
     id: 'seller.chatr.chat',
     origin: 'https://seller.chatr.chat',
-    owned: true,
+    owned: false,
     gscProperty: 'https://seller.chatr.chat/',
     purpose: 'CHATR+ Merchant Hub, business registrations & seller operations.',
     clusters: ['seller-portal', 'merchant-services', 'business-tools', 'appointments'],
@@ -61,7 +61,7 @@ export const SEO_DOMAINS: SeoDomain[] = [
   {
     id: 'web.chatr.chat',
     origin: 'https://web.chatr.chat',
-    owned: true,
+    owned: false,
     gscProperty: 'https://web.chatr.chat/',
     purpose: 'Desktop browser chat and multi-device QR authentication surface.',
     clusters: ['web-chat', 'desktop-messaging', 'qr-login'],

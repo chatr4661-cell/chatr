@@ -71,7 +71,6 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   '/local-healthcare': page('ai-productivity', 'clinics and labs near me'),
 
   '/jobs': page('recruitment-communication', 'apply for jobs on chat'),
-  '/local-jobs': page('recruitment-communication', 'local jobs near me'),
 
   '/marketplace': page('business-communication', 'buy from local sellers online'),
   '/home-services': page('business-communication', 'book home services'),

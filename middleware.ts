@@ -16,22 +16,26 @@ const ORIGIN = 'https://chatr.chat';
 const RESERVED = new Set([
   'about','account','admin','ai-agents','ai-assistant','ai-browser','ai-browser-home',
   'ai-clone-settings','ai-search','allied-healthcare','ambassador-program','app-statistics',
-  'auth','bluetooth-test','bmi-calculator','booking','business','call-history','caller-id',
-  'calls','capture','care','chat','chat-ai','chatr-games','chatr-growth','chatr-home',
-  'chatr-os','chatr-plus','chatr-plus-subscribe','chatr-points','chatr-results','chatr-studio',
-  'chatr-tutors','chatr-wallet','chatr-world','chronic-vitals','command-center','communities',
-  'community','contact','contacts','create-community','desktop','developer-portal',
-  'device-management','dhandha','disclaimer','discover','doctor-onboarding','download','earn',
-  'emergency','emergency-services','expert-sessions','fame-cam','fame-leaderboard',
-  'food-ordering','geo','geofence-history','geofences','global-contacts','growth','health',
+  'authors','auth','bluetooth-test','bmi-calculator','booking','business','call-history','caller-id',
+  'calls','capture','care','champions','chat','chat-ai','chatr','chatr-games','chatr-growth','chatr-home',
+  'chatr-intelligence','chatr-os','chatr-plus','chatr-plus-subscribe','chatr-points','chatr-results','chatr-studio',
+  'chatr-tutors','chatr-wallet','chatr-world','chronic-vitals','commercial','command-center','communities',
+  'community','connectors','contact','contacts','create-community','desktop','developer-portal',
+  'device-management','dhandha','disclaimer','discover','doctor-onboarding','doctor-portal','download','earn',
+  'ecosystem','emergency','emergency-services','expert-sessions','fame-cam','fame-leaderboard',
+  'food-checkout','food-ordering','gateway','geo','geofence-history','geofences','global-contacts','growth','health',
   'health-passport','health-reminders','health-risks','health-streaks','health-wallet','help',
-  'home','home-services','identity','install','jobs','join','kyc-verification','lab-reports',
+  'home','home-services','home-solutions','identity','install','jobs','join','kyc-verification','lab-reports',
   'launcher','leaderboard','local-deals','local-healthcare','local-jobs','marketplace',
   'mcp-console','medication-interactions','medicine-reminders','mental-health','mini-apps',
   'native-apps','notification-settings','notifications','nutrition-tracker','official-accounts',
-  'onboarding','order-history','os-detection','prechu-ai','privacy','privacy-policy','profile',
-  'qr-login','referrals','refund','seller','settings','sitemap.xml','robots.txt','stories',
-  'symptom-checker','terms','u','user-subscription','wellness',
+  'onboarding','order-history','order-tracking','os-detection','prechu-ai','privacy','privacy-policy','profile',
+  'provider','provider-portal','provider-register','qr-login','qr-payment','referrals','refund','reward-shop',
+  'seller','services','settings','shield','shield-sync','smart-inbox','stealth-mode','store','stories',
+  'studio','subscription','symptom-checker','teleconsultation','terms','tutors','u','universal-search',
+  'user-subscription','vendor','voice-assistant','wallet','web','wellness','wellness-circles',
+  'youth-engagement','youth-feed',
+  'sitemap.xml','robots.txt','manifest.json','sw.js','firebase-messaging-sw.js','favicon.ico','chatr-logo.png'
 ]);
 
 const HANDLE_RE = /^[a-z0-9_]{3,30}$/;
@@ -118,7 +122,33 @@ export default async function middleware(req: Request) {
   if (RESERVED.has(handle) || !HANDLE_RE.test(handle)) return;
 
   const data = await fetchProfile(handle).catch(() => null);
-  if (!data) return; // pass through to SPA → handled by PublicProfile fallback
+  if (!data) {
+    // Single-segment route matching handle syntax that is not a registered user.
+    // Return HTTP 404 with noindex header to prevent Soft 404 in Search Console.
+    const shellRes = await fetch(`${url.origin}/index.html`, {
+      headers: { 'x-ssr-bypass': '1' },
+    });
+    if (!shellRes.ok) {
+      return new Response('Not Found', {
+        status: 404,
+        headers: { 'content-type': 'text/plain', 'x-robots-tag': 'noindex, nofollow' },
+      });
+    }
+    let html = await shellRes.text();
+    html = html
+      .replace(/<title>[\s\S]*?<\/title>/i, '<title>Profile Not Found · Chatr</title>')
+      .replace(/<\/head>/i, '<meta name="robots" content="noindex, nofollow" />\n</head>');
+
+    return new Response(html, {
+      status: 404,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'x-robots-tag': 'noindex, nofollow',
+        'cache-control': 'public, max-age=60, s-maxage=300',
+        'x-ssr-handle': handle,
+      },
+    });
+  }
 
   // Fetch the SPA shell from the same origin
   const shellRes = await fetch(`${url.origin}/index.html`, {
