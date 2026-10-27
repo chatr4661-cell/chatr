@@ -2,11 +2,11 @@
   "latestVersion": "1.0.101",
   "versionCode": 101,
   "minSupportedVersion": "1.0.0",
-  "releaseDate": "2026-10-26",
+  "releaseDate": "2026-10-27",
   "apkUrl": "https://chatr.chat/releases/chatr-plus-latest.apk",
   "apkSize": "160.1 MB",
-  "apkSizeBytes": 167927113,
-  "sha256": "CBE65DB4487428E385108BF71925B7906C9950C990A2BD71DDD52D8868663751",
+  "apkSizeBytes": 167923623,
+  "sha256": "2CA161B69DD1286B0189273AB0FE8BEB6A5217D8C749C8D1858FEEB38AAB5C24",
   "signer": "CN=Chatr Plus, OU=Engineering, O=Chatr Services",
-  "releaseNotes": "Official signed production release (APK Signature Scheme v2 & v3). FaceTime-style home screen, chatr+ dark branded splash, high contrast calling UI, zero sensitive permissions."
+  "releaseNotes": "Official signed release with full-screen incoming call wake-up and ringtone when killed/locked, native FCM auto-sync on login, real-time OTP auth."
 }
