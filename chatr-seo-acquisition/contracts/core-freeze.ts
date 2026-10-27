@@ -120,6 +120,7 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/components/FirebasePhoneAuth.tsx',
   'src/components/OnboardingDialog.tsx',
   'src/components/PhoneAuth.tsx',
+  'src/pages/Auth.tsx',
   // Module Control Center & Dynamic Module Visibility
   'src/components/AdminLayout.tsx',
   'src/components/ModuleRouteGuard.tsx',
