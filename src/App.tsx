@@ -278,6 +278,10 @@ const App = () => {
             <Route path="/chatr/ai-call-answering" element={<LazyRoute component={LazyPages.AiCallAnswering} />} />
             <Route path="/chatr/spam-call-protection" element={<LazyRoute component={LazyPages.SpamCallProtection} />} />
             <Route path="/chatr/calls-on-slow-networks" element={<LazyRoute component={LazyPages.CallsOnSlowNetworks} />} />
+            {/* Legacy GSC Soft 404 Redirects */}
+            <Route path="/chatr/ai-messaging-for-business" element={<Navigate to="/chatr/business-messaging" replace />} />
+            <Route path="/lookup" element={<Navigate to="/chatr/spam-call-protection" replace />} />
+            <Route path="/direct-chat" element={<Navigate to="/chat" replace />} />
             {/* Programmatic SEO families — order matters: hubs before params */}
             <Route path="/chatr/locations" element={<LazyRoute component={LazyPages.SeoLocationsDirectory} />} />
             <Route path="/chatr/translate" element={<LazyRoute component={LazyPages.SeoTranslateDirectory} />} />

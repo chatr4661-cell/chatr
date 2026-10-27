@@ -12,6 +12,21 @@
       "permanent": true
     },
     {
+      "source": "/chatr/ai-messaging-for-business",
+      "destination": "https://chatr.chat/chatr/business-messaging",
+      "permanent": true
+    },
+    {
+      "source": "/lookup",
+      "destination": "https://chatr.chat/chatr/spam-call-protection",
+      "permanent": true
+    },
+    {
+      "source": "/direct-chat",
+      "destination": "https://chatr.chat/chat",
+      "permanent": true
+    },
+    {
       "source": "/releases/chatr-plus-latest.apk",
       "destination": "https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk",
       "permanent": false

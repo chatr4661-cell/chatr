@@ -211,6 +211,9 @@ export const ROBOTS_DISALLOW_PATTERNS = [
   '/*?ref=',
   '/*?session=',
   '/*?token=',
+  '/*?q=',
+  '/search?*',
+  '/search$',
   '/api/',
 ];
 
