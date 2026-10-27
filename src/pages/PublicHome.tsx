@@ -75,7 +75,7 @@ const PublicHome: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [siAnswerEnabled, setSiAnswerEnabled] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
+  const [countryCode, setCountryCode] = useState('+91');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   // PWA Installation & Platform Detection

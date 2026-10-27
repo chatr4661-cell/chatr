@@ -14,10 +14,24 @@ import { AuthLoadingSkeleton } from '@/components/ui/PremiumEmptyStates';
 import { AppleCard } from '@/components/ui/AppleCard';
 import { motion } from 'framer-motion';
 
+const checkHasLocalToken = (): boolean => {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+};
+
 const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState(true);
+  // ⚡ Instant <5ms render: If user has no local token, render phone form immediately without blocking on network
+  const hasLocalToken = React.useMemo(() => checkHasLocalToken(), []);
+  const [loading, setLoading] = React.useState(hasLocalToken);
   const [userId, setUserId] = React.useState<string | undefined>();
   const onboarding = useOnboarding(userId);
 
@@ -29,14 +43,17 @@ const Auth = () => {
     }
   }, []);
 
-
   React.useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
       try {
         logAuthEvent('Auth page: Checking session');
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+
         if (sessionError) {
           logAuthError('Session check', sessionError);
           setLoading(false);
@@ -58,6 +75,8 @@ const Auth = () => {
             .eq('id', session.user.id)
             .maybeSingle();
 
+          if (!mounted) return;
+
           if (profileError) {
             console.error('[AUTH] Profile fetch error:', profileError);
           }
@@ -74,7 +93,7 @@ const Auth = () => {
               const redirectPath = sessionStorage.getItem('auth_redirect');
               sessionStorage.removeItem('auth_redirect');
               
-             console.log('[AUTH] User signed in:', profile.username || profile.email);
+              console.log('[AUTH] User signed in:', profile.username || profile.email);
               
               if (redirectPath) {
                 navigate(redirectPath, { replace: true });
@@ -91,46 +110,63 @@ const Auth = () => {
           return;
         }
 
-        // Skip device session re-hydration if user explicitly logged out
+        // If no active session, ensure loading state is false immediately
+        if (mounted) setLoading(false);
+
+        // Non-blocking background device session re-hydration:
+        // Runs in idle time so the user can interact with the phone form instantly without waiting
         const explicitSignout = sessionStorage.getItem('chatr_explicit_signout');
         if (!explicitSignout) {
-          const deviceFingerprint = await getDeviceFingerprint();
-          const { data: deviceSession } = await supabase
-            .from('device_sessions')
-            .select('*')
-            .eq('device_fingerprint', deviceFingerprint)
-            .eq('is_active', true)
-            .gt('expires_at', new Date().toISOString())
-            .maybeSingle();
+          const runDeviceRehydrate = async () => {
+            try {
+              const deviceFingerprint = await getDeviceFingerprint();
+              const { data: deviceSession } = await supabase
+                .from('device_sessions')
+                .select('*')
+                .eq('device_fingerprint', deviceFingerprint)
+                .eq('is_active', true)
+                .gt('expires_at', new Date().toISOString())
+                .maybeSingle();
 
-          if (deviceSession) {
-            setUserId(deviceSession.user_id);
-            
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('onboarding_completed')
-              .eq('id', deviceSession.user_id)
-              .single();
-            
-            if (profile?.onboarding_completed) {
-              navigate('/', { replace: true });
-              return;
+              if (!mounted) return;
+
+              if (deviceSession) {
+                setUserId(deviceSession.user_id);
+                
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('onboarding_completed')
+                  .eq('id', deviceSession.user_id)
+                  .single();
+                
+                if (profile?.onboarding_completed) {
+                  navigate('/', { replace: true });
+                  return;
+                }
+              }
+            } catch (err) {
+              // Non-fatal background check
             }
+          };
+
+          if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(() => runDeviceRehydrate());
+          } else {
+            setTimeout(runDeviceRehydrate, 50);
           }
         } else {
           sessionStorage.removeItem('chatr_explicit_signout');
         }
-
-        setLoading(false);
       } catch (error) {
         console.error('Session check error:', error);
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
       if (event === 'SIGNED_IN' && session) {
         setUserId(session.user.id);
         
@@ -141,13 +177,15 @@ const Auth = () => {
             .eq('id', session.user.id)
             .maybeSingle();
           
+          if (!mounted) return;
+
           if (profile?.onboarding_completed) {
             const redirectPath = sessionStorage.getItem('auth_redirect');
             sessionStorage.removeItem('auth_redirect');
-           console.log('[AUTH] Welcome back');
+            console.log('[AUTH] Welcome back');
             navigate(redirectPath || '/', { replace: true });
           } else {
-           console.log('[AUTH] New user - complete profile');
+            console.log('[AUTH] New user - complete profile');
           }
         }, 0);
       }
@@ -157,7 +195,10 @@ const Auth = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [toast, navigate]);
 
   if (loading) {
@@ -175,18 +216,18 @@ const Auth = () => {
       
       <motion.div 
         className="relative w-full max-w-md z-10"
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.15 }}
       >
         {/* Brand Section */}
         <div className="text-center mb-10 space-y-6">
           {/* Logo with subtle shadow */}
           <motion.div 
             className="flex justify-center"
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
+            transition={{ duration: 0.15 }}
           >
             <img 
               src={chatrBrandLogo} 
@@ -197,9 +238,9 @@ const Auth = () => {
           
           {/* Title - Apple typography */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
           >
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">
               Chatr<span className="text-primary">+</span>
@@ -212,9 +253,9 @@ const Auth = () => {
         
         {/* Auth Card - Apple glass style */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+          transition={{ duration: 0.15 }}
         >
           <AppleCard glass padding="lg" rounded="2xl" className="space-y-4">
             <FirebasePhoneAuth />
@@ -227,25 +268,22 @@ const Auth = () => {
           className="mt-10 grid grid-cols-3 gap-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          transition={{ duration: 0.15 }}
         >
           {[
             { icon: '🔒', label: 'Secure' },
             { icon: '⚡', label: 'Fast' },
             { icon: '🤖', label: 'AI Powered' },
-          ].map((feature, i) => (
-            <motion.div 
+          ].map((feature) => (
+            <div 
               key={feature.label}
               className="flex flex-col items-center gap-2"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.1 }}
             >
               <div className="w-12 h-12 rounded-2xl bg-muted/50 backdrop-blur-sm flex items-center justify-center text-xl shadow-sm">
                 {feature.icon}
               </div>
               <span className="text-xs text-muted-foreground font-medium">{feature.label}</span>
-            </motion.div>
+            </div>
           ))}
         </motion.div>
         
@@ -253,7 +291,7 @@ const Auth = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
+          transition={{ duration: 0.15 }}
         >
           <Footer />
         </motion.div>
