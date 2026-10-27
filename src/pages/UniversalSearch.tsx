@@ -69,22 +69,9 @@ const getTimeAgo = (dateString: string): string => {
 const UniversalSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const rawQ = searchParams.get('q') || '';
-  const initialQuery = rawQ === '{search_term_string}' || rawQ.includes('{') ? '' : rawQ;
+  const initialQuery = searchParams.get('q') || '';
   
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-
-  useEffect(() => {
-    // Internal search result URLs must never be indexed (prevents Soft 404s in Search Console)
-    document.title = searchQuery ? `${searchQuery} · Chatr Search` : 'Search · Chatr';
-    let meta = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = 'robots';
-      document.head.appendChild(meta);
-    }
-    meta.content = 'noindex, follow';
-  }, [searchQuery]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [webResults, setWebResults] = useState<any>(null);
   const [aiSummaryError, setAiSummaryError] = useState<string | null>(null);
