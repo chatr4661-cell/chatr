@@ -148,47 +148,111 @@ export interface DirectCallParams {
   conversationId?: string;
 }
 
+function isUUID(str?: string): boolean {
+  if (!str) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
+}
+
+function getPhoneVariants(raw: string): string[] {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return [];
+  const variants = new Set<string>();
+  variants.add(raw.trim());
+  variants.add(digits);
+  variants.add('+' + digits);
+  if (digits.length === 10) {
+    variants.add('+91' + digits);
+    variants.add('91' + digits);
+  } else if (digits.length === 12 && digits.startsWith('91')) {
+    variants.add(digits.slice(2));
+    variants.add('+91' + digits.slice(2));
+  }
+  return Array.from(variants);
+}
+
 /**
- * Direct High-Priority Call Dispatcher via FCM HTTP v1
- * Wakes up locked/killed phones and rings them full-screen
+ * Resolves all candidate profile UUIDs for a given recipient identifier,
+ * supporting phone numbers (+91..., 10-digit), UUIDs, and usernames across both
+ * legacy accounts and newly registered accounts.
  */
-export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
-  success: boolean;
-  sent: number;
-  failed: number;
-  reason?: string;
-}> {
-  console.log('📲 [FCM-Direct] Starting direct FCM v1 call dispatch for receiver:', params.receiverId);
+async function resolveCandidateUserIds(rawIdentifier?: string, secondaryIdentifier?: string): Promise<string[]> {
+  const resolvedIds = new Set<string>();
+  const targets = [rawIdentifier, secondaryIdentifier].filter(Boolean) as string[];
 
-  try {
-    // 1. Fetch receiver's registered device tokens from ALL available channels:
-    let targetUserId = params.receiverId;
-
-    // If receiverId is a phone number or caller provided callerPhone, resolve target user
-    if (params.receiverId?.startsWith('+') || (params.callerPhone && !params.receiverId.includes('-'))) {
+  for (const target of targets) {
+    const trimmed = target.trim();
+    if (isUUID(trimmed)) {
+      resolvedIds.add(trimmed);
       try {
-        const { data: profByPhone } = await supabase
+        const { data: prof } = await supabase
           .from('profiles')
-          .select('id, privacy_settings')
-          .or(`phone_number.eq.${params.receiverId},id.eq.${params.receiverId}`)
+          .select('id, phone_number')
+          .eq('id', trimmed)
           .maybeSingle();
-        if (profByPhone?.id) {
-          targetUserId = profByPhone.id;
+
+        if (prof?.phone_number) {
+          const variants = getPhoneVariants(prof.phone_number);
+          for (const pv of variants) {
+            const { data: siblingProfiles } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('phone_number', pv);
+            siblingProfiles?.forEach((s) => {
+              if (s.id && isUUID(s.id)) resolvedIds.add(s.id);
+            });
+          }
         }
       } catch (e) {
-        console.warn('⚠️ [FCM-Direct] Could not resolve receiver by phone:', e);
+        console.warn('⚠️ [FCM-Direct] Error expanding profile phone variants:', e);
       }
-    }
+    } else {
+      // Non-UUID input: phone number, username, etc.
+      const phoneVars = getPhoneVariants(trimmed);
+      for (const pv of phoneVars) {
+        try {
+          const { data: profilesByPhone } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('phone_number', pv);
+          profilesByPhone?.forEach((p) => {
+            if (p.id && isUUID(p.id)) resolvedIds.add(p.id);
+          });
+        } catch (e) {}
+      }
 
-    const tokenSet = new Set<string>();
-    const tokens: Array<{ device_token: string; platform: string }> = [];
+      // Also check username
+      try {
+        const { data: profilesByUsername } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', trimmed);
+        profilesByUsername?.forEach((p) => {
+          if (p.id && isUUID(p.id)) resolvedIds.add(p.id);
+        });
+      } catch (e) {}
+    }
+  }
+
+  return Array.from(resolvedIds);
+}
+
+/**
+ * Unified token fetcher across all databases: device_tokens, profiles.privacy_settings,
+ * user_devices, and fcm_tokens for all candidate user accounts.
+ */
+async function fetchTokensForCandidateUsers(candidateUserIds: string[]): Promise<Array<{ device_token: string; platform: string }>> {
+  const tokenSet = new Set<string>();
+  const tokens: Array<{ device_token: string; platform: string }> = [];
+
+  for (const uid of candidateUserIds) {
+    if (!isUUID(uid)) continue;
 
     // A. device_tokens table
     try {
       const { data: dbTokens, error } = await supabase
         .from('device_tokens')
         .select('device_token, platform')
-        .eq('user_id', targetUserId);
+        .eq('user_id', uid);
 
       if (!error && dbTokens && dbTokens.length > 0) {
         for (const t of dbTokens) {
@@ -207,7 +271,7 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', targetUserId)
+        .eq('id', uid)
         .maybeSingle();
 
       const p = (profile || {}) as Record<string, any>;
@@ -220,7 +284,8 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
       for (const tok of candidateTokens) {
         if (tok && typeof tok === 'string' && !tokenSet.has(tok)) {
           tokenSet.add(tok);
-          tokens.push({ device_token: tok, platform: 'android' });
+          const isWebToken = tok.startsWith('web_push_') || tok.length > 160;
+          tokens.push({ device_token: tok, platform: isWebToken ? 'web' : 'android' });
         }
       }
     } catch (e) {
@@ -232,7 +297,7 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
       const { data: userDevs } = await supabase
         .from('user_devices')
         .select('push_token, device_type')
-        .eq('user_id', targetUserId);
+        .eq('user_id', uid);
 
       if (userDevs && userDevs.length > 0) {
         for (const ud of userDevs) {
@@ -242,34 +307,53 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
           }
         }
       }
-    } catch (e) {
-      console.warn('⚠️ [FCM-Direct] Could not fetch from user_devices table:', e);
-    }
+    } catch (e) {}
 
     // D. fcm_tokens table
     try {
       const { data: fcmRows } = await supabase
         .from('fcm_tokens')
-        .select('token')
-        .eq('user_id', targetUserId);
+        .select('token, device_type')
+        .eq('user_id', uid);
 
       if (fcmRows && fcmRows.length > 0) {
         for (const fr of fcmRows) {
           if (fr.token && !tokenSet.has(fr.token)) {
             tokenSet.add(fr.token);
-            tokens.push({ device_token: fr.token, platform: 'android' });
+            tokens.push({ device_token: fr.token, platform: fr.device_type || 'android' });
           }
         }
       }
     } catch (e) {}
+  }
+
+  return tokens;
+}
+
+/**
+ * Direct High-Priority Call Dispatcher via FCM HTTP v1
+ * Wakes up locked/killed phones and rings them full-screen
+ */
+export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
+  success: boolean;
+  sent: number;
+  failed: number;
+  reason?: string;
+}> {
+  console.log('📲 [FCM-Direct] Starting direct FCM v1 call dispatch for receiver:', params.receiverId);
+
+  try {
+    // 1. Fetch receiver's registered device tokens across all candidate accounts & channels:
+    const candidateUserIds = await resolveCandidateUserIds(params.receiverId, params.callerPhone);
+    const tokens = await fetchTokensForCandidateUsers(candidateUserIds);
 
     if (tokens.length === 0) {
-      console.warn('⚠️ [FCM-Direct] No device tokens found for receiver:', targetUserId, '— triggering WhatsApp/SMS call wakeup fallback');
+      console.warn('⚠️ [FCM-Direct] No device tokens found for receiver:', params.receiverId, '— triggering WhatsApp/SMS call wakeup fallback');
       const wakeupSent = await triggerCallWakeupFallback(params);
       return { success: wakeupSent, sent: wakeupSent ? 1 : 0, failed: wakeupSent ? 0 : 1, reason: 'wakeup_fallback' };
     }
 
-    console.log(`📱 [FCM-Direct] Found ${tokens.length} target device token(s)`);
+    console.log(`📱 [FCM-Direct] Found ${tokens.length} target device token(s) across accounts:`, candidateUserIds);
 
     // 2. Obtain valid OAuth2 access token
     const accessToken = await getOAuth2AccessToken();
@@ -288,6 +372,23 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
             android: {
               priority: 'HIGH',
               ttl: '30s',
+            },
+            apns: {
+              headers: {
+                'apns-priority': '10',
+                'apns-push-type': 'alert',
+              },
+              payload: {
+                aps: {
+                  alert: {
+                    title: `📞 Incoming ${params.callType === 'video' ? 'Video' : 'Voice'} Call`,
+                    body: `${params.callerName || 'Someone'} is calling you on Chatr+...`,
+                  },
+                  sound: 'ringtone.aiff',
+                  'content-available': 1,
+                  category: 'INCOMING_CALL',
+                },
+              },
             },
             webpush: {
               headers: {
@@ -349,11 +450,11 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
               .eq('device_token', t.device_token)
               .then(() => console.log('🗑️ [FCM-Direct] Pruned stale token from device_tokens'));
 
-            if (params.receiverId) {
+            for (const uid of candidateUserIds) {
               supabase
                 .from('profiles')
                 .select('privacy_settings')
-                .eq('id', params.receiverId)
+                .eq('id', uid)
                 .single()
                 .then(({ data: prof }) => {
                   if (prof?.privacy_settings) {
@@ -368,7 +469,7 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
                           device_tokens: tokens,
                         }
                       })
-                      .eq('id', params.receiverId)
+                      .eq('id', uid)
                       .then(() => console.log('🗑️ [FCM-Direct] Pruned stale token from profiles.privacy_settings'));
                   }
                 });
@@ -401,13 +502,24 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
  */
 export async function triggerCallWakeupFallback(params: DirectCallParams): Promise<boolean> {
   try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('phone_number, username, full_name')
-      .eq('id', params.receiverId)
-      .single();
+    let phone: string | null = null;
 
-    const phone = profile?.phone_number || params.callerPhone;
+    if (params.receiverId && !isUUID(params.receiverId)) {
+      phone = params.receiverId;
+    } else if (params.callerPhone) {
+      phone = params.callerPhone;
+    }
+
+    if (!phone && isUUID(params.receiverId)) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone_number, username, full_name')
+        .eq('id', params.receiverId)
+        .maybeSingle();
+
+      phone = profile?.phone_number || null;
+    }
+
     if (!phone) {
       console.log('ℹ️ [Wakeup-Fallback] No recipient phone number found for wakeup');
       return false;
@@ -424,7 +536,7 @@ export async function triggerCallWakeupFallback(params: DirectCallParams): Promi
     // 1. Enqueue to scheduled_notifications table (guaranteed server delivery via Postgres)
     try {
       await supabase.from('scheduled_notifications').insert({
-        user_id: params.receiverId,
+        user_id: isUUID(params.receiverId) ? params.receiverId : null,
         title: `Incoming ${isVideo ? 'Video' : 'Voice'} Call`,
         message: messageText,
         type: 'call_wakeup_fallback',
@@ -497,96 +609,9 @@ export async function dispatchDirectFCMMessage(params: DirectMessageParams): Pro
   sent: number;
   failed: number;
 }> {
-    let targetUserId = params.recipientId;
-    if (params.recipientId?.startsWith('+')) {
-      try {
-        const { data: profByPhone } = await supabase
-          .from('profiles')
-          .select('id, privacy_settings')
-          .or(`phone_number.eq.${params.recipientId},id.eq.${params.recipientId}`)
-          .maybeSingle();
-        if (profByPhone?.id) {
-          targetUserId = profByPhone.id;
-        }
-      } catch (e) {}
-    }
-
-    const tokenSet = new Set<string>();
-    const tokens: Array<{ device_token: string; platform: string }> = [];
-
-    try {
-      const { data: dbTokens } = await supabase
-        .from('device_tokens')
-        .select('device_token, platform')
-        .eq('user_id', targetUserId);
-
-      if (dbTokens && dbTokens.length > 0) {
-        for (const t of dbTokens) {
-          if (t.device_token && !tokenSet.has(t.device_token)) {
-            tokenSet.add(t.device_token);
-            tokens.push({ device_token: t.device_token, platform: t.platform || 'web' });
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('⚠️ [FCM-Direct] Could not fetch message tokens from device_tokens:', e);
-    }
-
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', targetUserId)
-        .maybeSingle();
-
-      const p = (profile || {}) as Record<string, any>;
-      const ps = (p.privacy_settings || {}) as Record<string, any>;
-      const candidateTokens: string[] = [];
-      if (typeof p.fcm_token === 'string' && p.fcm_token) candidateTokens.push(p.fcm_token);
-      if (typeof ps.fcm_token === 'string' && ps.fcm_token) candidateTokens.push(ps.fcm_token);
-      if (Array.isArray(ps.device_tokens)) candidateTokens.push(...ps.device_tokens);
-
-      for (const tok of candidateTokens) {
-        if (tok && typeof tok === 'string' && !tokenSet.has(tok)) {
-          tokenSet.add(tok);
-          tokens.push({ device_token: tok, platform: 'android' });
-        }
-      }
-    } catch (e) {
-      console.warn('⚠️ [FCM-Direct] Could not fetch message tokens from profile:', e);
-    }
-
-    try {
-      const { data: userDevs } = await supabase
-        .from('user_devices')
-        .select('push_token, device_type')
-        .eq('user_id', targetUserId);
-
-      if (userDevs && userDevs.length > 0) {
-        for (const ud of userDevs) {
-          if (ud.push_token && !tokenSet.has(ud.push_token)) {
-            tokenSet.add(ud.push_token);
-            tokens.push({ device_token: ud.push_token, platform: ud.device_type || 'android' });
-          }
-        }
-      }
-    } catch (e) {}
-
-    try {
-      const { data: fcmRows } = await supabase
-        .from('fcm_tokens')
-        .select('token')
-        .eq('user_id', targetUserId);
-
-      if (fcmRows && fcmRows.length > 0) {
-        for (const fr of fcmRows) {
-          if (fr.token && !tokenSet.has(fr.token)) {
-            tokenSet.add(fr.token);
-            tokens.push({ device_token: fr.token, platform: 'android' });
-          }
-        }
-      }
-    } catch (e) {}
+  try {
+    const candidateUserIds = await resolveCandidateUserIds(params.recipientId);
+    const tokens = await fetchTokensForCandidateUsers(candidateUserIds);
 
     if (tokens.length === 0) {
       return { success: false, sent: 0, failed: 0 };
@@ -610,6 +635,22 @@ export async function dispatchDirectFCMMessage(params: DirectMessageParams): Pro
             android: {
               priority: 'HIGH',
             },
+            apns: {
+              headers: {
+                'apns-priority': '10',
+                'apns-push-type': 'alert',
+              },
+              payload: {
+                aps: {
+                  alert: {
+                    title: params.senderName || 'Chatr+ Message',
+                    body: truncated,
+                  },
+                  sound: 'default',
+                  'content-available': 1,
+                },
+              },
+            },
             webpush: {
               headers: {
                 Urgency: 'high',
@@ -630,7 +671,7 @@ export async function dispatchDirectFCMMessage(params: DirectMessageParams): Pro
               body: truncated,
               sender_id: params.senderId,
               sender_name: params.senderName || 'Unknown',
-              sender_avatar: params.senderAvatar || '',
+              sender_avatar: params.callerAvatar || params.senderAvatar || '',
               conversation_id: params.conversationId,
               message_id: params.messageId,
               timestamp: Date.now().toString(),
