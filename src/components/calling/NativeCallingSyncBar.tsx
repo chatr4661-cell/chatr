@@ -1,20 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Phone,
-  Bell,
-  Volume2,
-  CheckCircle2,
   AlertTriangle,
-  RefreshCw,
   Zap,
-  Droplets,
-  Utensils,
-  Stethoscope,
-  Footprints,
-  Moon,
-  Brain,
-  PhoneOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -168,166 +156,50 @@ export const NativeCallingSyncBar: React.FC<NativeCallingSyncBarProps> = ({ user
     }, 1000);
   };
 
-  if (!userId) return null;
+  // Expose background call & wellness test triggers for dev/console use without cluttering the UI
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__chatrCalling = {
+        testCall: handleTestCall,
+        triggerWellness: triggerTest,
+        activate: () => handleActivate(true),
+        hasToken,
+        tokenPreview,
+      };
+    }
+  }, [hasToken, tokenPreview, handleActivate, triggerTest, handleTestCall]);
+
+  // Keep UI clean: do not render the bar when active (hasToken === true) or loading
+  if (!userId || hasToken !== false) return null;
 
   return (
     <div className="w-full rounded-2xl overflow-hidden border border-border/80 shadow-xs mb-3 transition-all duration-200">
-      {hasToken ? (
-        // ACTIVE STATE: Sleek native status bar
-        <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <div>
-              <p className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <span>Closed-App Calling Active</span>
-                <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                  {tokenPreview || 'Synchronized'}
-                </span>
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                This device will ring full-screen even when Chatr+ is closed or killed.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            {countdown !== null ? (
-              <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-500 text-white animate-pulse shadow-xs">
-                Ringing in {countdown}s — Close window now!
-              </span>
-            ) : (
-              <Button
-                onClick={handleTestCall}
-                size="sm"
-                className="h-8 px-2.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs shadow-xs gap-1.5 active:scale-95 transition-transform"
-                title="Test 📞 Closed-App Call Ringing (5s)"
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                <span>Test Call (5s)</span>
-              </Button>
-            )}
-
-            {/* Quick Smart Notification Tests */}
-            <Button
-              onClick={() => triggerTest('walk', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 🚶 Movement & Walking Reminder (5s)"
-            >
-              <Footprints className="w-3.5 h-3.5 text-lime-600" />
-              <span className="hidden sm:inline">Walk</span>
-            </Button>
-
-            <Button
-              onClick={() => triggerTest('sleep', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 😴 Sleep & Night Wind-Down (5s)"
-            >
-              <Moon className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="hidden sm:inline">Sleep</span>
-            </Button>
-
-            <Button
-              onClick={() => triggerTest('mental', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 🧠 Mindful Breathing & Mental Health (5s)"
-            >
-              <Brain className="w-3.5 h-3.5 text-purple-500" />
-              <span className="hidden sm:inline">Mind</span>
-            </Button>
-
-            <Button
-              onClick={() => triggerTest('detox', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 📵 Screen Break / Less Phone Use (5s)"
-            >
-              <PhoneOff className="w-3.5 h-3.5 text-orange-500" />
-              <span className="hidden sm:inline">Detox</span>
-            </Button>
-
-            <Button
-              onClick={() => triggerTest('water', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 💧 Water Reminder (5s)"
-            >
-              <Droplets className="w-3.5 h-3.5 text-cyan-500" />
-              <span className="hidden sm:inline">Water</span>
-            </Button>
-
-            <Button
-              onClick={() => triggerTest('food', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 🥗 Meal & Food Reminder (5s)"
-            >
-              <Utensils className="w-3.5 h-3.5 text-amber-500" />
-              <span className="hidden sm:inline">Food</span>
-            </Button>
-
-            <Button
-              onClick={() => triggerTest('doctor', 5)}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-xs shrink-0 gap-1 text-emerald-800 dark:text-emerald-300"
-              title="Test 🩺 Doctor Consultation Alert (5s)"
-            >
-              <Stethoscope className="w-3.5 h-3.5 text-rose-500" />
-              <span className="hidden sm:inline">Doctor</span>
-            </Button>
-
-            <Button
-              onClick={() => handleActivate(true)}
-              disabled={isSyncing}
-              size="sm"
-              variant="outline"
-              className="h-8 px-2 rounded-xl border-border/80 hover:bg-muted text-xs shrink-0"
-              title="Re-synchronize Fresh Token with Google FCM"
-            >
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-            </Button>
+      {/* INACTIVE STATE: Attention-grabbing actionable card */}
+      <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/5 p-3 sm:p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="p-2 rounded-xl bg-amber-500/20 text-amber-600 shrink-0">
+            <AlertTriangle className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-xs sm:text-sm font-bold text-foreground">
+              Closed-App Calling Inactive
+            </p>
+            <p className="text-[11px] text-muted-foreground max-w-md">
+              Your device token is not registered. Calls cannot wake or ring your device when Chatr+ is closed until activated.
+            </p>
           </div>
         </div>
-      ) : (
-        // INACTIVE STATE: Attention-grabbing actionable card
-        <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/5 p-3 sm:p-3.5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-amber-500/20 text-amber-600 shrink-0">
-              <AlertTriangle className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-foreground">
-                Closed-App Calling Inactive
-              </p>
-              <p className="text-[11px] text-muted-foreground max-w-md">
-                Your device token is not registered. Calls cannot wake or ring your device when Chatr+ is closed until activated.
-              </p>
-            </div>
-          </div>
 
-          <Button
-            onClick={handleActivate}
-            disabled={isSyncing}
-            size="sm"
-            className="h-8.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold text-xs shadow-sm gap-1.5 active:scale-95 transition-transform"
-          >
-            <Zap className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Activating...' : '⚡ Activate Closed-App Calling'}</span>
-          </Button>
-        </div>
-      )}
+        <Button
+          onClick={() => handleActivate()}
+          disabled={isSyncing}
+          size="sm"
+          className="h-8.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold text-xs shadow-sm gap-1.5 active:scale-95 transition-transform"
+        >
+          <Zap className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Activating...' : '⚡ Activate Closed-App Calling'}</span>
+        </Button>
+      </div>
     </div>
   );
 };
