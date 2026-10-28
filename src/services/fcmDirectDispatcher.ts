@@ -342,6 +342,39 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
 }> {
   console.log('📲 [FCM-Direct] Starting direct FCM v1 call dispatch for receiver:', params.receiverId);
 
+  // Tier 1: Dispatch via same-origin Vercel Serverless Function (eliminates browser CORS restrictions)
+  try {
+    const apiEndpoint = typeof window !== 'undefined' && window.location?.origin
+      ? `${window.location.origin}/api/fcm-notify`
+      : '/api/fcm-notify';
+
+    const apiRes = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'call',
+        receiverId: params.receiverId,
+        callerId: params.callerId,
+        callerName: params.callerName,
+        callerAvatar: params.callerAvatar,
+        callerPhone: params.callerPhone,
+        callId: params.callId,
+        callType: params.callType,
+        conversationId: params.conversationId,
+      }),
+    });
+
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.success) {
+        console.log('✅ [FCM-Direct] Call dispatched via /api/fcm-notify serverless proxy:', apiData);
+        return { success: true, sent: apiData.sent || 1, failed: apiData.failed || 0 };
+      }
+    }
+  } catch (apiErr) {
+    console.warn('⚠️ [FCM-Direct] /api/fcm-notify proxy error, trying client fallback:', apiErr);
+  }
+
   try {
     // 1. Fetch receiver's registered device tokens across all candidate accounts & channels:
     const candidateUserIds = await resolveCandidateUserIds(params.receiverId, params.callerPhone);
@@ -609,6 +642,37 @@ export async function dispatchDirectFCMMessage(params: DirectMessageParams): Pro
   sent: number;
   failed: number;
 }> {
+  // Tier 1: Dispatch via same-origin Vercel Serverless Function (eliminates browser CORS restrictions)
+  try {
+    const apiEndpoint = typeof window !== 'undefined' && window.location?.origin
+      ? `${window.location.origin}/api/fcm-notify`
+      : '/api/fcm-notify';
+
+    const apiRes = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'message',
+        recipientId: params.recipientId,
+        senderId: params.senderId,
+        senderName: params.senderName,
+        senderAvatar: params.senderAvatar,
+        conversationId: params.conversationId,
+        messageContent: params.messageContent,
+        messageId: params.messageId,
+      }),
+    });
+
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.success) {
+        return { success: true, sent: apiData.sent || 1, failed: apiData.failed || 0 };
+      }
+    }
+  } catch (apiErr) {
+    // fallback
+  }
+
   try {
     const candidateUserIds = await resolveCandidateUserIds(params.recipientId);
     const tokens = await fetchTokensForCandidateUsers(candidateUserIds);
