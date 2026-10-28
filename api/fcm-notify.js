@@ -140,17 +140,18 @@ async function resolveCandidateUserIds(rawIdentifier, secondaryIdentifier) {
       try {
         const { data: prof } = await supabase
           .from('profiles')
-          .select('id, phone_number')
+          .select('id, phone_number, phone_search')
           .eq('id', trimmed)
           .maybeSingle();
 
-        if (prof?.phone_number) {
-          const variants = getPhoneVariants(prof.phone_number);
+        const phoneVal = prof?.phone_number || prof?.phone_search;
+        if (phoneVal) {
+          const variants = getPhoneVariants(phoneVal);
           for (const pv of variants) {
             const { data: siblingProfiles } = await supabase
               .from('profiles')
               .select('id')
-              .eq('phone_number', pv);
+              .or(`phone_number.eq.${pv},phone_search.eq.${pv}`);
             siblingProfiles?.forEach((s) => {
               if (s.id && isUUID(s.id)) resolvedIds.add(s.id);
             });
@@ -164,7 +165,7 @@ async function resolveCandidateUserIds(rawIdentifier, secondaryIdentifier) {
           const { data: profilesByPhone } = await supabase
             .from('profiles')
             .select('id')
-            .eq('phone_number', pv);
+            .or(`phone_number.eq.${pv},phone_search.eq.${pv}`);
           profilesByPhone?.forEach((p) => {
             if (p.id && isUUID(p.id)) resolvedIds.add(p.id);
           });
@@ -225,8 +226,14 @@ async function fetchTokensForCandidateUsers(candidateUserIds) {
 
       for (const tok of candidateTokens) {
         if (tok && typeof tok === 'string' && !tokenSet.has(tok)) {
+          // FCM v1 registration tokens contain ':' (e.g. token:APA91b...) or standard FCM length
+          const looksLikeFcm = tok.includes(':') || (tok.length >= 120 && !tok.startsWith('web_push_'));
+          if (!looksLikeFcm && !tok.includes(':APA91b')) {
+            // Raw VAPID key or malformed non-FCM token, skip to prevent FCM HTTP v1 rejection
+            continue;
+          }
           tokenSet.add(tok);
-          const isWebToken = tok.startsWith('web_push_') || tok.length > 160;
+          const isWebToken = tok.startsWith('web_push_') || tok.length > 165;
           tokens.push({ device_token: tok, platform: isWebToken ? 'web' : 'android' });
         }
       }

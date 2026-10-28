@@ -344,9 +344,10 @@ export async function dispatchDirectFCMCall(params: DirectCallParams): Promise<{
 
   // Tier 1: Dispatch via same-origin Vercel Serverless Function (eliminates browser CORS restrictions)
   try {
-    const apiEndpoint = typeof window !== 'undefined' && window.location?.origin
+    const isChatrOrigin = typeof window !== 'undefined' && window.location?.origin && window.location.origin.includes('chatr.chat');
+    const apiEndpoint = isChatrOrigin
       ? `${window.location.origin}/api/fcm-notify`
-      : '/api/fcm-notify';
+      : 'https://chatr.chat/api/fcm-notify';
 
     const apiRes = await fetch(apiEndpoint, {
       method: 'POST',
@@ -644,9 +645,10 @@ export async function dispatchDirectFCMMessage(params: DirectMessageParams): Pro
 }> {
   // Tier 1: Dispatch via same-origin Vercel Serverless Function (eliminates browser CORS restrictions)
   try {
-    const apiEndpoint = typeof window !== 'undefined' && window.location?.origin
+    const isChatrOrigin = typeof window !== 'undefined' && window.location?.origin && window.location.origin.includes('chatr.chat');
+    const apiEndpoint = isChatrOrigin
       ? `${window.location.origin}/api/fcm-notify`
-      : '/api/fcm-notify';
+      : 'https://chatr.chat/api/fcm-notify';
 
     const apiRes = await fetch(apiEndpoint, {
       method: 'POST',
