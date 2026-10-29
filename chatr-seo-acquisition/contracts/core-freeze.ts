@@ -138,6 +138,8 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/auth/firebase.ts',
   'src/contexts/CallContext.tsx',
   'src/pages/Chat.tsx',
+  'src/contexts/ChatContext.tsx',
+  'src/hooks/useChatPushNotifications.tsx',
   'src/components/NativeAppProvider.tsx',
   'src/hooks/useFirebaseMessaging.tsx',
   'src/hooks/usePushNotifications.tsx',
