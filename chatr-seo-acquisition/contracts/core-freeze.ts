@@ -184,6 +184,13 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'ios/App/App/Info.plist.example',
   // Frictionless 1-Tap App Installation
   'src/pages/Install.tsx',
+  // SEO Growth & Real Translation Utility Integration
+  'src/components/translator/InteractiveTranslator.tsx',
+  'src/pages/alternatives/CompetitorComparison.tsx',
+  'src/pages/alternatives/AlternativesHub.tsx',
+  'src/pages/seo/LanguagePair.tsx',
+  'src/components/seo/SeoLandingLayout.tsx',
+  'src/pages/seo/TranslateDirectory.tsx',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {

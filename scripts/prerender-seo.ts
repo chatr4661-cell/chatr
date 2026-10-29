@@ -77,13 +77,14 @@ const renderHead = (target: Target) => {
   ].join('\n    ');
 };
 
-type PageKind = 'translation' | 'location' | 'ai-answering' | 'download' | 'generic';
+type PageKind = 'translation' | 'location' | 'ai-answering' | 'download' | 'comparison' | 'generic';
 
 const classify = (path: string): PageKind => {
   if (path.startsWith('/chatr/translate/')) return 'translation';
   if (path.startsWith('/chatr/locations/')) return 'location';
   if (/ai-call-answering|ai-agents|ai-messaging/.test(path)) return 'ai-answering';
-  if (/download|whatsapp-alternative/.test(path)) return 'download';
+  if (path.startsWith('/alternatives') || path.startsWith('/compare')) return 'comparison';
+  if (/download/.test(path)) return 'download';
   return 'generic';
 };
 
@@ -144,6 +145,25 @@ const contentFor = (kind: PageKind, heading: string): string => {
           'Screen unknown callers before you decide to pick up.',
           'Works in multiple Indian languages.',
         ])),
+      ].join('');
+    case 'comparison':
+      return [
+        section('Key Differences & Capabilities', list([
+          'Live call speech translation: speak your regional language and the other side hears theirs in real time.',
+          'Zero contact book crowd-sourcing: your contacts stay private on your device.',
+          '100% ad-free experience: no tracking cookies, banners or sponsored feeds.',
+          'Integrated AI assistant for summarizing threads and drafting replies.',
+          'Zero-password authentication using secure phone number verification.',
+        ])),
+        section('Why Choose Chatr', list([
+          'Built for regional Indian languages (Haryanvi, Tulu, Kannada, Telugu, Odia, Rajasthani, Hindi).',
+          'Ultra-lightweight footprint that loads fast even on slow networks.',
+          'Cross-platform WebRTC audio/video calling across Android, iOS and PC.',
+        ])),
+        section('Frequently Asked Questions', [
+          ['Is Chatr free to download and use?', 'Yes, Chatr core messaging and voice/video calling are 100% free.'],
+          ['Can I translate phone calls in real time?', 'Yes, Chatr provides live speech-to-speech translation during voice and video calls.'],
+        ].map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join('')),
       ].join('');
     case 'download':
       return [

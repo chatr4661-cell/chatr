@@ -173,6 +173,19 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   '/privacy': page('ai-workspace', 'chatr privacy policy'),
   '/refund': page('ai-workspace', 'chatr refund policy'),
   '/disclaimer': page('ai-workspace', 'chatr disclaimer'),
+
+  // Competitor Comparisons & Alternatives
+  '/alternatives': page('ai-workspace', 'communication software alternatives', { schemaType: 'CollectionPage' }),
+  '/alternatives/whatsapp': page('ai-messaging', 'whatsapp alternative live call translation', { schemaType: 'SoftwareApplication' }),
+  '/alternatives/microsoft-teams': page('business-communication', 'microsoft teams lightweight alternative', { schemaType: 'SoftwareApplication' }),
+  '/alternatives/facetime': page('calling-intelligence', 'facetime alternative for android and pc', { schemaType: 'SoftwareApplication' }),
+  '/alternatives/slack': page('business-communication', 'slack alternative without message paywall', { schemaType: 'SoftwareApplication' }),
+  '/alternatives/telegram': page('ai-messaging', 'telegram privacy alternative verified calls', { schemaType: 'SoftwareApplication' }),
+  '/compare': page('ai-workspace', 'chatr software comparisons hub', { schemaType: 'CollectionPage' }),
+  '/compare/chatr-vs-whatsapp': page('ai-messaging', 'chatr vs whatsapp comparison', { schemaType: 'WebPage' }),
+  '/compare/chatr-vs-microsoft-teams': page('business-communication', 'chatr vs microsoft teams comparison', { schemaType: 'WebPage' }),
+  '/compare/chatr-vs-facetime': page('calling-intelligence', 'chatr vs facetime comparison', { schemaType: 'WebPage' }),
+  '/translate': page('calling-intelligence', 'regional indian language translation hub', { schemaType: 'CollectionPage' }),
 };
 
 /**

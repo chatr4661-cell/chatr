@@ -319,6 +319,8 @@ export const SeoLanguagePair = lazy(() => import('@/pages/seo/LanguagePair'));
 export const SeoLanguageCity = lazy(() => import('@/pages/seo/LanguageCity'));
 export const SeoLocationsDirectory = lazy(() => import('@/pages/seo/LocationsDirectory'));
 export const SeoTranslateDirectory = lazy(() => import('@/pages/seo/TranslateDirectory'));
+export const CompetitorComparison = lazy(() => import('@/pages/alternatives/CompetitorComparison'));
+export const AlternativesHub = lazy(() => import('@/pages/alternatives/AlternativesHub'));
 export const PublicHome = lazy(() => import('@/pages/PublicHome'));
 export const SeoControlTower = lazy(() => import('@/pages/SeoControlTower'));
 export const Help = lazy(() => import('@/pages/Help'));

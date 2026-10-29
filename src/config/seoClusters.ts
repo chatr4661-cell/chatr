@@ -87,6 +87,21 @@ export const internalLinksFor = (path: string): InternalLink[] => {
 
   // Deep translate families are resolved structurally, not by scanning the
   // cluster, so the link graph stays O(1) at 100k+ URLs.
+  if (path.startsWith('/alternatives') || path.startsWith('/compare')) {
+    return [
+      { to: '/alternatives', anchor: 'All alternatives' },
+      { to: '/alternatives/whatsapp', anchor: 'WhatsApp alternative' },
+      { to: '/alternatives/microsoft-teams', anchor: 'Microsoft Teams alternative' },
+      { to: '/alternatives/facetime', anchor: 'FaceTime alternative' },
+      { to: '/alternatives/slack', anchor: 'Slack alternative' },
+      { to: '/alternatives/telegram', anchor: 'Telegram alternative' },
+      { to: '/compare', anchor: 'Software comparisons' },
+      { to: '/compare/chatr-vs-whatsapp', anchor: 'Chatr vs WhatsApp' },
+      { to: '/compare/chatr-vs-microsoft-teams', anchor: 'Chatr vs Teams' },
+      { to: '/compare/chatr-vs-facetime', anchor: 'Chatr vs FaceTime' },
+      { to: '/', anchor: 'Chatr+' },
+    ];
+  }
   if (path.startsWith('/chatr/translate/')) {
     const [pairSlug, citySlug] = path.slice('/chatr/translate/'.length).split('/');
     if (PAIR_SLUGS.has(pairSlug) && !citySlug) {
@@ -153,6 +168,9 @@ export const internalLinksFor = (path: string): InternalLink[] => {
  * site-wide links, so pages reachable through them are not orphans.
  */
 export const GLOBAL_NAV_LINKS: string[] = [
+  '/alternatives',
+  '/compare',
+  '/translate',
   '/chatr/locations',
   '/chatr/translate',
   '/about',

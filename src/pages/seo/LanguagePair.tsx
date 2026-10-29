@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import NotFound from '@/pages/NotFound';
 import { SeoLandingLayout } from '@/components/seo/SeoLandingLayout';
+import { InteractiveTranslator } from '@/components/translator/InteractiveTranslator';
 import {
   getLanguagePair,
   LANGUAGE_PAIRS,

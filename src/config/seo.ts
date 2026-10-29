@@ -17,9 +17,9 @@ export const PRODUCTION_ORIGIN = 'https://chatr.chat';
 export const SITE_NAME = 'Chatr+';
 export const ORGANIZATION_NAME = 'Talentxcel Services Pvt Ltd';
 
-export const DEFAULT_TITLE = 'Chatr — Free AI Messaging, Voice Calling & Universal Inbox';
+export const DEFAULT_TITLE = 'CHATR — Messaging, Video Calls, AI Tools & Live Translation';
 export const DEFAULT_DESCRIPTION =
-  'Chatr is a private AI messaging and calling app with a universal inbox. Connect Gmail, WhatsApp, and Slack in one place with AI summaries, live call translation, and zero passwords.';
+  'Chat, make free HD voice and video calls, explore AI tools, and translate conversations in real time across Indian regional languages on CHATR. Free phone-number sign in with zero passwords.';
 
 /** Real asset committed in /public. */
 export const DEFAULT_OG_IMAGE = '/chatr-logo.png';
@@ -347,6 +347,96 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
       'Limitations that apply to information published on Chatr+, including health-related content.',
     changefreq: 'yearly',
     priority: 0.3,
+  },
+
+  // Competitor Comparison & Alternative Routes
+  {
+    path: '/alternatives',
+    title: 'Modern Communication Alternatives & Software Comparisons (2026) — Chatr',
+    description:
+      'Compare Chatr against WhatsApp, Microsoft Teams, FaceTime, Slack, and Telegram. Discover private messaging, real-time live call translation, and zero passwords.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/alternatives/whatsapp',
+    title: 'Best WhatsApp Alternative (2026) — Chatr vs WhatsApp',
+    description:
+      'Looking for a WhatsApp alternative with real-time live call speech translation, ad-free calling, and AI chat assistance? Compare Chatr and WhatsApp.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/alternatives/microsoft-teams',
+    title: 'Lightweight Microsoft Teams Alternative (2026) — Chatr vs Teams',
+    description:
+      'Compare Chatr with Microsoft Teams for fast team messaging, HD video calling, AI summaries, and zero RAM bloat without Microsoft 365 license fees.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/alternatives/facetime',
+    title: 'Cross-Platform FaceTime Alternative for Android & PC — Chatr',
+    description:
+      'Looking for a FaceTime alternative that works on Android, Windows, and iPhone with live regional call translation? Compare Chatr and FaceTime.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/alternatives/slack',
+    title: 'Modern Slack Alternative Without 90-Day Archive Limits — Chatr',
+    description:
+      'Compare Chatr with Slack for team channels, AI summaries, and persistent message history without per-seat paywalls.',
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+  {
+    path: '/alternatives/telegram',
+    title: 'Privacy-First Telegram Alternative with Verified Trust — Chatr',
+    description:
+      'Compare Chatr with Telegram for verified communities, live speech translation on phone calls, and zero advertising.',
+    changefreq: 'weekly',
+    priority: 0.7,
+  },
+  {
+    path: '/compare',
+    title: 'Chatr vs Competitors — Objective Software Comparison Hub',
+    description:
+      'Direct side-by-side feature and architectural comparisons between Chatr and WhatsApp, Teams, FaceTime, Slack, and Telegram.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/compare/chatr-vs-whatsapp',
+    title: 'Chatr vs WhatsApp Comparison — Features, Privacy & Translation',
+    description:
+      'Feature-by-feature comparison between Chatr and WhatsApp on encryption, live call translation, contact privacy, and AI assistance.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/compare/chatr-vs-microsoft-teams',
+    title: 'Chatr vs Microsoft Teams Comparison — Speed, Calling & Cost',
+    description:
+      'Side-by-side comparison between Chatr and Microsoft Teams on meeting latency, RAM usage, onboarding speed, and pricing.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/compare/chatr-vs-facetime',
+    title: 'Chatr vs FaceTime Comparison — Cross-Platform Calling & Translation',
+    description:
+      'Compare video calling quality, Android/Windows compatibility, and live translation between Chatr and Apple FaceTime.',
+    changefreq: 'weekly',
+    priority: 0.8,
+  },
+  {
+    path: '/translate',
+    title: 'Regional Indian Language & Call Translation — Chatr',
+    description:
+      'Translate text and live speech across 25+ Indian regional languages including Haryanvi, Tulu, Kannada, Telugu, Odia, Rajasthani, Hindi and English on Chatr.',
+    changefreq: 'weekly',
+    priority: 0.8,
   },
 
   // Programmatic families: city x use-case pages and language-pair pages.

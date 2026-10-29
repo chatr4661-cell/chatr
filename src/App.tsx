@@ -283,6 +283,14 @@ const App = () => {
             <Route path="/lookup" element={<Navigate to="/chatr/spam-call-protection" replace />} />
             <Route path="/direct-chat" element={<Navigate to="/chat" replace />} />
             {/* Programmatic SEO families — order matters: hubs before params */}
+            {/* Competitor Comparisons & Alternatives */}
+            <Route path="/alternatives" element={<LazyRoute component={LazyPages.AlternativesHub} />} />
+            <Route path="/alternatives/:competitorSlug" element={<LazyRoute component={LazyPages.CompetitorComparison} />} />
+            <Route path="/compare" element={<LazyRoute component={LazyPages.AlternativesHub} />} />
+            <Route path="/compare/:competitorSlug" element={<LazyRoute component={LazyPages.CompetitorComparison} />} />
+            {/* Direct Clean Translation Routes */}
+            <Route path="/translate" element={<LazyRoute component={LazyPages.SeoTranslateDirectory} />} />
+            <Route path="/translate/:pair" element={<LazyRoute component={LazyPages.SeoLanguagePair} />} />
             <Route path="/chatr/locations" element={<LazyRoute component={LazyPages.SeoLocationsDirectory} />} />
             <Route path="/chatr/translate" element={<LazyRoute component={LazyPages.SeoTranslateDirectory} />} />
             <Route path="/chatr/translate/:pair" element={<LazyRoute component={LazyPages.SeoLanguagePair} />} />
