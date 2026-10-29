@@ -677,9 +677,17 @@ export function GlobalCallListener() {
   // Show active call (both caller and receiver) - UNIFIED for voice and video
   // Also render handoff banner on top of active calls
   if (activeCall) {
-    const contactName = activeCall.isInitiator 
-      ? activeCall.callerName 
-      : activeCall.callerName;
+    const contactName = activeCall.isInitiator
+      ? (activeCall.receiver_name || activeCall.callerName)
+      : (activeCall.callerName || activeCall.caller_name || "Unknown");
+
+    const contactAvatar = activeCall.isInitiator
+      ? (activeCall.receiver_avatar || activeCall.callerAvatar)
+      : (activeCall.callerAvatar || activeCall.caller_avatar);
+
+    const contactPhone = activeCall.isInitiator
+      ? (activeCall.receiver_phone || activeCall.contactPhone || "")
+      : (activeCall.caller_phone || activeCall.contactPhone || "");
 
     return (
       <>
@@ -711,8 +719,8 @@ export function GlobalCallListener() {
         <UnifiedCallScreen
           callId={activeCall.id}
           contactName={contactName}
-          contactAvatar={activeCall.callerAvatar}
-          contactPhone={activeCall.caller_phone || activeCall.receiver_phone}
+          contactAvatar={contactAvatar}
+          contactPhone={contactPhone}
           isInitiator={activeCall.isInitiator}
           partnerId={activeCall.partnerId}
           callType={activeCall.call_type === 'video' ? 'video' : 'voice'}

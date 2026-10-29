@@ -228,12 +228,14 @@ export const ConversationList = ({ userId, onConversationSelect }: ConversationL
           body: {
             type: 'call',
             receiverId: conversation.other_user?.id,
+            receiverPhone: conversation.other_user?.phone_number || '',
             callerId: userId,
             callerName: profile?.username || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
             callerPhone: profile?.phone_number || '',
             callId: data.id,
-            callType: callType
+            callType: callType,
+            conversationId: conversation.id || ''
           }
         });
         if (fcmError || !fcmData?.success) {

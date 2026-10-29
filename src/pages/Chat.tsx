@@ -823,16 +823,19 @@ const ChatEnhancedContent = () => {
       // This is a redundant safety net; the database trigger fires fcm-call-trigger on INSERT
       try {
         console.log('📲 [Chat] Sending FCM call notification to:', otherUser.id);
+        const receiverPhoneNum = receiverProfile?.phone_number || otherUser.phone_number || '';
         const { data: fcmData, error: fcmError } = await supabase.functions.invoke('fcm-notify', {
           body: {
             type: 'call',
             receiverId: otherUser.id,
+            receiverPhone: receiverPhoneNum,
             callerId: user!.id,
             callerName: profile?.username || user!.email || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
             callerPhone: profile?.phone_number || '',
             callId: data.id,
-            callType: callType
+            callType: callType,
+            conversationId: activeConversationId || ''
           }
         });
         const isUndelivered = fcmError || !fcmData?.success || fcmData?.validation?.status === 'no_tokens' || fcmData?.validation?.status === 'all_failed';
@@ -841,13 +844,14 @@ const ChatEnhancedContent = () => {
           const { dispatchDirectFCMCall } = await import('@/services/fcmDirectDispatcher');
           await dispatchDirectFCMCall({
             receiverId: otherUser.id,
+            receiverPhone: receiverPhoneNum,
             callerId: user!.id,
             callerName: profile?.username || user!.email || 'Unknown',
             callerAvatar: profile?.avatar_url || '',
             callerPhone: profile?.phone_number || '',
             callId: data.id,
             callType: callType,
-            conversationId: conversationId || '',
+            conversationId: activeConversationId || '',
           });
         } else {
           console.log('✅ [Chat] FCM sent:', fcmData?.validation?.status || 'ok');

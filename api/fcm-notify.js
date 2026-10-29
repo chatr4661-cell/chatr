@@ -298,11 +298,12 @@ export default async function handler(req, res) {
       const callerName = body.callerName || 'Chatr User';
       const callerAvatar = body.callerAvatar || '';
       const callerPhone = body.callerPhone || '';
+      const receiverPhone = body.receiverPhone || body.receiver_phone || '';
       const callId = body.callId || ('call_' + Date.now());
       const callType = body.callType === 'video' ? 'video' : 'audio';
       const conversationId = body.conversationId || '';
 
-      const candidateUserIds = await resolveCandidateUserIds(receiverId, callerPhone);
+      const candidateUserIds = await resolveCandidateUserIds(receiverId, receiverPhone);
       const tokens = await fetchTokensForCandidateUsers(candidateUserIds);
 
       console.log(`[API-FCM] Dispatching call ${callId} to ${tokens.length} token(s) for candidate users:`, candidateUserIds);
@@ -365,8 +366,11 @@ export default async function handler(req, res) {
                 caller_name: callerName,
                 caller_avatar: callerAvatar,
                 caller_phone: callerPhone,
+                receiver_phone: receiverPhone,
+                call_type: callType,
                 is_video: callType === 'video' ? 'true' : 'false',
                 conversation_id: conversationId,
+                ringtone_sound: 'default',
                 timestamp: Date.now().toString(),
               },
             },
