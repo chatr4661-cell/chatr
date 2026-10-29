@@ -105,27 +105,25 @@ export const useFirebaseMessaging = (userId?: string) => {
           }
 
           // 2. Direct database upsert for instant availability
-          const { error: dbError } = await supabase
-            .from('device_tokens')
-            .upsert({
-              user_id: userId,
-              device_token: token,
-              platform: 'web',
-              device_info: {
-                userAgent: navigator.userAgent,
-                isPWA: isStandalone,
+          try {
+            const { error: dbError } = await supabase
+              .from('device_tokens')
+              .upsert({
+                user_id: userId,
+                device_token: token,
                 platform: 'web',
-                timestamp: new Date().toISOString()
-              },
-              last_used_at: new Date().toISOString()
-            }, {
-              onConflict: 'user_id,device_token'
-            });
+                last_used_at: new Date().toISOString()
+              }, {
+                onConflict: 'user_id,device_token'
+              });
 
-          if (dbError) {
-            console.error("Error saving web device token:", dbError);
-          } else {
-            console.log("✅ Web device token saved to database");
+            if (dbError) {
+              console.warn("Notice saving web device token:", dbError.message);
+            } else {
+              console.log("✅ Web device token saved to database");
+            }
+          } catch (upsertErr) {
+            console.warn("device_tokens upsert caught:", upsertErr);
           }
 
           // 3. Mirror token to profiles.privacy_settings (bypasses RLS so peer callers can always wake up this device)
@@ -291,7 +289,9 @@ export async function registerPushTokenForUser(userId: string, forceRefresh: boo
       const opts: { vapidKey?: string; serviceWorkerRegistration: ServiceWorkerRegistration } = {
         serviceWorkerRegistration: swRegistration,
       };
-      if (VAPID_KEY) opts.vapidKey = VAPID_KEY;
+      if (VAPID_KEY && VAPID_KEY !== 'YOUR_VAPID_KEY' && !VAPID_KEY.includes('your_vapid')) {
+        opts.vapidKey = VAPID_KEY;
+      }
       token = await getToken(msgInstance, opts);
     }
   } catch (fcmErr) {
@@ -334,16 +334,10 @@ export async function registerPushTokenForUser(userId: string, forceRefresh: boo
         user_id: userId,
         device_token: token,
         platform: 'web',
-        device_info: {
-          userAgent: navigator.userAgent,
-          isPWA: isStandalone,
-          platform: 'web',
-          timestamp: new Date().toISOString()
-        },
         last_used_at: new Date().toISOString()
       }, { onConflict: 'user_id,device_token' });
   } catch (dbErr) {
-    console.warn('device_tokens upsert warning:', dbErr);
+    console.warn('device_tokens upsert notice:', dbErr);
   }
 
   // 7. Mirror token to profiles.privacy_settings (bypasses RLS so peer callers can always wake this device)

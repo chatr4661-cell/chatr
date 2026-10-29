@@ -445,45 +445,12 @@ const ChatEnhancedContent = () => {
     return () => clearTimeout(syncTimer);
   }, [user?.id]);
 
-  // Set loading to false as soon as session or user is confirmed
+  // Fast auth redirection
   React.useEffect(() => {
-    if (session || user?.id) {
-      setLoading(false);
+    if (isAuthReady && !user?.id) {
+      navigate('/auth', { replace: true });
     }
-  }, [session, user?.id]);
-
-  // Fast auth check - non-blocking with safety fallback
-  React.useEffect(() => {
-    let active = true;
-    const checkAuth = async () => {
-      try {
-        const { data: { session: curSession } } = await supabase.auth.getSession();
-        if (!active) return;
-        if (!curSession && !user?.id) {
-          navigate('/auth', { replace: true });
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        console.warn('Auth check error in Chat:', err);
-        if (active) setLoading(false);
-      }
-    };
-    
-    checkAuth();
-
-    // Safety fallback: Never leave the user stuck on the spinner for more than 1.5 seconds
-    const safetyTimer = setTimeout(() => {
-      if (active) {
-        setLoading(false);
-      }
-    }, 1500);
-
-    return () => {
-      active = false;
-      clearTimeout(safetyTimer);
-    };
-  }, [navigate, user?.id]);
+  }, [isAuthReady, user?.id, navigate]);
 
   const handleStartConversation = async (contact: any) => {
     try {
@@ -927,22 +894,18 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Show loading only during initial check (with fail-safe)
-  if (loading && !isAuthReady && !user?.id && !session) {
+  // Critical Auth Boundary: Never render chat body without an authenticated user
+  if (!user?.id) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground">Loading chat...</p>
+          <p className="text-sm text-muted-foreground">
+            {!isAuthReady ? "Loading chat..." : "Redirecting to login..."}
+          </p>
         </div>
       </div>
     );
-  }
-
-  // If no user after loading, redirect to auth
-  if (!user?.id && isAuthReady) {
-    navigate('/auth', { replace: true });
-    return null;
   }
 
   // Show offline mode if enabled
