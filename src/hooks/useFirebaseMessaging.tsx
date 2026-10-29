@@ -65,16 +65,21 @@ export const useFirebaseMessaging = (userId?: string) => {
           const opts: { vapidKey?: string; serviceWorkerRegistration: ServiceWorkerRegistration } = {
             serviceWorkerRegistration: swRegistration,
           };
-          if (VAPID_KEY) {
+          if (VAPID_KEY && VAPID_KEY !== 'YOUR_VAPID_KEY' && !VAPID_KEY.includes('your_vapid')) {
             opts.vapidKey = VAPID_KEY;
           }
           token = await getToken(msgInstance, opts);
         } catch (tokenErr: any) {
-          console.warn("FCM getToken failed with options, attempting default fallback:", tokenErr);
-          try {
-            token = await getToken(msgInstance, { serviceWorkerRegistration: swRegistration });
-          } catch (retryErr) {
-            console.warn("FCM getToken fallback error:", retryErr);
+          const is401 = tokenErr?.message?.includes('401') || String(tokenErr).includes('401');
+          if (!is401) {
+            console.warn("FCM getToken failed with options, attempting default fallback:", tokenErr);
+            try {
+              token = await getToken(msgInstance, { serviceWorkerRegistration: swRegistration });
+            } catch (retryErr) {
+              console.warn("FCM getToken fallback error:", retryErr);
+            }
+          } else {
+            console.warn("FCM WebPush credentials not authorized by Google (401). Continuing with native browser push fallback.");
           }
         }
 

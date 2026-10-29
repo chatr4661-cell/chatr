@@ -445,20 +445,45 @@ const ChatEnhancedContent = () => {
     return () => clearTimeout(syncTimer);
   }, [user?.id]);
 
-  // Fast auth check - non-blocking
+  // Set loading to false as soon as session or user is confirmed
   React.useEffect(() => {
+    if (session || user?.id) {
+      setLoading(false);
+    }
+  }, [session, user?.id]);
+
+  // Fast auth check - non-blocking with safety fallback
+  React.useEffect(() => {
+    let active = true;
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-      } else {
-        setLoading(false);
+      try {
+        const { data: { session: curSession } } = await supabase.auth.getSession();
+        if (!active) return;
+        if (!curSession && !user?.id) {
+          navigate('/auth', { replace: true });
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.warn('Auth check error in Chat:', err);
+        if (active) setLoading(false);
       }
     };
     
     checkAuth();
-  }, [navigate]);
+
+    // Safety fallback: Never leave the user stuck on the spinner for more than 1.5 seconds
+    const safetyTimer = setTimeout(() => {
+      if (active) {
+        setLoading(false);
+      }
+    }, 1500);
+
+    return () => {
+      active = false;
+      clearTimeout(safetyTimer);
+    };
+  }, [navigate, user?.id]);
 
   const handleStartConversation = async (contact: any) => {
     try {
@@ -902,8 +927,8 @@ const ChatEnhancedContent = () => {
     }
   };
 
-  // Show loading only during initial check
-  if (loading || !isAuthReady) {
+  // Show loading only during initial check (with fail-safe)
+  if (loading && !isAuthReady && !user?.id && !session) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center space-y-2">
@@ -914,8 +939,9 @@ const ChatEnhancedContent = () => {
     );
   }
 
-  // If no user after loading, redirect will handle it
-  if (!user?.id) {
+  // If no user after loading, redirect to auth
+  if (!user?.id && isAuthReady) {
+    navigate('/auth', { replace: true });
     return null;
   }
 

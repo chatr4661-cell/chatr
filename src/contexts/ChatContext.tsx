@@ -53,43 +53,16 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   React.useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        // First, check for existing session
-        const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session retrieval error:', sessionError);
-          return;
-        }
-
-        if (existingSession && mounted) {
-          setSession(existingSession);
-          setUser(existingSession.user);
-          setIsAuthReady(true);
-          console.log('✅ Session restored:', existingSession.user.id);
-          
-          // Sync to native Android on session restore
-          syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
-        } else if (mounted) {
-          setIsAuthReady(true);
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth changes
+    // Set up auth listener FIRST (before checking session) - ensures all auth events update state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!mounted) return;
 
-      console.log('🔐 Auth event:', event);
+      console.log('🔐 [ChatContext] Auth event:', event, newSession?.user?.id);
       
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
+        setIsAuthReady(true);
         
         // Sync SIGNED_IN to native Android
         if (newSession?.user) {
@@ -99,17 +72,55 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(null);
         setUser(null);
         setActiveConversationId(null);
+        setIsAuthReady(true);
         
         // Sync SIGNED_OUT to native Android
         syncAuthToNative('SIGNED_OUT', null, null);
       } else if (event === 'USER_UPDATED') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
+        setIsAuthReady(true);
       }
     });
 
+    const initializeAuth = async () => {
+      try {
+        // First, check for existing session
+        const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session retrieval error:', sessionError);
+        }
+
+        if (existingSession && mounted) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          console.log('✅ Session restored:', existingSession.user.id);
+          
+          // Sync to native Android on session restore
+          syncAuthToNative('SIGNED_IN', existingSession.user.id, existingSession.access_token);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        if (mounted) {
+          setIsAuthReady(true);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Safety timeout: Guarantee isAuthReady is true within 1.5 seconds so UI never gets stuck
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setIsAuthReady(true);
+      }
+    }, 1500);
+
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);
