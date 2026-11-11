@@ -108,6 +108,11 @@ function buildMeta(handle: string, profile: any, discovery: any) {
 export async function onRequest(context: any): Promise<Response> {
   const { request, env, next } = context;
   const url = new URL(request.url);
+
+  // Canonical www -> apex redirect
+  if (url.hostname === 'www.chatr.chat') {
+    return Response.redirect('https://chatr.chat' + url.pathname + url.search, 301);
+  }
   const seg = url.pathname.replace(/^\/+|\/+$/g, '');
 
   if (!seg || seg.includes('/') || RESERVED.has(seg.toLowerCase()) || !HANDLE_RE.test(seg.toLowerCase())) {
