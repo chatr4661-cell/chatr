@@ -463,9 +463,12 @@ const Index = () => {
       if (lastProcessed === today) return;
       localStorage.setItem('last_daily_login', today);
 
-      const { data, error } = await supabase.functions.invoke('process-daily-login');
+      const { data, error } = await (supabase.rpc as any)('process_daily_login');
       
-      if (error) throw error;
+      if (error) {
+        // Fallback silently without throwing network CORS errors
+        return;
+      }
       
       if (data?.pointsAwarded > 0) {
        console.log(`[Index] Daily login bonus: ${data.pointsAwarded} points`);

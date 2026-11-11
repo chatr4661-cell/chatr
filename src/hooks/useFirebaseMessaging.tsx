@@ -71,18 +71,8 @@ export const useFirebaseMessaging = (userId?: string) => {
           }
           token = await getToken(msgInstance, opts);
         } catch (tokenErr: any) {
-          const is401 = tokenErr?.message?.includes('401') || String(tokenErr).includes('401');
-          if (!is401) {
-            console.warn("FCM getToken failed with options, attempting default fallback:", tokenErr);
-            try {
-              token = await getToken(msgInstance, { serviceWorkerRegistration: swRegistration });
-            } catch (retryErr) {
-              console.warn("FCM getToken fallback error:", retryErr);
-            }
-          } else {
-            sessionStorage.setItem('fcm_unauthorized', 'true');
-            console.warn("FCM WebPush credentials not authorized by Google (401). Continuing with native browser push fallback.");
-          }
+          sessionStorage.setItem('fcm_unauthorized', 'true');
+          console.warn("FCM WebPush credentials not active. Continuing with native browser push fallback:", tokenErr?.message || tokenErr);
         }
 
         if (token && isMounted && registeredTokenRef.current !== token) {
@@ -277,27 +267,29 @@ export async function registerPushTokenForUser(userId: string, forceRefresh: boo
   let token: string | null = null;
 
   // 3. Tier 1: Firebase getToken
-  try {
-    const msgInstance = await getMessagingInstance();
-    if (msgInstance && swRegistration) {
-      if (forceRefresh) {
-        try {
-          await deleteToken(msgInstance);
-          console.log('🔄 [FCM] Deleted cached FCM token to acquire brand-new registration from Google');
-        } catch (delErr) {
-          console.warn('[FCM] Could not delete token before refresh:', delErr);
+  if (sessionStorage.getItem('fcm_unauthorized') !== 'true') {
+    try {
+      const msgInstance = await getMessagingInstance();
+      if (msgInstance && swRegistration) {
+        if (forceRefresh) {
+          try {
+            await deleteToken(msgInstance);
+          } catch (delErr) {
+            console.warn('[FCM] Could not delete token before refresh:', delErr);
+          }
         }
+        const opts: { vapidKey?: string; serviceWorkerRegistration: ServiceWorkerRegistration } = {
+          serviceWorkerRegistration: swRegistration,
+        };
+        if (VAPID_KEY && VAPID_KEY !== 'YOUR_VAPID_KEY' && !VAPID_KEY.includes('your_vapid')) {
+          opts.vapidKey = VAPID_KEY;
+        }
+        token = await getToken(msgInstance, opts);
       }
-      const opts: { vapidKey?: string; serviceWorkerRegistration: ServiceWorkerRegistration } = {
-        serviceWorkerRegistration: swRegistration,
-      };
-      if (VAPID_KEY && VAPID_KEY !== 'YOUR_VAPID_KEY' && !VAPID_KEY.includes('your_vapid')) {
-        opts.vapidKey = VAPID_KEY;
-      }
-      token = await getToken(msgInstance, opts);
+    } catch (fcmErr: any) {
+      sessionStorage.setItem('fcm_unauthorized', 'true');
+      console.warn('FCM getToken inactive. Falling back to PushManager:', fcmErr?.message || fcmErr);
     }
-  } catch (fcmErr) {
-    console.warn('FCM getToken error:', fcmErr);
   }
 
   // 4. Tier 2: Native browser PushManager fallback (supported by 100% of modern Chrome/Edge)
