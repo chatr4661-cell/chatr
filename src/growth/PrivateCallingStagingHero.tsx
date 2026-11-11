@@ -11,13 +11,18 @@ export const PrivateCallingStagingHero: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   // Generate a cryptographically random room slug
+  // Security Task 3: 122-bit Cryptographically Secure UUIDv4 Room ID Generator
   const [roomSlug] = useState(() => {
     try {
-      const bytes = new Uint8Array(6);
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `p-${crypto.randomUUID()}`;
+      }
+      const bytes = new Uint8Array(16);
       crypto.getRandomValues(bytes);
-      return 'p-' + Array.from(bytes, b => b.toString(36).padStart(2, '0')).join('').slice(0, 8);
+      const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      return `p-${hex}`;
     } catch {
-      return 'p-' + Math.random().toString(36).substring(2, 10);
+      return `p-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 12)}`;
     }
   });
 

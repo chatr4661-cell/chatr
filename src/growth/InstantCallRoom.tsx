@@ -20,13 +20,18 @@ export const InstantCallRoom: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId?: string }>();
   
   // Security Priority 1: Cryptographically random room generator
+  // Security Task 3: 122-bit Cryptographically Secure UUIDv4 Room ID Generator
   const generateSlug = () => {
     try {
-      const bytes = new Uint8Array(6);
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return `p-${crypto.randomUUID()}`;
+      }
+      const bytes = new Uint8Array(16);
       crypto.getRandomValues(bytes);
-      return 'p-' + Array.from(bytes, b => b.toString(36).padStart(2, '0')).join('').slice(0, 8);
+      const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      return `p-${hex}`;
     } catch {
-      return 'p-' + Math.random().toString(36).substring(2, 10);
+      return `p-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 12)}`;
     }
   };
 
@@ -51,6 +56,7 @@ export const InstantCallRoom: React.FC = () => {
     }
   })()).current;
   const [isRoomFull, setIsRoomFull] = useState(false);
+  const peerSessionIdRef = useRef<string | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -250,44 +256,77 @@ export const InstantCallRoom: React.FC = () => {
       }
     });
 
-    // Enforce reliable 2-participant room occupancy
-    channel.on('presence', { event: 'sync' }, () => {
+    // Task 2: Strict Session-Bound & Presence-Gated Handshake
+    channel.on('presence', { event: 'sync' }, async () => {
       const state = channel.presenceState();
       const keys = Object.keys(state);
+      // 3rd-party rejection: if more than 2 participants exist and this client is not in first 2
       if (keys.length > 2 && !keys.slice(0, 2).includes(clientSessionId)) {
+        console.warn('[WebRTC Security] Room occupancy limit exceeded. Blocking 3rd participant.');
         setIsRoomFull(true);
         if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
         if (peerConnectionRef.current) peerConnectionRef.current.close();
+        return;
+      }
+
+      // Exactly 2 participants: establish authorized peer connection without offer glare
+      if (keys.length === 2 && !isRoomFull) {
+        const otherKey = keys.find(k => k !== clientSessionId);
+        if (otherKey && !peerSessionIdRef.current) {
+          peerSessionIdRef.current = otherKey;
+          // Designated offerer: client with lexicographically smaller sessionId initiates the offer
+          if (clientSessionId < otherKey) {
+            console.log('[WebRTC Signaling] Designated offerer sending SDP to peer:', otherKey);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            channel.send({
+              type: 'broadcast',
+              event: 'offer',
+              payload: { sdp: offer, senderId: clientSessionId, targetId: otherKey }
+            });
+          }
+        }
       }
     });
     channelRef.current = channel;
 
     pc.onicecandidate = (event) => {
-      if (event.candidate) {
+      if (event.candidate && peerSessionIdRef.current) {
         channel.send({
           type: 'broadcast',
           event: 'ice-candidate',
-          payload: { candidate: event.candidate }
+          payload: { candidate: event.candidate, senderId: clientSessionId, targetId: peerSessionIdRef.current }
         });
       }
     };
 
     channel.on('broadcast', { event: 'offer' }, async ({ payload }) => {
+      if (!payload?.senderId || payload.senderId === clientSessionId) return;
+      // If bound to a peer and offer comes from an unknown 3rd party: REJECT
+      if (peerSessionIdRef.current && peerSessionIdRef.current !== payload.senderId) {
+        console.warn('[WebRTC Security] Dropped unauthorized offer from 3rd party:', payload.senderId);
+        return;
+      }
+      peerSessionIdRef.current = payload.senderId;
       await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       channel.send({
         type: 'broadcast',
         event: 'answer',
-        payload: { sdp: answer }
+        payload: { sdp: answer, senderId: clientSessionId, targetId: payload.senderId }
       });
     });
 
     channel.on('broadcast', { event: 'answer' }, async ({ payload }) => {
+      if (payload?.targetId && payload.targetId !== clientSessionId) return;
+      if (payload?.senderId !== peerSessionIdRef.current) return;
       await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
     });
 
     channel.on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+      if (payload?.targetId && payload.targetId !== clientSessionId) return;
+      if (payload?.senderId && payload.senderId !== peerSessionIdRef.current) return;
       try {
         await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
       } catch (err) {
@@ -298,13 +337,7 @@ export const InstantCallRoom: React.FC = () => {
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         try { await channel.track({ joinedAt: Date.now() }); } catch {}
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        channel.send({
-          type: 'broadcast',
-          event: 'offer',
-          payload: { sdp: offer }
-        });
+        // Offer is gated by presence sync once 2nd peer arrives; no unconditional offer spam
       }
     });
   };
