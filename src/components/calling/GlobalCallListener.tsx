@@ -7,7 +7,8 @@ import { useCallHandoff } from "@/hooks/useCallHandoff";
 
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { PhoneOff, Lock } from "lucide-react";
 import { clearPreCallMediaStream, setPreCallMediaStream, takePreCallMediaStream } from "@/utils/preCallMedia";
 // Native call state helpers - inlined to avoid module resolution issues
 const isCallAcceptedByNative = (callId?: string): boolean => {
@@ -613,7 +614,7 @@ export function GlobalCallListener() {
   if (outgoingCall && !activeCall) {
     return (
       <div 
-        className="fixed inset-0 z-[99999] bg-gradient-to-b from-primary/20 to-background flex items-center justify-center select-none touch-none"
+        className="fixed inset-0 z-[99999] bg-black overflow-hidden flex flex-col justify-between select-none touch-none"
         style={{ 
           height: '100dvh', 
           width: '100vw',
@@ -622,8 +623,47 @@ export function GlobalCallListener() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex flex-col items-center gap-6 p-8 animate-pulse">
-          <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center shadow-2xl">
+        {/* Full-bleed blurred background */}
+        <div className="absolute inset-0">
+          {outgoingCall.receiverAvatar ? (
+            <img
+              src={outgoingCall.receiverAvatar}
+              alt={outgoingCall.receiverName}
+              className="w-full h-full object-cover scale-110"
+              style={{ filter: 'blur(30px) brightness(0.4)' }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
+        </div>
+
+        {/* Top Info */}
+        <div className="relative z-10 text-center pt-16 px-6">
+          <h2 className="text-3xl sm:text-4xl font-semibold text-white drop-shadow-xl">{outgoingCall.receiverName}</h2>
+          <p className="text-white/80 text-base mt-2 flex items-center justify-center gap-1.5 font-medium">
+            <span>{outgoingCall.call_type === 'video' ? 'Chatr Video Calling...' : 'Chatr Calling...'}</span>
+          </p>
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 text-xs">
+            <Lock className="w-3 h-3 text-emerald-400" />
+            <span>End-to-end encrypted</span>
+          </div>
+        </div>
+
+        {/* Center: Avatar with animated speaking / ringing concentric pulse rings */}
+        <div className="relative z-10 flex items-center justify-center">
+          <motion.div
+            animate={{ scale: [1, 1.4, 1.8], opacity: [0.35, 0.15, 0] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+            className="absolute w-36 h-36 rounded-full bg-emerald-500/20 border border-emerald-500/30 pointer-events-none"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.25, 1.5], opacity: [0.45, 0.2, 0] }}
+            transition={{ duration: 2.4, repeat: Infinity, delay: 0.8, ease: 'easeOut' }}
+            className="absolute w-36 h-36 rounded-full bg-emerald-400/20 border border-emerald-400/20 pointer-events-none"
+          />
+
+          <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white/20 shadow-2xl relative z-10 bg-slate-800 flex items-center justify-center">
             {outgoingCall.receiverAvatar ? (
               <img 
                 src={outgoingCall.receiverAvatar} 
@@ -631,21 +671,21 @@ export function GlobalCallListener() {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <span className="text-5xl">{outgoingCall.receiverName?.[0]?.toUpperCase() || '?'}</span>
+              <span className="text-5xl font-bold text-white">{outgoingCall.receiverName?.[0]?.toUpperCase() || '?'}</span>
             )}
           </div>
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-2">{outgoingCall.receiverName}</h2>
-            <p className="text-muted-foreground">
-              {outgoingCall.call_type === 'video' ? '📹 Video calling...' : '📞 Calling...'}
-            </p>
-          </div>
+        </div>
+
+        {/* Bottom Cancel Action */}
+        <div className="relative z-10 pb-16 px-6 flex flex-col items-center">
           <button
             onClick={handleCancelOutgoing}
-            className="mt-4 px-8 py-3 bg-destructive text-destructive-foreground rounded-full font-medium shadow-lg hover:bg-destructive/90 transition-colors"
+            className="w-16 h-16 rounded-full bg-[#FF3B30] hover:bg-red-600 active:scale-95 text-white flex items-center justify-center shadow-2xl shadow-red-500/40 transition-all duration-150"
+            title="End call"
           >
-            Cancel
+            <PhoneOff className="w-7 h-7" />
           </button>
+          <span className="text-white/80 text-xs font-medium mt-2">End</span>
         </div>
       </div>
     );
@@ -762,3 +802,5 @@ export function GlobalCallListener() {
 
   return null;
 }
+
+

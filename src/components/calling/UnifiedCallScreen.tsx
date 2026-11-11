@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   Mic, MicOff, PhoneOff, Volume2, Video, VideoOff, 
   SwitchCamera, Grid3X3, MoreHorizontal, WifiOff, ZoomIn, ZoomOut,
-  Languages, Bot, Hand
+  Languages, Bot, Hand, ChevronDown, Maximize2, Lock
 } from 'lucide-react';
 import { useCallVoiceAI } from '@/voice/useCallVoiceAI';
 import { SimpleWebRTCCall, hasActiveCall, getExistingCall } from '@/utils/simpleWebRTC';
@@ -68,6 +68,8 @@ export default function UnifiedCallScreen({
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
   const [controlsVisible, setControlsVisible] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [currentTier, setCurrentTier] = useState<string>('720p');
   const [survivalTier, setSurvivalTier] = useState<'GOOD' | 'MEDIUM' | 'WEAK' | 'SURVIVAL' | null>(null);
@@ -204,6 +206,22 @@ export default function UnifiedCallScreen({
     resetControlsTimer();
     return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); };
   }, [resetControlsTimer]);
+
+  // Seamless stream binding across minimize / maximize transitions
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      if (remoteVideoRef.current.srcObject !== remoteStream) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      remoteVideoRef.current.play().catch(() => {});
+    }
+    if (localStream && localVideoRef.current) {
+      if (localVideoRef.current.srcObject !== localStream) {
+        localVideoRef.current.srcObject = localStream;
+      }
+      localVideoRef.current.play().catch(() => {});
+    }
+  }, [remoteStream, localStream, isMinimized]);
 
   // Listen for call ended in database (when partner ends call from app)
   useEffect(() => {
@@ -349,6 +367,7 @@ export default function UnifiedCallScreen({
 
       call.on('remoteStream', (stream: MediaStream) => {
         console.log('📺 [UnifiedCall] Remote stream received');
+        setRemoteStream(stream);
         const audioTracks = stream.getAudioTracks();
         const videoTracks = stream.getVideoTracks();
         console.log(`  → Audio tracks: ${audioTracks.length}, Video tracks: ${videoTracks.length}`);
@@ -906,6 +925,94 @@ export default function UnifiedCallScreen({
     setTimeout(() => osc.stop(), 100);
   };
 
+  if (isMinimized) {
+    return createPortal(
+      <div 
+        className="fixed z-[99999] select-none pointer-events-auto"
+        style={{ isolation: 'isolate' }}
+      >
+        {/* Hidden audio element must remain mounted and playing WebRTC audio */}
+        <audio
+          ref={remoteAudioRef}
+          autoPlay
+          playsInline
+          style={{ display: 'none', position: 'absolute', pointerEvents: 'none' }}
+        />
+
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.1}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, scale: 0.85, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.85, y: 20 }}
+          className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 bg-slate-950/95 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl p-2.5 sm:p-3 flex items-center gap-3 text-white cursor-pointer hover:border-emerald-500/50 transition-all z-[99999] max-w-[340px]"
+          onClick={() => setIsMinimized(false)}
+        >
+          {/* Avatar or mini video */}
+          <div className="relative w-12 h-12 rounded-full overflow-hidden bg-slate-800 flex-shrink-0 border-2 border-white/20 shadow-md">
+            {remoteVideoActive ? (
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            ) : contactAvatar ? (
+              <img src={contactAvatar} alt={contactName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center font-bold text-lg text-white">
+                {contactName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-slate-950 ${
+              callState === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400 animate-ping'
+            }`} />
+          </div>
+
+          {/* Details */}
+          <div className="flex flex-col min-w-[85px] max-w-[130px]">
+            <span className="text-sm font-semibold truncate text-white">{contactName}</span>
+            <span className={`text-[11px] font-mono flex items-center gap-1 ${
+              callState === 'connected' ? 'text-emerald-400' : 'text-amber-400'
+            }`}>
+              {callState === 'connected' ? formatDuration(duration) : (callState === 'reconnecting' ? 'Reconnecting...' : 'Calling...')}
+            </span>
+          </div>
+
+          {/* Quick Actions in PiP pill */}
+          <div className="flex items-center gap-1.5 ml-auto pl-2 border-l border-white/10" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={toggleMute}
+              className={`p-2 rounded-full transition-all ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={handleEndCall}
+              className="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-md active:scale-95"
+              title="End call"
+            >
+              <PhoneOff className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all ml-0.5"
+              title="Maximize call"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+      </div>,
+      document.body
+    );
+  }
+
   const callUI = (
     <div 
       className="fixed inset-0 z-[99999] bg-black flex flex-col overflow-hidden select-none"
@@ -1110,7 +1217,15 @@ export default function UnifiedCallScreen({
             className="absolute top-0 inset-x-0 z-30 pt-safe"
             style={{ paddingTop: 'max(env(safe-area-inset-top, 16px), 16px)' }}
           >
-            <div className="flex flex-col items-center py-4">
+            <div className="flex flex-col items-center py-4 relative w-full px-4">
+              {/* WhatsApp/FaceTime Minimize Button (Top Left) */}
+              <button
+                onClick={() => setIsMinimized(true)}
+                className="absolute left-4 top-3.5 p-2 rounded-full bg-black/40 hover:bg-white/20 border border-white/10 text-white transition-all active:scale-90 z-40"
+                title="Minimize call (continue chatting)"
+              >
+                <ChevronDown className="w-6 h-6 text-white" />
+              </button>
               {/* Signal Strength + Quality indicator (long-press for diagnostics) */}
               <div className="flex items-center gap-2 mb-2">
                 <SignalStrengthIndicator size="sm" />
@@ -1423,3 +1538,4 @@ export default function UnifiedCallScreen({
 
   return createPortal(callUI, document.body);
 }
+

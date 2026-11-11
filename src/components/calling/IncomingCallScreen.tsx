@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, MessageSquare, Bell, Bot } from "lucide-react";
+import { Phone, MessageSquare, Bell, Bot, Lock } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { useNativeRingtone } from "@/hooks/useNativeRingtone";
@@ -173,6 +173,10 @@ export function IncomingCallScreen({
           <Phone className="w-5 h-5" />
           <span>{callType === 'video' ? 'ChatrPlus Video' : 'ChatrPlus Audio'}</span>
         </p>
+        <div className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/85 text-xs">
+          <Lock className="w-3 h-3 text-emerald-400" />
+          <span>End-to-end encrypted</span>
+        </div>
       </motion.div>
 
       {/* Center - Large avatar for video calls */}

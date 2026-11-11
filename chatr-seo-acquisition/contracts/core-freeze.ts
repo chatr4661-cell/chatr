@@ -149,6 +149,8 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/components/calling/CallAlertPermissionBanner.tsx',
   'src/components/calling/NativeCallingSyncBar.tsx',
   'src/components/calling/GlobalCallListener.tsx',
+  'src/components/calling/UnifiedCallScreen.tsx',
+  'src/components/calling/IncomingCallScreen.tsx',
   'src/utils/serviceWorkerRegistration.ts',
   'src/hooks/useSmartNotificationScheduler.ts',
   'src/components/chat/ConversationList.tsx',

@@ -123,6 +123,26 @@ export const prefetchTurnConfig = (timeoutMs = 5000): Promise<RTCIceServer[]> =>
   console.log('[WebRTC] Pre-fetching TURN credentials from chatr.chat/api/turn-credentials...');
   prefetchPromise = (async (): Promise<RTCIceServer[]> => {
       // PRIMARY: Fetch real Cloudflare TURN credentials directly from Cloudflare
+      // PRIMARY: Fetch real Cloudflare TURN credentials via same-origin edge endpoint (/api/turn-credentials)
+      try {
+        const cfRes = await fetch('/api/turn-credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (cfRes.ok) {
+          const cfData = await cfRes.json();
+          const servers = sanitizeIceServers(cfData.iceServers ?? cfData);
+          if (servers.length > 0) {
+            console.log(`[ICE Diagnostics] ✅ Cloudflare TURN fetch successful via /api/turn-credentials: ${servers.length} server(s)`);
+            cachedIceServers = servers;
+            cacheTimestamp = Date.now();
+            return cachedIceServers;
+          }
+        }
+      } catch (endpointError) {
+        console.warn('[ICE Diagnostics] /api/turn-credentials fetch failed, trying direct:', endpointError);
+      }
+
       const cfTurnKeyId = "f14d776ea3375f146d24d7107ad4a2f6";
       const cfApiToken = "a448972031b1c8299b0092addd9065c0665990b9203094daa4467a8f5bbadb96";
       
