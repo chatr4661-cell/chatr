@@ -60,6 +60,7 @@ export const useFirebaseMessaging = (userId?: string) => {
         console.log("✅ Service Worker ready for push notifications");
 
         // Obtain FCM Token
+        if (sessionStorage.getItem('fcm_unauthorized') === 'true') return;
         let token: string | null = null;
         try {
           const opts: { vapidKey?: string; serviceWorkerRegistration: ServiceWorkerRegistration } = {
@@ -79,6 +80,7 @@ export const useFirebaseMessaging = (userId?: string) => {
               console.warn("FCM getToken fallback error:", retryErr);
             }
           } else {
+            sessionStorage.setItem('fcm_unauthorized', 'true');
             console.warn("FCM WebPush credentials not authorized by Google (401). Continuing with native browser push fallback.");
           }
         }

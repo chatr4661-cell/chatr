@@ -19,6 +19,7 @@ export const useChatPushNotifications = ({ userId, activeConversationId }: ChatP
     const setupPushNotifications = async () => {
       try {
         if (Notification.permission !== 'granted') return;
+        if (sessionStorage.getItem('fcm_unauthorized') === 'true') return;
 
         const msgInstance = await getMessagingInstance();
         if (!msgInstance) return;
@@ -31,7 +32,10 @@ export const useChatPushNotifications = ({ userId, activeConversationId }: ChatP
         let token: string | null = null;
         try {
           token = await getToken(msgInstance, validVapid ? { vapidKey: validVapid } : undefined);
-        } catch (tokenErr) {
+        } catch (tokenErr: any) {
+          if (tokenErr?.message?.includes('401') || String(tokenErr).includes('401')) {
+            sessionStorage.setItem('fcm_unauthorized', 'true');
+          }
           // Gracefully ignore 401 or registration errors so console stays clean
           console.warn('[ChatPush] Web push token unavailable (FCM registration inactive):', tokenErr);
         }

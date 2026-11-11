@@ -461,6 +461,7 @@ const Index = () => {
       const lastProcessed = localStorage.getItem('last_daily_login');
       const today = new Date().toDateString();
       if (lastProcessed === today) return;
+      localStorage.setItem('last_daily_login', today);
 
       const { data, error } = await supabase.functions.invoke('process-daily-login');
       
