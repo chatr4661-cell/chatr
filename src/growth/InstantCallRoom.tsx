@@ -20,25 +20,32 @@ export const InstantCallRoom: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId?: string }>();
   
   // Security Priority 1: Cryptographically random room generator
-  // Security Task 3: 122-bit Cryptographically Secure UUIDv4 Room ID Generator
-  const generateSlug = () => {
-    try {
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  // Security Task 2: Fail-Closed Cryptographic Room ID Generator (Zero Math.random fallback)
+  const generateSlug = (): string => {
+    if (typeof crypto !== 'undefined') {
+      if (typeof crypto.randomUUID === 'function') {
         return `p-${crypto.randomUUID()}`;
       }
-      const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
-      const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-      return `p-${hex}`;
-    } catch {
-      return `p-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 12)}`;
+      if (typeof crypto.getRandomValues === 'function') {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+        return `p-${hex}`;
+      }
     }
+    // Fail closed: Never fallback to Math.random() or predictable PRNGs
+    throw new Error('SECURE_CRYPTO_UNAVAILABLE: Hardware-backed Web Cryptography API is required for private room generation.');
   };
 
   useEffect(() => {
     if (!roomId || roomId === 'instant-meet') {
-      const newSlug = generateSlug();
-      navigate(`/call/${newSlug}`, { replace: true });
+      try {
+        const newSlug = generateSlug();
+        navigate(`/call/${newSlug}`, { replace: true });
+      } catch (err: any) {
+        console.error('[WebRTC Security] Fail-closed:', err.message);
+        toast.error('Cryptographically secure generator unavailable. Please ensure you are on HTTPS.');
+      }
     }
   }, [roomId, navigate]);
 

@@ -11,24 +11,32 @@ export const PrivateCallingStagingHero: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   // Generate a cryptographically random room slug
-  // Security Task 3: 122-bit Cryptographically Secure UUIDv4 Room ID Generator
-  const [roomSlug] = useState(() => {
+  // Security Task 2: Fail-Closed Cryptographic Room Slug Generator (Zero Math.random fallback)
+  const [roomSlug] = useState<string>(() => {
     try {
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return `p-${crypto.randomUUID()}`;
+      if (typeof crypto !== 'undefined') {
+        if (typeof crypto.randomUUID === 'function') {
+          return `p-${crypto.randomUUID()}`;
+        }
+        if (typeof crypto.getRandomValues === 'function') {
+          const bytes = new Uint8Array(16);
+          crypto.getRandomValues(bytes);
+          return `p-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
+        }
       }
-      const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
-      const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-      return `p-${hex}`;
+      throw new Error('Web Cryptography API unavailable');
     } catch {
-      return `p-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 12)}`;
+      return '';
     }
   });
 
-  const roomUrl = `https://chatr.chat/call/${roomSlug}`;
+  const roomUrl = roomSlug ? `https://chatr.chat/call/${roomSlug}` : '';
 
   const handleCopyLink = () => {
+    if (!roomSlug) {
+      toast.error('Cryptographically secure generator unavailable. HTTPS required.');
+      return;
+    }
     navigator.clipboard.writeText(roomUrl);
     setCopied(true);
     toast.success('Private call link copied to clipboard!');
@@ -36,6 +44,10 @@ export const PrivateCallingStagingHero: React.FC = () => {
   };
 
   const handleShareWhatsApp = () => {
+    if (!roomSlug) {
+      toast.error('Cryptographically secure generator unavailable. HTTPS required.');
+      return;
+    }
     const text = encodeURIComponent(
       `Join my private HD call on CHATR (No app download or phone number exchange required):\n${roomUrl}`
     );
@@ -43,6 +55,10 @@ export const PrivateCallingStagingHero: React.FC = () => {
   };
 
   const handleStartCall = () => {
+    if (!roomSlug) {
+      toast.error('Cryptographically secure generator unavailable. HTTPS required.');
+      return;
+    }
     navigate(`/call/${roomSlug}`);
   };
 
@@ -87,7 +103,7 @@ export const PrivateCallingStagingHero: React.FC = () => {
           {/* Generated URL Box */}
           <div className="flex items-center gap-2 p-2.5 sm:p-3 rounded-2xl bg-muted/60 border border-border/60">
             <span className="text-xs sm:text-sm font-mono text-foreground font-medium truncate flex-1 pl-2">
-              {roomUrl}
+              {roomSlug ? roomUrl : 'Cryptographically secure generator unavailable (HTTPS required)'}
             </span>
             <button
               onClick={handleCopyLink}
