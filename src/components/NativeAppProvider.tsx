@@ -163,7 +163,6 @@ export const NativeAppProvider: React.FC<NativeAppProviderProps> = ({ children }
     <ChatrOSProvider>
       <NativeAppContext.Provider value={value}>
         <AnalyticsProvider userId={userId}>
-          <CallAlertPermissionBanner userId={userId} />
           <MandatoryAppGate />
           {children}
           <BottomNav />
