@@ -182,19 +182,50 @@ export const InstantCallRoom: React.FC = () => {
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' }
     ];
+    let isTurnRelayAcquired = false;
     try {
       const turnRes = await fetch('/api/turn-credentials', { method: 'POST' });
       if (turnRes.ok) {
         const turnData = await turnRes.json();
         if (turnData.iceServers) {
-          iceServers = turnData.iceServers;
+          // Normalize iceServers: Cloudflare Calls returns an object { urls, username, credential }
+          const servers = Array.isArray(turnData.iceServers) ? turnData.iceServers : [turnData.iceServers];
+          iceServers = [...iceServers, ...servers];
+          isTurnRelayAcquired = true;
+          console.log('[WebRTC Relay] Cloudflare TURN credentials acquired (1h TTL). Relay active.');
         }
       }
     } catch (e) {
-      console.warn('[WebRTC] Using standard STUN servers fallback');
+      console.warn('[WebRTC Relay] TURN endpoint unreachable; proceeding in STUN-only mode.');
+    }
+
+    if (!isTurnRelayAcquired) {
+      console.warn('[WebRTC Warning] Relaying unavailable. Direct P2P STUN fallback active; symmetric NAT connections may fail.');
     }
 
     const pc = new RTCPeerConnection({ iceServers });
+    pc.oniceconnectionstatechange = async () => {
+      console.log(`[WebRTC ICE State] ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'connected') {
+        try {
+          const stats = await pc.getStats();
+          let activePair: any = null;
+          stats.forEach((report: any) => {
+            if (report.type === 'transport' && report.selectedCandidatePairId) {
+              activePair = stats.get(report.selectedCandidatePairId);
+            }
+          });
+          if (activePair) {
+            const localCandidate = stats.get(activePair.localCandidateId);
+            const remoteCandidate = stats.get(activePair.remoteCandidateId);
+            const isRelayed = localCandidate?.candidateType === 'relay' || remoteCandidate?.candidateType === 'relay';
+            console.log(`[WebRTC Telemetry] Connection: ${isRelayed ? 'TURN_RELAY' : 'DIRECT_P2P'} (Local: ${localCandidate?.candidateType}, Remote: ${remoteCandidate?.candidateType})`);
+          }
+        } catch {}
+      } else if (pc.iceConnectionState === 'failed') {
+        console.warn('[WebRTC Telemetry] ICE Connection failed. TURN relay or firewall traversal required.');
+      }
+    };
     peerConnectionRef.current = pc;
 
     // Attach local media tracks
