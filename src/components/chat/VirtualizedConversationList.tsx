@@ -117,12 +117,31 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   const [suggestedUsers, setSuggestedUsers] = useState<PlatformUser[]>([]);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ id: string; username: string; full_name?: string; avatar_url?: string } | null>(null);
   const [emptyPhoneInput, setEmptyPhoneInput] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      if (userId) {
+        const localCached = localStorage.getItem(`chatr-convs-${userId}`);
+        if (localCached) {
+          const parsed = JSON.parse(localCached);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      }
+    } catch {}
+    return true;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [startingChat, setStartingChat] = useState<string | null>(null);
   const [searchingPlatform, setSearchingPlatform] = useState(false);
   const { getCachedConversations, setCachedConversations } = useConversationCache();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Safety timeout: Guarantee skeleton drops in max 800ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
   const platformSearchRequestRef = useRef(0);
   const platformSearchCacheRef = useRef<Map<string, CachedPlatformSearch>>(new Map());
   
@@ -235,7 +254,10 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   };
 
   const loadConversations = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const cached = await getCachedConversations();
@@ -266,6 +288,9 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
         }));
 
         setConversations(conversationData);
+        try {
+          localStorage.setItem(`chatr-convs-${userId}`, JSON.stringify(conversationData));
+        } catch {}
         await setCachedConversations(conversationData);
         setLoading(false);
         return;
@@ -339,6 +364,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
       setLoading(false);
     } catch (error) {
       console.error('Error loading conversations:', error);
+    } finally {
       setLoading(false);
     }
   }, [userId, getCachedConversations, setCachedConversations]);
@@ -660,7 +686,10 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
   }, [loadConversations]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     loadConversations();
     loadContacts();
 

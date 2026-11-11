@@ -154,6 +154,7 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/utils/serviceWorkerRegistration.ts',
   'src/hooks/useSmartNotificationScheduler.ts',
   'src/components/chat/ConversationList.tsx',
+  'src/components/chat/VirtualizedConversationList.tsx',
   'src/components/dialer/AdvancedPhoneDialer.tsx',
   'src/components/chatr-shield/ShieldDashboardDialog.tsx',
   'src/pages/CallHistory.tsx',
