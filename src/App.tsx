@@ -47,6 +47,8 @@ import DesktopLayout from "./layouts/DesktopLayout";
 import { ModuleRouteGuard } from "./components/ModuleRouteGuard";
 import { CommercialGatewayManager } from "./commercial/CommercialGatewayManager";
 const CommercialGatewayPage = React.lazy(() => import("./commercial/CommercialGatewayPage"));
+const InstantCallRoom = React.lazy(() => import("./growth/InstantCallRoom"));
+const BioChatLink = React.lazy(() => import("./growth/BioChatLink"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -262,6 +264,12 @@ const App = () => {
             
             <Route path="/launcher" element={<ProtectedLazyRoute component={LazyPages.Launcher} />} />
             <Route path="/auth" element={<Auth />} />
+            {/* Zero-Cost Viral Acquisition Loops */}
+            <Route path="/call/:roomId" element={<LazyRoute component={InstantCallRoom} />} />
+            <Route path="/meet/:roomId" element={<LazyRoute component={InstantCallRoom} />} />
+            <Route path="/call" element={<LazyRoute component={InstantCallRoom} />} />
+            <Route path="/@:username" element={<LazyRoute component={BioChatLink} />} />
+            <Route path="/m/:username" element={<LazyRoute component={BioChatLink} />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/download" element={<LazyRoute component={LazyPages.Download} />} />
             <Route path="/install" element={<LazyRoute component={LazyPages.Install} />} />
