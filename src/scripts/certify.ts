@@ -24,7 +24,7 @@ const SUPABASE_KEY =
 async function runCertifications(): Promise<boolean> {
   const artifact = {
     timestamp: new Date().toISOString(),
-    gitCommit: process.env.VERCEL_GIT_COMMIT_SHA || 'HEAD',
+    gitCommit: process.env.CF_PAGES_COMMIT_SHA || process.env.COMMIT_HASH || process.env.VERCEL_GIT_COMMIT_SHA || 'HEAD',
     results: {} as Record<string, unknown>,
     passed: false,
   };

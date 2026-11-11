@@ -1,0 +1,16 @@
+# CHATR — Cloudflare Redirects Configuration
+# Native Cloudflare Pages & Workers Static Assets redirect map
+
+# SEO canonical route redirects
+/chatr/ai-messaging-for-business  /chatr/business-messaging  301
+/lookup                            /chatr/spam-call-protection 301
+/direct-chat                       /chat                      301
+
+# Latest APK download redirects
+/releases/chatr-plus-latest.apk    https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk  302
+/chatr-plus.apk                    https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk  302
+/chatr.apk                         https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk  302
+/download/chatr.apk                https://github.com/chatr4661-cell/chatr/releases/download/v1.0.101/chatr-plus.apk  302
+
+# SPA fallback routing — rewrites all non-file navigation to the SPA root
+/*  /index.html  200

@@ -1,0 +1,106 @@
+# CHATR — Cloudflare HTTP Headers Configuration
+# Native Cloudflare Pages & Workers Static Assets headers map
+
+# Immutable hashed assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Dynamic and non-cached files
+/download/version.json
+  Content-Type: application/json; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  Access-Control-Allow-Origin: *
+
+/download/*.apk
+  Content-Type: application/vnd.android.package-archive
+  Content-Disposition: attachment; filename="chatr.apk"
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sitemap-*.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sitemap-index.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sitemaps/*
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+/security.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+/.well-known/security.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+/sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/firebase-messaging-sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/api/*
+  Cache-Control: private, no-cache, no-store, must-revalidate, max-age=0
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Authorization, x-client-info, apikey
+
+# Media and branding assets
+/icons/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/images/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/ringtones/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/videos/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/favicon.png
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/favicon.ico
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/chatr-logo.png
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+# Canonical link tags
+/
+  Link: <https://chatr.chat/>; rel="canonical"
+
+/about
+  Link: <https://chatr.chat/about>; rel="canonical"
+
+/help
+  Link: <https://chatr.chat/help>; rel="canonical"
+
+/download
+  Link: <https://chatr.chat/download>; rel="canonical"
+
+/ai-browser
+  Link: <https://chatr.chat/ai-browser>; rel="canonical"
+
+/communities
+  Link: <https://chatr.chat/communities>; rel="canonical"
+
+/terms
+  Link: <https://chatr.chat/terms>; rel="canonical"
+
+/disclaimer
+  Link: <https://chatr.chat/disclaimer>; rel="canonical"
