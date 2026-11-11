@@ -46,6 +46,11 @@ const Auth = () => {
   React.useEffect(() => {
     let mounted = true;
 
+    // Safety timeout: Guarantee skeleton drops after 1.5s so login form is ALWAYS visible
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 1500);
+
     const checkSession = async () => {
       try {
         logAuthEvent('Auth page: Checking session');
@@ -100,7 +105,7 @@ const Auth = () => {
               } else if (isAdmin) {
                 navigate('/admin', { replace: true });
               } else {
-                navigate('/', { replace: true });
+                navigate('/chat', { replace: true });
               }
               return;
             }
@@ -197,6 +202,7 @@ const Auth = () => {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [toast, navigate]);

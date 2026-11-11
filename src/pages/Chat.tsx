@@ -448,6 +448,7 @@ const ChatEnhancedContent = () => {
   // Fast auth redirection
   React.useEffect(() => {
     if (isAuthReady && !user?.id) {
+      sessionStorage.setItem('auth_redirect', '/chat');
       navigate('/auth', { replace: true });
     }
   }, [isAuthReady, user?.id, navigate]);

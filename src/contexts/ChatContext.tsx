@@ -25,12 +25,29 @@ export const useChatContext = () => {
   return context;
 };
 
+const getInitialAuth = (): { user: User | null; session: Session | null } => {
+  try {
+    const authKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (authKey) {
+      const raw = localStorage.getItem(authKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.user) {
+          return { user: parsed.user, session: parsed };
+        }
+      }
+    }
+  } catch {}
+  return { user: null, session: null };
+};
+
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [user, setUser] = React.useState<User | null>(null);
+  const initialAuth = React.useMemo(() => getInitialAuth(), []);
+  const [session, setSession] = React.useState<Session | null>(initialAuth.session);
+  const [user, setUser] = React.useState<User | null>(initialAuth.user);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-  const [isAuthReady, setIsAuthReady] = React.useState(false);
+  const [isAuthReady, setIsAuthReady] = React.useState(!!initialAuth.user);
 
   // Real-time presence tracking
   const { onlineUsers, isUserOnline } = usePresenceTracking(user?.id);
