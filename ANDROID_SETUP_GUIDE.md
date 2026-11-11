@@ -106,13 +106,10 @@ java -version
    # Should show: Android Debug Bridge version X.X.X
    ```
 
-### Step 1.3: Export Project from Lovable
+### Step 1.3: Clone the CHATR Repository
 
-1. In Lovable, click **GitHub** button (top right)
-2. Click **Connect to GitHub** (if not connected)
-3. Click **Create Repository**
-4. Name it: `chatr-mobile`
-5. Wait for export to complete
+1. Clone from GitHub: `git clone https://github.com/chatr4661-cell/chatr.git`
+2. Navigate to project root: `cd chatr`
 
 ### Step 1.4: Clone Project Locally
 

@@ -101,7 +101,7 @@ export const useSmartReplies = () => {
     return replies.slice(0, 3);
   }, []);
 
-  // AI-powered smart replies using Lovable AI
+  // AI-powered smart replies using CHATR AI
   const getAIReplies = useCallback(async (
     message: string,
     conversationContext?: string[]

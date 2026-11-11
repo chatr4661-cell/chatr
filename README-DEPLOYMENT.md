@@ -1,24 +1,23 @@
-# HealthMessenger - iOS & Android Deployment Guide
+# Chatr+ - iOS & Android Deployment Guide
 
 ## Overview
-HealthMessenger is configured with Capacitor for native iOS and Android deployment.
+Chatr+ is configured with Capacitor for native iOS and Android deployment.
 
 ## Prerequisites
 - Node.js and npm installed
-- Git account connected to Lovable
+- Git account connected to GitHub
 - For iOS: Mac with Xcode
 - For Android: Android Studio
 
 ## Configuration
-- **App ID**: `app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a`
-- **App Name**: HealthMessenger
-- **Hot Reload URL**: https://6d6a8a57-1c02-4ddc-bd7f-2c0ec6dd878a.lovableproject.com
+- **App ID**: `com.chatr.app`
+- **App Name**: Chatr+
+- **Hot Reload URL**: https://chatr.chat
 
 ## Deployment Steps
 
 ### 1. Export to GitHub
-1. Click "Export to GitHub" in Lovable
-2. Clone your repository locally
+1. Clone repository from GitHub: https://github.com/chatr4661-cell/chatr
 
 ### 2. Install Dependencies
 ```bash
@@ -100,4 +99,4 @@ npx cap run android
 ## Support
 For issues, refer to:
 - Capacitor docs: https://capacitorjs.com
-- Lovable Capacitor guide: https://docs.lovable.dev/capacitor
+- Cloudflare Workers guide: https://developers.cloudflare.com/workers

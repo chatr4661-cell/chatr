@@ -39,7 +39,7 @@ const token = await getToken(messaging, {
 The edge function needs your Firebase Server Key:
 
 1. Get your Server Key from Firebase Console → **Project Settings** → **Cloud Messaging** → **Server key**
-2. Add it as a secret in Lovable:
+2. Add it as an environment secret in Cloudflare / Supabase:
    - Name: `FIREBASE_SERVER_KEY`
    - Value: Your server key
 

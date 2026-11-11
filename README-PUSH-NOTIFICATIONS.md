@@ -42,7 +42,7 @@ This app now has comprehensive push notification support that works even when th
 4. Update `.env` with `VITE_FIREBASE_VAPID_KEY=your_vapid_key`
 
 ### Step 2: Server Key (Already Done)
-The FIREBASE_SERVER_KEY secret has been configured in Lovable Cloud.
+The FIREBASE_SERVER_KEY secret has been configured in backend environment secrets.
 
 ### Step 3: Test Notifications
 1. Go to `/settings` in your app

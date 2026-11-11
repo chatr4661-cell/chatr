@@ -140,7 +140,7 @@ export function EngineeringAgentPanel({ disabled }: { disabled?: boolean }) {
                       {t.lovable_prompt && (
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Lovable Prompt</div>
+                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Prompt Specification</div>
                             <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => copyPrompt(t.lovable_prompt!)}>
                               <Copy className="h-3 w-3 mr-1" />Copy
                             </Button>

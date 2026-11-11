@@ -1,6 +1,6 @@
 /**
  * Voice Conversation Component
- * Real-time voice chat with AI agents using Web Speech API + Lovable AI TTS
+ * Real-time voice chat with AI agents using Web Speech API + CHATR Voice AI
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -145,7 +145,7 @@ export function VoiceConversation({
     setIsSpeaking(true);
     
     try {
-      // Use Lovable AI TTS
+      // Use CHATR Voice AI
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-voice-tts`,
         {

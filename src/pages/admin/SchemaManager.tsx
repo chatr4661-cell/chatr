@@ -157,7 +157,7 @@ CREATE POLICY "Users can create their own records"
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          To make schema changes, use database migrations in the Lovable Cloud dashboard or migration tool.
+          To make schema changes, use database migrations in the Database dashboard or migration tool.
         </AlertDescription>
       </Alert>
 
@@ -279,7 +279,7 @@ CREATE POLICY "Users can create their own records"
           <Card className="p-6">
             <h3 className="font-semibold mb-4">SQL Templates for Migrations</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Copy these templates and use them in the migration tool or Lovable Cloud dashboard
+              Copy these templates and use them in the migration tool or Database dashboard
             </p>
 
             <div className="space-y-4">

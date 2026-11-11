@@ -178,7 +178,7 @@ export function useVoiceConversation(options: VoiceConversationOptions = {}) {
           const { sentences, rest } = drainSentences(assistantText + '\n');
           for (const s of [...sentences, rest].filter(Boolean)) await speak(s);
         } else {
-          // Streamed cloud fallback (Lovable AI Gateway via edge function).
+          // Streamed cloud fallback (CHATR AI Gateway via edge function).
           assistantText = await streamCloudReply(clean, speak);
         }
 

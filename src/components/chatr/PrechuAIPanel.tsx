@@ -37,7 +37,7 @@ export function PrechuAIPanel({ open, onOpenChange, conversationId, userId }: Pr
         return;
       }
 
-      // Mock AI summary - in production, use Lovable AI
+      // Mock AI summary - in production, use CHATR AI
       const summary = `Summary of last ${messages.length} messages:\n\nThe conversation covered topics including ${messages.slice(0, 3).map(m => m.content.slice(0, 20)).join(', ')}... Key points discussed with active participation from multiple users.`;
       
       setResult(summary);
@@ -58,7 +58,7 @@ export function PrechuAIPanel({ open, onOpenChange, conversationId, userId }: Pr
 
     setLoading(true);
     try {
-      // Mock tone rewrite - in production, use Lovable AI
+      // Mock tone rewrite - in production, use CHATR AI
       const toneMap: Record<string, string> = {
         professional: 'I would like to respectfully request your attention to this matter.',
         casual: 'Hey! Just wanted to chat about this real quick.',
@@ -84,7 +84,7 @@ export function PrechuAIPanel({ open, onOpenChange, conversationId, userId }: Pr
 
     setLoading(true);
     try {
-      // Mock translation - in production, use Lovable AI
+      // Mock translation - in production, use CHATR AI
       const translations: Record<string, string> = {
         es: '¡Hola! ¿Cómo estás?',
         fr: 'Bonjour! Comment allez-vous?',

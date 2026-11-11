@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a.chatr",
+        "appID": "com.chatr.app",
         "paths": [
           "/search/*",
           "/chatr-world/*",
@@ -17,7 +17,7 @@
   },
   "webcredentials": {
     "apps": [
-      "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a.chatr"
+      "com.chatr.app"
     ]
   },
   "appclips": {
@@ -25,7 +25,7 @@
   },
   "activitycontinuation": {
     "apps": [
-      "app.lovable.6d6a8a571c024ddcbd7f2c0ec6dd878a.chatr"
+      "com.chatr.app"
     ]
   }
 }

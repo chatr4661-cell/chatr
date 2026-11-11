@@ -25,7 +25,7 @@ Congratulations! Your Chatr+ app is now a **fully native Android application** w
 ### 📱 Technology Stack
 - **Framework**: React 18 + TypeScript
 - **Mobile**: Capacitor 7 (Native Android)
-- **Backend**: Supabase (Lovable Cloud)
+- **Backend**: Supabase
 - **Realtime**: WebSocket + WebRTC
 - **State**: React Query + Context
 - **UI**: Tailwind CSS + Shadcn/UI

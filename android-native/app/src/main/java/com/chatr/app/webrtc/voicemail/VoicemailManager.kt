@@ -288,7 +288,7 @@ class VoicemailManager @Inject constructor(
     }
     
     private suspend fun transcribeVoicemail(file: File): String? {
-        // TODO: Integrate with Lovable AI for transcription
+        // TODO: Integrate with CHATR AI for transcription
         // For now, return placeholder
         return null
     }

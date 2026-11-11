@@ -20,7 +20,7 @@ import javax.inject.Singleton
  *
  * - Zero server cost — runs entirely on device NPU/TPU.
  * - Compatible: Pixel 8/9/10, Galaxy S24/S25, premium SoCs with AICore.
- * - Falls back to cloud (Lovable AI Gateway) on incompatible devices.
+ * - Falls back to cloud (CHATR AI Gateway) on incompatible devices.
  *
  * Token limits: ~1024 prompt / 4096 context — truncate transcripts upstream.
  */

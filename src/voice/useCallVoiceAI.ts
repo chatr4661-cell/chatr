@@ -5,7 +5,7 @@
 // channel (`call-voice-{callId}`) and powers two features:
 //
 //   1. LIVE TRANSLATION — each device captures its OWN mic, transcribes it in the
-//      cloud (Lovable AI STT), translates to the listener's language, and sends
+//      cloud (CHATR AI STT), translates to the listener's language, and sends
 //      the translated text. The listener speaks it aloud (device TTS) + caption.
 //      A speaks Punjabi → B hears Hindi, and vice-versa.
 //

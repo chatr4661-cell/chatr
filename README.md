@@ -24,7 +24,7 @@ Fast, simple, and secure chat application with Firebase authentication, real-tim
 - **Authentication**: Firebase Auth (Google Sign-In)
 - **Database**: Cloud Firestore (real-time)
 - **Push**: Firebase Cloud Messaging (FCM)
-- **Backend**: Supabase (Lovable Cloud) + Firebase
+- **Backend**: Supabase + Firebase
 - **State**: TanStack Query
 
 ## 🛠️ Setup
@@ -82,7 +82,7 @@ The app will be available at `http://localhost:8080`
 
 1. Go to **Authentication** → **Sign-in method**
 2. Enable **Google** sign-in provider
-3. Add authorized domains (your Lovable preview URL + deployed domain)
+3. Add authorized domains (chatr.chat, chatr.chatr4661.workers.dev, localhost)
 
 ### 3. Create Firestore Database
 
@@ -270,7 +270,7 @@ VITE_SUPABASE_PROJECT_ID=your_project_id
 ## 📞 Support
 
 - **Email**: support@chatr.app
-- **Website**: https://chatr.app
+- **Website**: https://chatr.chat
 - **Issues**: GitHub Issues
 
 ## 📄 License
@@ -279,7 +279,7 @@ See LICENSE file for details.
 
 ## 🙏 Credits
 
-Built with [Lovable](https://lovable.dev) - Ship your app in minutes
+CHATR — Modern Web & Mobile Ecosystem
 
 ---
 

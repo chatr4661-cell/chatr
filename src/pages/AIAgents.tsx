@@ -280,7 +280,7 @@ export default function AIAgents() {
                   <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Chatr AI Agent
                   </h1>
-                  <p className="text-sm text-muted-foreground">Powered by Lovable AI</p>
+                  <p className="text-sm text-muted-foreground">Powered by CHATR AI</p>
                 </div>
               </div>
               <p className="text-muted-foreground max-w-2xl">
@@ -430,7 +430,7 @@ export default function AIAgents() {
               </div>
               <div>
                 <h3 className="font-semibold">AI Powered</h3>
-                <p className="text-xs text-muted-foreground">Smart replies using Lovable AI</p>
+                <p className="text-xs text-muted-foreground">Smart replies using CHATR AI</p>
               </div>
             </CardContent>
           </Card>

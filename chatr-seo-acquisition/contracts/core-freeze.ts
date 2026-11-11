@@ -191,6 +191,15 @@ export const BUILD_GENERATED_EXCLUSIONS = new Set<string>([
   'src/pages/seo/LanguagePair.tsx',
   'src/components/seo/SeoLandingLayout.tsx',
   'src/pages/seo/TranslateDirectory.tsx',
+  // White-Label Independence & Lovable Branding Removal
+  'src/components/ai-agents/VoiceConversation.tsx',
+  'src/components/chatr/PrechuAIPanel.tsx',
+  'src/components/command-center/EngineeringAgentPanel.tsx',
+  'src/hooks/useSmartReplies.tsx',
+  'src/pages/admin/SchemaManager.tsx',
+  'src/pages/AIAgents.tsx',
+  'src/pages/AIBrowser.tsx',
+  'android/app/src/main/res/xml/network_security_config.xml',
 ]);
 
 export function verifyCoreFreeze(rootDir: string = process.cwd()): CoreFreezeReport {

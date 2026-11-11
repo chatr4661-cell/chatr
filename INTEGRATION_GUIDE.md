@@ -305,7 +305,7 @@ const { data } = await supabase.storage.listBuckets();
 console.log(data);  // Should include 'chat-media'
 
 // Check storage policies
-// Go to Lovable Backend → Storage → chat-media → Policies
+// Go to Supabase Backend → Storage → chat-media → Policies
 ```
 
 ### Deduplication not working

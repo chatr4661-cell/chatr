@@ -163,7 +163,7 @@ export default function AIBrowser() {
                 <div className="text-center py-20">
                   <MessageSquare className="h-16 w-16 mx-auto mb-4 text-violet-300 dark:text-violet-500" />
                   <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">Ask me anything!</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Powered by Lovable AI</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Powered by CHATR AI</p>
                 </div>
               ) : (
                 <>

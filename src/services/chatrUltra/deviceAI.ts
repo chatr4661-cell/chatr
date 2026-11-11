@@ -4,7 +4,7 @@
  *
  * Priority:
  *   1. Native Android AICore / Gemini Nano (via OnDeviceAi Capacitor plugin) — zero cost
- *   2. Cloud fallback via the `ai-smart-reply` edge function (Lovable AI Gateway)
+ *   2. Cloud fallback via the `ai-smart-reply` edge function (CHATR AI Gateway)
  */
 
 import { Capacitor, registerPlugin } from '@capacitor/core';
@@ -196,7 +196,7 @@ class DeviceAIService {
   }
 
   /**
-   * Cloud inference via the ai-smart-reply edge function (Lovable AI Gateway)
+   * Cloud inference via the ai-smart-reply edge function (CHATR AI Gateway)
    */
   private async runCloudGateway(
     prompt: string,
