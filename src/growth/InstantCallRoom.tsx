@@ -17,7 +17,40 @@ interface ReceivedFile {
 }
 
 export const InstantCallRoom: React.FC = () => {
-  const { roomId = 'instant-meet' } = useParams<{ roomId?: string }>();
+  const { roomId = '' } = useParams<{ roomId?: string }>();
+  
+  // Security Priority 1: Cryptographically random room generator
+  const generateSlug = () => {
+    try {
+      const bytes = new Uint8Array(6);
+      crypto.getRandomValues(bytes);
+      return 'p-' + Array.from(bytes, b => b.toString(36).padStart(2, '0')).join('').slice(0, 8);
+    } catch {
+      return 'p-' + Math.random().toString(36).substring(2, 10);
+    }
+  };
+
+  useEffect(() => {
+    if (!roomId || roomId === 'instant-meet') {
+      const newSlug = generateSlug();
+      navigate(`/call/${newSlug}`, { replace: true });
+    }
+  }, [roomId, navigate]);
+
+  // Security Priority 1: Client session identifier for 2-participant presence occupancy
+  const clientSessionId = useRef<string>((() => {
+    try {
+      let id = sessionStorage.getItem('chatr_call_session_id');
+      if (!id) {
+        id = 'user_' + Math.random().toString(36).substring(2, 10);
+        sessionStorage.setItem('chatr_call_session_id', id);
+      }
+      return id;
+    } catch {
+      return 'user_' + Math.random().toString(36).substring(2, 10);
+    }
+  })()).current;
+  const [isRoomFull, setIsRoomFull] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -211,7 +244,21 @@ export const InstantCallRoom: React.FC = () => {
     // 2. Realtime Signaling via Supabase Broadcast (0-Database cost, sub-25ms latency)
     const channelName = `call_room_${roomId}`;
     const channel = supabase.channel(channelName, {
-      config: { broadcast: { self: false } }
+      config: { 
+        broadcast: { self: false },
+        presence: { key: clientSessionId }
+      }
+    });
+
+    // Enforce reliable 2-participant room occupancy
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const keys = Object.keys(state);
+      if (keys.length > 2 && !keys.slice(0, 2).includes(clientSessionId)) {
+        setIsRoomFull(true);
+        if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
+        if (peerConnectionRef.current) peerConnectionRef.current.close();
+      }
     });
     channelRef.current = channel;
 
@@ -250,6 +297,7 @@ export const InstantCallRoom: React.FC = () => {
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
+        try { await channel.track({ joinedAt: Date.now() }); } catch {}
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         channel.send({
@@ -440,7 +488,7 @@ export const InstantCallRoom: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>256-bit E2E Encrypted</span>
+            <span>Private P2P Call • Number Protected</span>
           </div>
           {hasJoined && !callEnded && (
             <div className="bg-slate-800/80 px-3 py-1 rounded-full text-xs font-mono font-medium text-slate-300 border border-slate-700">
@@ -568,6 +616,25 @@ export const InstantCallRoom: React.FC = () => {
                 <span className="text-[10px] text-slate-400">Camera Off</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Security Priority 1: 3rd Participant Rejection Barrier */}
+        {isRoomFull && (
+          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5 text-amber-400 shadow-xl">
+              <Users className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2 text-white">Room is Full (2/2 Participants)</h2>
+            <p className="text-sm text-slate-400 max-w-sm mb-6 leading-relaxed">
+              This private call is already in progress between two participants. For security and privacy, third-party participants cannot enter.
+            </p>
+            <button
+              onClick={() => navigate(`/call/${generateSlug()}`)}
+              className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-900/30 transition"
+            >
+              Start Your Own Private Call Link
+            </button>
           </div>
         )}
 

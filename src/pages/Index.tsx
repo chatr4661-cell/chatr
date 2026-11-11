@@ -60,6 +60,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Share } from 'lucide-react';
 import { SEOHead } from '@/components/SEOHead';
+import { PrivateCallingStagingHero } from '@/growth/PrivateCallingStagingHero';
+import { isPrivateCallingHeroEnabled, STAGING_FEATURE_FLAGS } from '@/config/stagingFeatureFlags';
 
 // Import ServiceCard directly (small component, no need for lazy loading)
 import ServiceCard from '@/components/ServiceCard';
@@ -885,6 +887,8 @@ const Index = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-3 sm:space-y-3.5 mt-2.5 sm:mt-3 pb-8 lg:pb-3">
+        {/* Priority 3 Staging Feature Flag: Private Calling Hero View */}
+        {isPrivateCallingHeroEnabled() && <PrivateCallingStagingHero />}
         {/* Native Calling Activation & Test Bar */}
         <NativeCallingSyncBar userId={user?.id} />
 

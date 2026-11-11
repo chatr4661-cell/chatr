@@ -143,8 +143,9 @@ export const prefetchTurnConfig = (timeoutMs = 5000): Promise<RTCIceServer[]> =>
         console.warn('[ICE Diagnostics] /api/turn-credentials fetch failed, trying direct:', endpointError);
       }
 
-      const cfTurnKeyId = "f14d776ea3375f146d24d7107ad4a2f6";
-      const cfApiToken = "a448972031b1c8299b0092addd9065c0665990b9203094daa4467a8f5bbadb96";
+      // Client-side secret removed for security (Priority 1 fix)
+      const cfTurnKeyId = "";
+      const cfApiToken = "";
       
       try {
         const response = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${cfTurnKeyId}/credentials/generate-ice-servers`, {
