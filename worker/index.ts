@@ -25,8 +25,6 @@ const SUPABASE_DEFAULT_URL = 'https://nuuuqazaoaozgblmvkzn.supabase.co';
 const SUPABASE_DEFAULT_ANON = 'sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw';
 const ORIGIN = 'https://chatr.chat';
 
-const DEFAULT_TURN_TOKEN_ID = 'f14d776ea3375f146d24d7107ad4a2f6';
-const DEFAULT_TURN_API_TOKEN = 'a448972031b1c8299b0092addd9065c0665990b9203094daa4467a8f5bbadb96';
 
 const EMERGENCY_ICE_FALLBACK = {
   iceServers: {
@@ -97,16 +95,19 @@ async function handleTurnCredentials(request: Request, env: Env): Promise<Respon
   }
 
   try {
-    const tokenId = env.CLOUDFLARE_TURN_TOKEN_ID || (globalThis as any).process?.env?.CLOUDFLARE_TURN_TOKEN_ID || DEFAULT_TURN_TOKEN_ID;
-    const apiToken = env.CLOUDFLARE_TURN_API_TOKEN || (globalThis as any).process?.env?.CLOUDFLARE_TURN_API_TOKEN || DEFAULT_TURN_API_TOKEN;
+    // Strictly load from server-side environment variables; zero hardcoded fallback
+    const tokenId = env.CLOUDFLARE_TURN_TOKEN_ID;
+    const apiToken = env.CLOUDFLARE_TURN_API_TOKEN;
 
     if (!tokenId || !apiToken) {
-      return new Response(JSON.stringify(EMERGENCY_ICE_FALLBACK), {
-        status: 200,
+      console.warn('[Cloudflare TURN] CLOUDFLARE_TURN_TOKEN_ID or CLOUDFLARE_TURN_API_TOKEN not set in environment.');
+      return new Response(JSON.stringify({ error: 'TURN credentials are not configured on server' }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
       });
     }
 
+    // Explicitly request 1-hour (3600s) short-lived transient credentials
     const response = await fetch(
       `https://rtc.live.cloudflare.com/v1/turn/keys/${tokenId}/credentials/generate`,
       {
@@ -115,7 +116,7 @@ async function handleTurnCredentials(request: Request, env: Env): Promise<Respon
           Authorization: `Bearer ${apiToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ttl: 86400 }),
+        body: JSON.stringify({ ttl: 3600 }),
       }
     );
 
