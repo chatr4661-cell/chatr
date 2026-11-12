@@ -1,3 +1,4 @@
+import { generateSecureRoomSlug, getOrCreateSecureSessionId, getCallBaseOrigin, generateCallLink } from './cryptoUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -17,7 +18,33 @@ interface ReceivedFile {
 }
 
 export const InstantCallRoom: React.FC = () => {
-  const { roomId = 'instant-meet' } = useParams<{ roomId?: string }>();
+  const { roomId = '' } = useParams<{ roomId?: string }>();
+  
+  // Security Priority 1: Cryptographically random room generator
+  // Security Task 2: Fail-Closed Cryptographic Room ID Generator (Zero Math.random fallback)
+  const generateSlug = (): string => {
+    return generateSecureRoomSlug();
+  };
+
+  useEffect(() => {
+    if (!roomId || roomId === 'instant-meet') {
+      try {
+        const newSlug = generateSlug();
+        navigate(`/call/${newSlug}`, { replace: true });
+      } catch (err: any) {
+        console.error('[WebRTC Security] Fail-closed:', err.message);
+        toast.error('Cryptographically secure generator unavailable. Please ensure you are on HTTPS.');
+      }
+    }
+  }, [roomId, navigate]);
+
+  // Security Priority 1: Cryptographically secure client session identifier for 2-participant presence occupancy
+  // Security Priority 1: Cryptographically secure client session identifier (Fail-Closed)
+  const clientSessionId = useRef<string>((() => {
+    return getOrCreateSecureSessionId();
+  })()).current;
+  const [isRoomFull, setIsRoomFull] = useState(false);
+  const peerSessionIdRef = useRef<string | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -58,7 +85,14 @@ export const InstantCallRoom: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSigningUp, setIsSigningUp] = useState(false);
 
-  const roomLink = `https://chatr.chat/call/${roomId}`;
+  const roomLink = (() => {
+    try {
+      if (!roomId) return null;
+      return generateCallLink(roomId);
+    } catch {
+      return null;
+    }
+  })();
 
   // Call duration counter
   useEffect(() => {
@@ -78,6 +112,10 @@ export const InstantCallRoom: React.FC = () => {
   };
 
   const copyRoomLink = () => {
+    if (!roomLink) {
+      toast.error('Unable to create call link: Secure origin could not be resolved.');
+      return;
+    }
     navigator.clipboard.writeText(roomLink);
     setCopied(true);
     toast.success('Call link copied to clipboard!');
@@ -85,6 +123,10 @@ export const InstantCallRoom: React.FC = () => {
   };
 
   const shareOnWhatsApp = () => {
+    if (!roomLink) {
+      toast.error('Unable to share call link: Secure origin could not be resolved.');
+      return;
+    }
     const text = encodeURIComponent(`Join my encrypted HD video call on CHATR (No download or login required):\n${roomLink}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -136,19 +178,50 @@ export const InstantCallRoom: React.FC = () => {
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' }
     ];
+    let isTurnRelayAcquired = false;
     try {
       const turnRes = await fetch('/api/turn-credentials', { method: 'POST' });
       if (turnRes.ok) {
         const turnData = await turnRes.json();
         if (turnData.iceServers) {
-          iceServers = turnData.iceServers;
+          // Normalize iceServers: Cloudflare Calls returns an object { urls, username, credential }
+          const servers = Array.isArray(turnData.iceServers) ? turnData.iceServers : [turnData.iceServers];
+          iceServers = [...iceServers, ...servers];
+          isTurnRelayAcquired = true;
+          console.log('[WebRTC Relay] Cloudflare TURN credentials acquired (1h TTL). Relay active.');
         }
       }
     } catch (e) {
-      console.warn('[WebRTC] Using standard STUN servers fallback');
+      console.warn('[WebRTC Relay] TURN endpoint unreachable; proceeding in STUN-only mode.');
+    }
+
+    if (!isTurnRelayAcquired) {
+      console.warn('[WebRTC Warning] Relaying unavailable. Direct P2P STUN fallback active; symmetric NAT connections may fail.');
     }
 
     const pc = new RTCPeerConnection({ iceServers });
+    pc.oniceconnectionstatechange = async () => {
+      console.log(`[WebRTC ICE State] ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'connected') {
+        try {
+          const stats = await pc.getStats();
+          let activePair: any = null;
+          stats.forEach((report: any) => {
+            if (report.type === 'transport' && report.selectedCandidatePairId) {
+              activePair = stats.get(report.selectedCandidatePairId);
+            }
+          });
+          if (activePair) {
+            const localCandidate = stats.get(activePair.localCandidateId);
+            const remoteCandidate = stats.get(activePair.remoteCandidateId);
+            const isRelayed = localCandidate?.candidateType === 'relay' || remoteCandidate?.candidateType === 'relay';
+            console.log(`[WebRTC Telemetry] Connection: ${isRelayed ? 'TURN_RELAY' : 'DIRECT_P2P'} (Local: ${localCandidate?.candidateType}, Remote: ${remoteCandidate?.candidateType})`);
+          }
+        } catch {}
+      } else if (pc.iceConnectionState === 'failed') {
+        console.warn('[WebRTC Telemetry] ICE Connection failed. TURN relay or firewall traversal required.');
+      }
+    };
     peerConnectionRef.current = pc;
 
     // Attach local media tracks
@@ -211,36 +284,83 @@ export const InstantCallRoom: React.FC = () => {
     // 2. Realtime Signaling via Supabase Broadcast (0-Database cost, sub-25ms latency)
     const channelName = `call_room_${roomId}`;
     const channel = supabase.channel(channelName, {
-      config: { broadcast: { self: false } }
+      config: { 
+        broadcast: { self: false },
+        presence: { key: clientSessionId }
+      }
+    });
+
+    // Task 2: Strict Session-Bound & Presence-Gated Handshake
+    channel.on('presence', { event: 'sync' }, async () => {
+      const state = channel.presenceState();
+      const keys = Object.keys(state);
+      // 3rd-party rejection: if more than 2 participants exist and this client is not in first 2
+      if (keys.length > 2 && !keys.slice(0, 2).includes(clientSessionId)) {
+        console.warn('[WebRTC Security] Room occupancy limit exceeded. Blocking 3rd participant.');
+        setIsRoomFull(true);
+        if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
+        if (peerConnectionRef.current) peerConnectionRef.current.close();
+        return;
+      }
+
+      // Exactly 2 participants: establish authorized peer connection without offer glare
+      if (keys.length === 2 && !isRoomFull) {
+        const otherKey = keys.find(k => k !== clientSessionId);
+        if (otherKey && !peerSessionIdRef.current) {
+          peerSessionIdRef.current = otherKey;
+          // Designated offerer: client with lexicographically smaller sessionId initiates the offer
+          if (clientSessionId < otherKey) {
+            console.log('[WebRTC Signaling] Designated offerer sending SDP to peer:', otherKey);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            channel.send({
+              type: 'broadcast',
+              event: 'offer',
+              payload: { sdp: offer, senderId: clientSessionId, targetId: otherKey }
+            });
+          }
+        }
+      }
     });
     channelRef.current = channel;
 
     pc.onicecandidate = (event) => {
-      if (event.candidate) {
+      if (event.candidate && peerSessionIdRef.current) {
         channel.send({
           type: 'broadcast',
           event: 'ice-candidate',
-          payload: { candidate: event.candidate }
+          payload: { candidate: event.candidate, senderId: clientSessionId, targetId: peerSessionIdRef.current }
         });
       }
     };
 
     channel.on('broadcast', { event: 'offer' }, async ({ payload }) => {
+      if (!payload?.senderId || payload.senderId === clientSessionId) return;
+      // If bound to a peer and offer comes from an unknown 3rd party: REJECT
+      if (peerSessionIdRef.current && peerSessionIdRef.current !== payload.senderId) {
+        console.warn('[WebRTC Security] Dropped unauthorized offer from 3rd party:', payload.senderId);
+        return;
+      }
+      peerSessionIdRef.current = payload.senderId;
       await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       channel.send({
         type: 'broadcast',
         event: 'answer',
-        payload: { sdp: answer }
+        payload: { sdp: answer, senderId: clientSessionId, targetId: payload.senderId }
       });
     });
 
     channel.on('broadcast', { event: 'answer' }, async ({ payload }) => {
+      if (payload?.targetId && payload.targetId !== clientSessionId) return;
+      if (payload?.senderId !== peerSessionIdRef.current) return;
       await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
     });
 
     channel.on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
+      if (payload?.targetId && payload.targetId !== clientSessionId) return;
+      if (payload?.senderId && payload.senderId !== peerSessionIdRef.current) return;
       try {
         await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
       } catch (err) {
@@ -250,13 +370,8 @@ export const InstantCallRoom: React.FC = () => {
 
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        channel.send({
-          type: 'broadcast',
-          event: 'offer',
-          payload: { sdp: offer }
-        });
+        try { await channel.track({ joinedAt: Date.now() }); } catch {}
+        // Offer is gated by presence sync once 2nd peer arrives; no unconditional offer spam
       }
     });
   };
@@ -440,7 +555,7 @@ export const InstantCallRoom: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>256-bit E2E Encrypted</span>
+            <span>Private P2P Call • Number Protected</span>
           </div>
           {hasJoined && !callEnded && (
             <div className="bg-slate-800/80 px-3 py-1 rounded-full text-xs font-mono font-medium text-slate-300 border border-slate-700">
@@ -568,6 +683,25 @@ export const InstantCallRoom: React.FC = () => {
                 <span className="text-[10px] text-slate-400">Camera Off</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Security Priority 1: 3rd Participant Rejection Barrier */}
+        {isRoomFull && (
+          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+            <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5 text-amber-400 shadow-xl">
+              <Users className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2 text-white">Room is Full (2/2 Participants)</h2>
+            <p className="text-sm text-slate-400 max-w-sm mb-6 leading-relaxed">
+              This private call is already in progress between two participants. For security and privacy, third-party participants cannot enter.
+            </p>
+            <button
+              onClick={() => navigate(`/call/${generateSlug()}`)}
+              className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-900/30 transition"
+            >
+              Start Your Own Private Call Link
+            </button>
           </div>
         )}
 
