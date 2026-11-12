@@ -194,5 +194,6 @@ dependencies {
 
     // Testing
     testImplementation(libs.bundles.testing)
+    androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.bundles.testing.android)
 }
