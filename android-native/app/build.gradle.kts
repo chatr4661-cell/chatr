@@ -34,11 +34,6 @@ android {
             useSupportLibrary = true
         }
 
-        lint {
-            abortOnError = false
-            checkReleaseBuilds = false
-        }
-
         // Build config fields for Supabase
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "https://nuuuqazaoaozgblmvkzn.supabase.co")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw")}\"")
@@ -98,8 +93,14 @@ android {
             "-opt-in=kotlinx.coroutines.FlowPreview",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
             "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
+            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+            "-Xskip-metadata-version-check"
         )
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 
     buildFeatures {
@@ -154,6 +155,9 @@ dependencies {
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.gson)
 
     // Supabase
     implementation(platform(libs.supabase.bom))

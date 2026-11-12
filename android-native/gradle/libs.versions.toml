@@ -24,6 +24,8 @@ hiltNavigationCompose = "1.2.0"
 # Networking
 ktor = "2.3.8"
 okhttp = "4.12.0"
+retrofit = "2.9.0"
+gson = "2.10.1"
 
 # Supabase
 supabase = "2.1.4"
@@ -106,6 +108,9 @@ ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", v
 okhttp-bom = { group = "com.squareup.okhttp3", name = "okhttp-bom", version.ref = "okhttp" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 # Supabase
 supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
