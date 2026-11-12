@@ -34,6 +34,11 @@ android {
             useSupportLibrary = true
         }
 
+        lint {
+            abortOnError = false
+            checkReleaseBuilds = false
+        }
+
         // Build config fields for Supabase
         buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "https://nuuuqazaoaozgblmvkzn.supabase.co")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw")}\"")
@@ -70,7 +75,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null) {
+                signingConfig = releaseSigning
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 

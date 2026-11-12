@@ -6,6 +6,18 @@
  * If hardware-backed WebCrypto is unavailable, the system strictly fails closed.
  */
 
+/**
+ * Strict RFC 4122 UUIDv4 session identifier regex:
+ * Prefix: 'u-'
+ * UUIDv4: 8 hex, 4 hex, '4' + 3 hex, [89ab] + 3 hex, 12 hex
+ */
+export const STRICT_SESSION_ID_V4_REGEX = /^u-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidSecureSessionId(id: unknown): id is string {
+  if (typeof id !== 'string') return false;
+  return STRICT_SESSION_ID_V4_REGEX.test(id);
+}
+
 export function generateSecureUUID(): string {
   if (typeof crypto !== 'undefined') {
     if (typeof crypto.randomUUID === 'function') {
@@ -37,7 +49,7 @@ export function getOrCreateSecureSessionId(storage: Storage | null = typeof sess
   if (storage) {
     try {
       const existing = storage.getItem('chatr_call_session_id');
-      if (existing && /^u-[0-9a-f-]{16,}$/i.test(existing)) {
+      if (isValidSecureSessionId(existing)) {
         return existing;
       }
     } catch {
@@ -81,4 +93,12 @@ export function getCallBaseOrigin(explicitWindow?: { location?: { origin?: strin
 
   // 3. Fail closed: Never silently fall back to hardcoded production chatr.chat
   throw new Error('SECURE_ORIGIN_UNAVAILABLE: Application origin could not be resolved safely.');
+}
+
+export function generateCallLink(roomId: string, explicitWindow?: { location?: { origin?: string } }): string {
+  if (!roomId || typeof roomId !== 'string' || !roomId.trim()) {
+    throw new Error('SECURE_CALL_LINK_INVALID: Room identifier must be a non-empty string.');
+  }
+  const baseOrigin = getCallBaseOrigin(explicitWindow);
+  return `${baseOrigin}/call/${roomId.trim()}`;
 }

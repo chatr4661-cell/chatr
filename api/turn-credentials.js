@@ -10,8 +10,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const tokenId = process.env.CLOUDFLARE_TURN_TOKEN_ID || process.env.CF_CALLS_KEY_ID || process.env.CF_CALLS_APP_ID;
-    const apiToken = process.env.CLOUDFLARE_TURN_API_TOKEN || process.env.CF_CALLS_APP_SECRET;
+    const tokenId = process.env.CLOUDFLARE_TURN_TOKEN_ID;
+    const apiToken = process.env.CLOUDFLARE_TURN_API_TOKEN;
 
     if (!tokenId || !apiToken) {
       return res.status(500).json({ error: "TURN credentials are not configured" });

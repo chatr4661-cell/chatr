@@ -1,4 +1,4 @@
-import { generateSecureRoomSlug, getCallBaseOrigin } from './cryptoUtils';
+import { generateSecureRoomSlug, getCallBaseOrigin, generateCallLink } from './cryptoUtils';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -20,19 +20,22 @@ export const PrivateCallingStagingHero: React.FC = () => {
     }
   });
 
-  const [callOrigin] = useState<string>(() => {
+  const roomUrl = (() => {
     try {
-      return getCallBaseOrigin();
+      if (!roomSlug) return '';
+      return generateCallLink(roomSlug);
     } catch {
       return '';
     }
-  });
-
-  const roomUrl = (roomSlug && callOrigin) ? `${callOrigin}/call/${roomSlug}` : '';
+  })();
 
   const handleCopyLink = () => {
     if (!roomSlug) {
       toast.error('Cryptographically secure generator unavailable. HTTPS required.');
+      return;
+    }
+    if (!roomUrl) {
+      toast.error('Unable to create call link: Secure origin could not be resolved.');
       return;
     }
     navigator.clipboard.writeText(roomUrl);
@@ -44,6 +47,10 @@ export const PrivateCallingStagingHero: React.FC = () => {
   const handleShareWhatsApp = () => {
     if (!roomSlug) {
       toast.error('Cryptographically secure generator unavailable. HTTPS required.');
+      return;
+    }
+    if (!roomUrl) {
+      toast.error('Unable to share call link: Secure origin could not be resolved.');
       return;
     }
     const text = encodeURIComponent(

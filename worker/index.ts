@@ -29,22 +29,6 @@ const SUPABASE_DEFAULT_ANON = 'sb_publishable_HRiuUoHejwLnOdITsW36Ew_ZSZ513Tw';
 const ORIGIN = 'https://chatr.chat';
 
 
-const EMERGENCY_ICE_FALLBACK = {
-  iceServers: {
-    urls: [
-      'stun:stun.cloudflare.com:3478',
-      'stun:stun.l.google.com:19302',
-      'turn:openrelay.metered.ca:80',
-      'turn:openrelay.metered.ca:80?transport=tcp',
-      'turn:openrelay.metered.ca:443',
-      'turns:openrelay.metered.ca:443?transport=tcp',
-    ],
-    username: 'openrelay',
-    credential: 'openrelay',
-  },
-  fallback: true,
-};
-
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -98,10 +82,9 @@ async function handleTurnCredentials(request: Request, env: Env): Promise<Respon
   }
 
   try {
-    // Strictly load from server-side environment variables; zero hardcoded fallback.
-    // Supports canonical CLOUDFLARE_TURN_* and dashboard alias CF_CALLS_* variables.
-    const tokenId = env.CLOUDFLARE_TURN_TOKEN_ID || env.CF_CALLS_KEY_ID || env.CF_CALLS_APP_ID;
-    const apiToken = env.CLOUDFLARE_TURN_API_TOKEN || env.CF_CALLS_APP_SECRET;
+    // Strictly load from canonical server-side environment variables; zero hardcoded fallback.
+    const tokenId = env.CLOUDFLARE_TURN_TOKEN_ID;
+    const apiToken = env.CLOUDFLARE_TURN_API_TOKEN;
 
     if (!tokenId || !apiToken) {
       console.warn('[Cloudflare TURN] TURN token ID or API token not set in environment.');
@@ -125,9 +108,9 @@ async function handleTurnCredentials(request: Request, env: Env): Promise<Respon
     );
 
     if (!response.ok) {
-      console.warn('[Cloudflare TURN] Primary generation returned status', response.status);
-      return new Response(JSON.stringify(EMERGENCY_ICE_FALLBACK), {
-        status: 200,
+      console.warn('[Cloudflare TURN] Cloudflare Calls generation failed with status', response.status);
+      return new Response(JSON.stringify({ error: 'Cloudflare TURN credential generation failed' }), {
+        status: response.status,
         headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
       });
     }
@@ -138,9 +121,9 @@ async function handleTurnCredentials(request: Request, env: Env): Promise<Respon
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     });
   } catch (error: any) {
-    console.warn('[Cloudflare TURN] Exception during generation:', error);
-    return new Response(JSON.stringify(EMERGENCY_ICE_FALLBACK), {
-      status: 200,
+    console.warn('[Cloudflare TURN] Exception during generation:', error?.message);
+    return new Response(JSON.stringify({ error: error?.message || 'Internal TURN Error' }), {
+      status: 500,
       headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
     });
   }

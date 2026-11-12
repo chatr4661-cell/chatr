@@ -19,8 +19,16 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         
+    - name: Setup Mock Google Services
+      run: |
+        if [ ! -f android-native/app/google-services.json ]; then
+          cp android-native/app/google-services.json.example android-native/app/google-services.json
+        fi
+
     - name: Grant execute permission for gradlew
-      run: chmod +x android-native/gradlew
+      run: |
+        sed -i 's/\r$//' android-native/gradlew
+        chmod +x android-native/gradlew
       
     - name: Build with Gradle
       run: |
@@ -44,4 +52,4 @@ jobs:
         path: |
           android-native/app/build/outputs/apk/release/*.apk
           android-native/app/build/outputs/apk/debug/*.apk
-        if-no-files-found: warn
+        if-no-files-found: error

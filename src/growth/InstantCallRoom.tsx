@@ -1,4 +1,4 @@
-import { generateSecureRoomSlug, getOrCreateSecureSessionId, getCallBaseOrigin } from './cryptoUtils';
+import { generateSecureRoomSlug, getOrCreateSecureSessionId, getCallBaseOrigin, generateCallLink } from './cryptoUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -87,9 +87,10 @@ export const InstantCallRoom: React.FC = () => {
 
   const roomLink = (() => {
     try {
-      return `${getCallBaseOrigin()}/call/${roomId}`;
+      if (!roomId) return null;
+      return generateCallLink(roomId);
     } catch {
-      return `/call/${roomId}`;
+      return null;
     }
   })();
 
@@ -111,6 +112,10 @@ export const InstantCallRoom: React.FC = () => {
   };
 
   const copyRoomLink = () => {
+    if (!roomLink) {
+      toast.error('Unable to create call link: Secure origin could not be resolved.');
+      return;
+    }
     navigator.clipboard.writeText(roomLink);
     setCopied(true);
     toast.success('Call link copied to clipboard!');
@@ -118,6 +123,10 @@ export const InstantCallRoom: React.FC = () => {
   };
 
   const shareOnWhatsApp = () => {
+    if (!roomLink) {
+      toast.error('Unable to share call link: Secure origin could not be resolved.');
+      return;
+    }
     const text = encodeURIComponent(`Join my encrypted HD video call on CHATR (No download or login required):\n${roomLink}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
