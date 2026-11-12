@@ -49,17 +49,36 @@ export const InstantCallRoom: React.FC = () => {
     }
   }, [roomId, navigate]);
 
-  // Security Priority 1: Client session identifier for 2-participant presence occupancy
+  // Security Priority 1: Cryptographically secure client session identifier for 2-participant presence occupancy
   const clientSessionId = useRef<string>((() => {
     try {
       let id = sessionStorage.getItem('chatr_call_session_id');
       if (!id) {
-        id = 'user_' + Math.random().toString(36).substring(2, 10);
+        if (typeof crypto !== 'undefined') {
+          if (typeof crypto.randomUUID === 'function') {
+            id = `u-${crypto.randomUUID()}`;
+          } else if (typeof crypto.getRandomValues === 'function') {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            id = `u-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
+          }
+        }
+        if (!id) {
+          throw new Error('SECURE_CRYPTO_UNAVAILABLE');
+        }
         sessionStorage.setItem('chatr_call_session_id', id);
       }
       return id;
     } catch {
-      return 'user_' + Math.random().toString(36).substring(2, 10);
+      if (typeof crypto !== 'undefined') {
+        if (typeof crypto.randomUUID === 'function') return `u-${crypto.randomUUID()}`;
+        if (typeof crypto.getRandomValues === 'function') {
+          const bytes = new Uint8Array(16);
+          crypto.getRandomValues(bytes);
+          return `u-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
+        }
+      }
+      return `u-${Date.now()}`;
     }
   })()).current;
   const [isRoomFull, setIsRoomFull] = useState(false);
