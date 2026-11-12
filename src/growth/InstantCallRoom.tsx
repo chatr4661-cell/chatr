@@ -1,3 +1,4 @@
+import { generateSecureRoomSlug, getOrCreateSecureSessionId, getCallBaseOrigin } from './cryptoUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
@@ -22,19 +23,7 @@ export const InstantCallRoom: React.FC = () => {
   // Security Priority 1: Cryptographically random room generator
   // Security Task 2: Fail-Closed Cryptographic Room ID Generator (Zero Math.random fallback)
   const generateSlug = (): string => {
-    if (typeof crypto !== 'undefined') {
-      if (typeof crypto.randomUUID === 'function') {
-        return `p-${crypto.randomUUID()}`;
-      }
-      if (typeof crypto.getRandomValues === 'function') {
-        const bytes = new Uint8Array(16);
-        crypto.getRandomValues(bytes);
-        const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-        return `p-${hex}`;
-      }
-    }
-    // Fail closed: Never fallback to Math.random() or predictable PRNGs
-    throw new Error('SECURE_CRYPTO_UNAVAILABLE: Hardware-backed Web Cryptography API is required for private room generation.');
+    return generateSecureRoomSlug();
   };
 
   useEffect(() => {
@@ -50,36 +39,9 @@ export const InstantCallRoom: React.FC = () => {
   }, [roomId, navigate]);
 
   // Security Priority 1: Cryptographically secure client session identifier for 2-participant presence occupancy
+  // Security Priority 1: Cryptographically secure client session identifier (Fail-Closed)
   const clientSessionId = useRef<string>((() => {
-    try {
-      let id = sessionStorage.getItem('chatr_call_session_id');
-      if (!id) {
-        if (typeof crypto !== 'undefined') {
-          if (typeof crypto.randomUUID === 'function') {
-            id = `u-${crypto.randomUUID()}`;
-          } else if (typeof crypto.getRandomValues === 'function') {
-            const bytes = new Uint8Array(16);
-            crypto.getRandomValues(bytes);
-            id = `u-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
-          }
-        }
-        if (!id) {
-          throw new Error('SECURE_CRYPTO_UNAVAILABLE');
-        }
-        sessionStorage.setItem('chatr_call_session_id', id);
-      }
-      return id;
-    } catch {
-      if (typeof crypto !== 'undefined') {
-        if (typeof crypto.randomUUID === 'function') return `u-${crypto.randomUUID()}`;
-        if (typeof crypto.getRandomValues === 'function') {
-          const bytes = new Uint8Array(16);
-          crypto.getRandomValues(bytes);
-          return `u-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
-        }
-      }
-      return `u-${Date.now()}`;
-    }
+    return getOrCreateSecureSessionId();
   })()).current;
   const [isRoomFull, setIsRoomFull] = useState(false);
   const peerSessionIdRef = useRef<string | null>(null);
@@ -123,7 +85,13 @@ export const InstantCallRoom: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSigningUp, setIsSigningUp] = useState(false);
 
-  const roomLink = `https://chatr.chat/call/${roomId}`;
+  const roomLink = (() => {
+    try {
+      return `${getCallBaseOrigin()}/call/${roomId}`;
+    } catch {
+      return `/call/${roomId}`;
+    }
+  })();
 
   // Call duration counter
   useEffect(() => {

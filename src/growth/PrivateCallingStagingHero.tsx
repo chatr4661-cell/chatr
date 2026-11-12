@@ -1,3 +1,4 @@
+import { generateSecureRoomSlug, getCallBaseOrigin } from './cryptoUtils';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -10,27 +11,24 @@ export const PrivateCallingStagingHero: React.FC = () => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
-  // Generate a cryptographically random room slug
-  // Security Task 2: Fail-Closed Cryptographic Room Slug Generator (Zero Math.random fallback)
+  // Generate a cryptographically random room slug (strictly fail-closed)
   const [roomSlug] = useState<string>(() => {
     try {
-      if (typeof crypto !== 'undefined') {
-        if (typeof crypto.randomUUID === 'function') {
-          return `p-${crypto.randomUUID()}`;
-        }
-        if (typeof crypto.getRandomValues === 'function') {
-          const bytes = new Uint8Array(16);
-          crypto.getRandomValues(bytes);
-          return `p-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;
-        }
-      }
-      throw new Error('Web Cryptography API unavailable');
+      return generateSecureRoomSlug();
     } catch {
       return '';
     }
   });
 
-  const roomUrl = roomSlug ? `https://chatr.chat/call/${roomSlug}` : '';
+  const [callOrigin] = useState<string>(() => {
+    try {
+      return getCallBaseOrigin();
+    } catch {
+      return '';
+    }
+  });
+
+  const roomUrl = (roomSlug && callOrigin) ? `${callOrigin}/call/${roomSlug}` : '';
 
   const handleCopyLink = () => {
     if (!roomSlug) {
