@@ -103,4 +103,36 @@ describe('cryptoUtils — Fail-Closed Cryptographic Invariants', () => {
     assert.notStrictEqual(sessId, 'u-1794400000000');
     assert.match(sessId, /^u-[0-9a-f-]{36}$/i);
   });
+
+  it('8. Resolves Cloudflare Pages preview origin without falling back to chatr.chat', () => {
+    const previewWin = { location: { origin: 'https://0e16f981.chatr.pages.dev' } };
+    const origin = getCallBaseOrigin(previewWin);
+    assert.strictEqual(origin, 'https://0e16f981.chatr.pages.dev');
+    assert.notStrictEqual(origin, 'https://chatr.chat');
+  });
+
+  it('9. Resolves local development origin (http://localhost:5173)', () => {
+    const localWin = { location: { origin: 'http://localhost:5173' } };
+    const origin = getCallBaseOrigin(localWin);
+    assert.strictEqual(origin, 'http://localhost:5173');
+    assert.notStrictEqual(origin, 'https://chatr.chat');
+  });
+
+  it('10. Resolves explicitly configured staging origin (VITE_APP_ORIGIN)', () => {
+    const prev = process.env.VITE_APP_ORIGIN;
+    process.env.VITE_APP_ORIGIN = 'https://staging-call.chatr.pages.dev/';
+    try {
+      const origin = getCallBaseOrigin();
+      assert.strictEqual(origin, 'https://staging-call.chatr.pages.dev');
+    } finally {
+      process.env.VITE_APP_ORIGIN = prev;
+    }
+  });
+
+  it('11. Strictly throws SECURE_ORIGIN_UNAVAILABLE on null/missing origin, never defaults to production', () => {
+    const invalidWin = { location: { origin: 'null' } };
+    assert.throws(() => getCallBaseOrigin(invalidWin), /SECURE_ORIGIN_UNAVAILABLE/);
+    const emptyWin = { location: { origin: '' } };
+    assert.throws(() => getCallBaseOrigin(emptyWin), /SECURE_ORIGIN_UNAVAILABLE/);
+  });
 });

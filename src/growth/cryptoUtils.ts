@@ -60,16 +60,20 @@ export function getOrCreateSecureSessionId(storage: Storage | null = typeof sess
   return freshId;
 }
 
-export function getCallBaseOrigin(): string {
+export function getCallBaseOrigin(explicitWindow?: { location?: { origin?: string } }): string {
   // 1. Check explicit environment configuration
-  const envOrigin = (import.meta as any).env?.VITE_APP_ORIGIN || (import.meta as any).env?.VITE_PUBLIC_URL;
+  const envOrigin = 
+    (typeof process !== 'undefined' && process.env?.VITE_APP_ORIGIN) ||
+    (typeof (import.meta as any) !== 'undefined' && (import.meta as any).env?.VITE_APP_ORIGIN) ||
+    (typeof (import.meta as any) !== 'undefined' && (import.meta as any).env?.VITE_PUBLIC_URL);
   if (envOrigin && typeof envOrigin === 'string' && envOrigin.startsWith('http')) {
     return envOrigin.replace(/\/+$/, '');
   }
 
   // 2. Dynamic runtime browser origin (works on preview deployments, localhost, staging)
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    const origin = window.location.origin;
+  const win = explicitWindow || (typeof window !== 'undefined' ? window : undefined);
+  if (win && win.location?.origin) {
+    const origin = win.location.origin;
     if (origin && origin !== 'null' && origin.startsWith('http')) {
       return origin.replace(/\/+$/, '');
     }

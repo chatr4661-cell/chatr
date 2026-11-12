@@ -23,28 +23,21 @@ jobs:
       run: chmod +x android-native/gradlew
       
     - name: Build with Gradle
-      id: gradle_build
-      continue-on-error: true
       run: |
         cd android-native
         ./gradlew build -x test
         
     - name: Run tests
-      if: steps.gradle_build.outcome == 'success'
-      continue-on-error: true
       run: |
         cd android-native
         ./gradlew test
         
     - name: Build APK
-      if: steps.gradle_build.outcome == 'success'
-      continue-on-error: true
       run: |
         cd android-native
         ./gradlew assembleRelease || ./gradlew assembleDebug
         
     - name: Upload APK
-      if: steps.gradle_build.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
         name: app-release

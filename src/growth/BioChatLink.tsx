@@ -1,3 +1,4 @@
+import { generateSecureRoomSlug } from './cryptoUtils';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -85,8 +86,12 @@ export const BioChatLink: React.FC = () => {
   };
 
   const startInstantVideoCall = () => {
-    const callRoomId = `${cleanUsername}-${Math.random().toString(36).substring(2, 7)}`;
-    navigate(`/call/${callRoomId}`);
+    try {
+      const callRoomId = generateSecureRoomSlug();
+      navigate(`/call/${callRoomId}`);
+    } catch {
+      toast.error('Cryptographically secure generator unavailable. Please ensure you are on HTTPS.');
+    }
   };
 
   if (loading) {

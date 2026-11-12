@@ -180,7 +180,7 @@ dependencies {
     // On-device Gemini Nano (Android AICore via ML Kit GenAI)
     // Beta — runs locally on Pixel 8+/Galaxy S24+ via system AICore service.
     // Zero server cost. Gracefully unavailable on older devices → cloud fallback.
-    implementation("com.google.mlkit:genai-prompt:1.0.0-beta01")
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta1")
 
     // Testing
     testImplementation(libs.bundles.testing)

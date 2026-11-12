@@ -14,12 +14,13 @@ export async function onRequest(context: any): Promise<Response> {
   }
 
   try {
-    // Strictly load from server-side environment variables; zero hardcoded fallback
-    const tokenId = env.CLOUDFLARE_TURN_TOKEN_ID;
-    const apiToken = env.CLOUDFLARE_TURN_API_TOKEN;
+    // Strictly load from server-side environment variables; zero hardcoded fallback.
+    // Supports canonical CLOUDFLARE_TURN_* and dashboard alias CF_CALLS_* variables.
+    const tokenId = env.CLOUDFLARE_TURN_TOKEN_ID || env.CF_CALLS_KEY_ID || env.CF_CALLS_APP_ID;
+    const apiToken = env.CLOUDFLARE_TURN_API_TOKEN || env.CF_CALLS_APP_SECRET;
 
     if (!tokenId || !apiToken) {
-      console.warn('[Cloudflare TURN] CLOUDFLARE_TURN_TOKEN_ID or CLOUDFLARE_TURN_API_TOKEN not set in environment.');
+      console.warn('[Cloudflare TURN] TURN token ID or API token not set in environment.');
       return new Response(JSON.stringify({ error: 'TURN credentials are not configured on server' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
