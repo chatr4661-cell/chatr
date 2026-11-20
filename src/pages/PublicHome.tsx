@@ -46,6 +46,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { SEOHead } from '@/components/SEOHead';
+import { PrivateCallingStagingHero } from '@/growth/PrivateCallingStagingHero';
+import { isPrivateCallingHeroEnabled } from '@/config/stagingFeatureFlags';
 import {
   ORGANIZATION_NAME,
   PRODUCTION_ORIGIN,
@@ -456,6 +458,15 @@ const PublicHome: React.FC = () => {
           </div>
         )}
       </header>
+
+      {/* ========================================================= */}
+      {/* 1.5 PRIORITY 1-CLICK INSTANT CALLING HERO (APEX ACQUISITION) */}
+      {/* ========================================================= */}
+      {isPrivateCallingHeroEnabled() && (
+        <section className="bg-gradient-to-b from-emerald-950/15 via-background to-background border-b border-emerald-500/10">
+          <PrivateCallingStagingHero />
+        </section>
+      )}
 
       {/* ========================================================= */}
       {/* 2. HERO SECTION (WITH LIVE CALL PREVIEW ON LEFT SIDE)      */}
