@@ -1,3 +1,4 @@
+import { STAGING_FEATURE_FLAGS } from '@/config/stagingFeatureFlags';
 import type { CommercialCampaign } from './types';
 
 /**
@@ -180,10 +181,11 @@ export function getActiveCampaigns(): CommercialCampaign[] {
 }
 
 export function isCommercialGatewayEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
+  if (typeof window === 'undefined') return false;
   try {
+    if (STAGING_FEATURE_FLAGS.SHOW_COMMERCIAL_GATEWAY === false) return false;
     return localStorage.getItem('chatr_commercial_gateway_disabled') !== 'true';
   } catch {
-    return true;
+    return false;
   }
 }

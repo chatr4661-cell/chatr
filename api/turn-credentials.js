@@ -26,7 +26,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ttl: 86400,
+          ttl: 3600, // Phase 4.4: 1-hour short-lived credential TTL
         }),
       }
     );

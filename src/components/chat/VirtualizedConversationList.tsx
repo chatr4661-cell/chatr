@@ -692,6 +692,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
     }
     loadConversations();
     loadContacts();
+    const safetyTimer = setTimeout(() => setLoading(false), 1800);
 
     const channel = supabase
       .channel('conv-updates-realtime', {
@@ -705,6 +706,7 @@ export const VirtualizedConversationList = ({ userId, onConversationSelect }: Vi
 
     // Remove aggressive 5s polling - rely on realtime only
     return () => {
+      clearTimeout(safetyTimer);
       if (pendingReloadRef.current) clearTimeout(pendingReloadRef.current);
       supabase.removeChannel(channel);
     };
