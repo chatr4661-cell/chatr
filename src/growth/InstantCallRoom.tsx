@@ -19,6 +19,8 @@ interface ReceivedFile {
 
 export const InstantCallRoom: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId?: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // Security Priority 1: Cryptographically random room generator
   // Security Task 2: Fail-Closed Cryptographic Room ID Generator (Zero Math.random fallback)
@@ -40,13 +42,24 @@ export const InstantCallRoom: React.FC = () => {
 
   // Security Priority 1: Cryptographically secure client session identifier for 2-participant presence occupancy
   // Security Priority 1: Cryptographically secure client session identifier (Fail-Closed)
+  const [cryptoError, setCryptoError] = useState<string | null>(null);
   const clientSessionId = useRef<string>((() => {
-    return getOrCreateSecureSessionId();
+    try {
+      return getOrCreateSecureSessionId();
+    } catch (err: any) {
+      console.error('[WebRTC Security] Secure session initialization error:', err);
+      return '';
+    }
   })()).current;
+
+  useEffect(() => {
+    if (!clientSessionId) {
+      setCryptoError('Hardware-backed Web Cryptography API is required. Please ensure you are accessing via HTTPS on a modern browser.');
+    }
+  }, [clientSessionId]);
+
   const [isRoomFull, setIsRoomFull] = useState(false);
   const peerSessionIdRef = useRef<string | null>(null);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   // Guest & Call State
   const [guestName, setGuestName] = useState(searchParams.get('name') || 'Guest');
@@ -538,6 +551,26 @@ export const InstantCallRoom: React.FC = () => {
     setIsSigningUp(true);
     navigate(`/auth?phone=${encodeURIComponent(phoneNumber)}&ref=instant_call&room=${roomId}`);
   };
+
+  if (cryptoError) {
+    return (
+      <div className="fixed inset-0 bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans z-50">
+        <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6 text-amber-400 shadow-xl">
+          <ShieldCheck className="w-10 h-10" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight mb-2">Secure Environment Required</h1>
+        <p className="text-sm text-slate-400 max-w-md mb-6 leading-relaxed">
+          {cryptoError}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-950 text-white flex flex-col justify-between overflow-hidden select-none font-sans z-50">
