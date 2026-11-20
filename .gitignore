@@ -40,3 +40,8 @@ supabase/.temp/
 gsc-credentials.json
 chatr-seo-acquisition/config/*.json
 !chatr-seo-acquisition/config/.gitkeep
+
+# Android native build outputs
+android-native/**/build/
+android-native/.gradle/
+
