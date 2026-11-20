@@ -179,6 +179,30 @@ const contentFor = (kind: PageKind, heading: string): string => {
   }
 };
 
+const renderCallGenerator = () => `
+  <section class="chatr-call-card" style="background: linear-gradient(145deg, #0b1528, #052a21); color: #fff; border: 1px solid rgba(0, 208, 132, 0.4); border-radius: 16px; padding: 24px; margin: 24px 0 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;">
+      <span style="background: rgba(0,208,132,0.15); color: #00D084; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 9999px; text-transform: uppercase;">⚡ Live Calling Engine</span>
+      <span style="background: rgba(255,255,255,0.08); color: #cbd5e1; font-size: 11px; padding: 3px 8px; border-radius: 9999px;">🔒 Zero App Download • No Signup</span>
+    </div>
+    <h2 style="font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 6px;">Start an Instant Private HD Call</h2>
+    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;">Connect directly in your browser with zero installation. Share the room link on WhatsApp, Telegram, or SMS without sharing your phone number.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+      <a href="/call" style="background: #00D084; color: #022c22; font-weight: 800; font-size: 13px; padding: 11px 18px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">📞 Start 1-Click HD Call</a>
+      <a href="https://api.whatsapp.com/send?text=Join%20my%20private%20HD%20call%20on%20CHATR%20(No%20app%20or%20signup%20needed)%3A%20https%3A%2F%2Fchatr.chat%2Fcall" target="_blank" rel="noopener noreferrer" style="background: #25D366; color: #fff; font-weight: 700; font-size: 13px; padding: 11px 18px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">💬 Share on WhatsApp</a>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: #94a3b8;">
+      <span>🛡️ Hardware WebCrypto</span>
+      <span>•</span>
+      <span>⚡ 48kHz HD Audio</span>
+      <span>•</span>
+      <span>🌐 Mobile Chrome &amp; Safari</span>
+      <span>•</span>
+      <span>📦 P2P Web AirDrop</span>
+    </div>
+  </section>
+`;
+
 const renderBody = (target: Target) => {
   const heading = target.title.replace(/\s+—\s+Chatr\+?$/, '');
   const links = [...siblingsFor(target.path), ...HUBS.map(([p, t]) => ({ path: p, title: t, description: '' }))]
@@ -188,6 +212,7 @@ const renderBody = (target: Target) => {
   return [
     '<div data-prerender="seo">',
     `<h1>${escapeHtml(heading)}</h1>`,
+    renderCallGenerator(),
     `<p>${escapeHtml(target.description)}</p>`,
     contentFor(classify(target.path), heading),
     `<nav aria-label="Related pages"><ul>${links}</ul></nav>`,
